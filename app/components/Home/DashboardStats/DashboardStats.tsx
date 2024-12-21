@@ -41,7 +41,7 @@ const DashboardStats = () => {
             className="relative bg-white pt-5 px-4 pb-2 sm:pt-6 sm:px-6 shadow rounded-lg overflow-hidden"
           >
             <dt>
-              <div className="absolute bg-indigo-500 rounded-md p-3">
+              <div className="absolute bg-zinc-800 rounded-md p-3">
                 <item.icon className="h-6 w-6 text-white" />
               </div>
               <p className="ml-16 text-sm font-medium text-gray-500 truncate">

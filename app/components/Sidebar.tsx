@@ -14,8 +14,8 @@ export default function Sidebar() {
 
   return (
     <div className="hidden md:flex md:w-64 md:flex-col">
-      <div className="flex flex-col flex-grow pt-2 bg-white overflow-y-auto">
-        <div className="flex items-center flex-shrink-0 px-4">
+      <div className="flex flex-col flex-grow  bg-[#f7f9f8] border-r border-[#dfdfe4] overflow-y-auto">
+        <div className="flex items-center flex-shrink-0 p-4">
         <svg className='w-28' viewBox="0 0 160 48" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect y="2" width="44" height="44" rx="8" fill="#4CAF50"/>
 <path d="M26.8992 31.7412L26.8942 18.4473H13.5142L9 22.844H22.38V36.138L26.8992 31.7412Z" fill="white"/>
@@ -31,8 +31,8 @@ export default function Sidebar() {
 </svg>
 
         </div>
-        <div className="mt-5 flex-1 flex flex-col">
-          <nav className="flex-1 px-2 space-y-1">
+        <div className="mt-0 flex-1 flex flex-col">
+          <nav className="flex-1 p-2 space-y-1 bg-[#f7f9f8]">
             {menuItems.map((item) => (
               <Link
                 key={item.name}
