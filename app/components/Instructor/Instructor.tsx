@@ -54,7 +54,7 @@ const Instructor = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-start max-w-7xl w-full justify-start p-4">
+    <div className="flex min-h-screen items-start max-w-7xl w-full justify-start px-4">
       <Card className="w-full max-w-7xl">
         <CardHeader>
           <CardTitle>Instructor Signup</CardTitle>

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
-
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 const ClassForm = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -113,6 +114,23 @@ const ClassForm = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-0">
+              <nav className="flex my-4" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 text-sm">
+          <li>
+            <Link href="/" className="text-zinc-500 hover:text-zinc-700">
+              Home
+            </Link>
+          </li>
+          <li>
+            <ChevronRight className="w-4 h-4 text-zinc-400" />
+          </li>
+          <li className="text-zinc-900 font-medium">
+            Add Class
+          </li>
+        </ol>
+      </nav>
+      <h1 className="text-3xl font-bold tracking-tight">Add Class</h1>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex flex-col lg:px-0 sm:px-2 px-4 pt-4 lg:flex-row gap-4  justify-center">
           <div className="space-y-4 w-full lg:w-1/2">
