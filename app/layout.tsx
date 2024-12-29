@@ -6,6 +6,7 @@ import "./globals.css";
 import Header from "./components/Header";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { useMemo, useEffect, useState } from "react";
+import { Toaster } from "@/components/ui/toaster";
 
 // AuthWrapper component to handle authentication
 const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -54,7 +55,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <AuthWrapper>
+        {/* <AuthWrapper> */}
           <div className="flex h-screen bg-gray-100">
             {/* {!isLoginPage && <Sidebar />} */}
             <div className="flex-1 flex flex-col overflow-hidden">
@@ -64,7 +65,8 @@ export default function RootLayout({
               </main>
             </div>
           </div>
-        </AuthWrapper>
+        {/* </AuthWrapper> */}
+        <Toaster />
       </body>
     </html>
   );

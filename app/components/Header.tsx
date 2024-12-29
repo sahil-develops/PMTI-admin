@@ -1,10 +1,12 @@
 'use client'
-import { Bell, User, LogOut, Home, Users, BookOpen, Calendar, MapPin, Menu, X } from 'lucide-react';
+import { Bell, User, LogOut, Home, Users, BookOpen, Calendar, MapPin, Menu, X,BadgePercent } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 
 export default function Header() {
+  const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -17,6 +19,7 @@ export default function Header() {
     { name: 'Classes', icon: Calendar, href: '/classes' },
     { name: 'Courses', icon: BookOpen, href: '/courses' },
     { name: 'Locations', icon: MapPin, href: '/locations' },
+    { name: 'Promotions', icon: BadgePercent, href: '/promotions' },
   ];
 
   useEffect(() => {
@@ -79,6 +82,13 @@ export default function Header() {
     }
   };
 
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return pathname === path;
+    }
+    return pathname.startsWith(path);
+  };
+
   return (
     <header className="bg-white relative">
       <div className="max-w-7xl mx-auto p-4 ">
@@ -105,10 +115,23 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                className={`flex items-center md:px-0 lg:px-1 py-2 text-sm font-medium rounded-md 
+                  ${isActive(item.href)
+                    ? 'text-zinc-900 bg-zinc-100'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  } relative group`}
               >
-                <item.icon className="mr-2 h-5 w-5" />
+                <item.icon className={`mr-2 h-5 w-5 ${
+                  isActive(item.href) ? 'text-zinc-900' : 'text-gray-500'
+                }`} />
                 {item.name}
+                {isActive(item.href) && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900"
+                    initial={false}
+                  />
+                )}
               </Link>
             ))}
           </nav>
@@ -188,10 +211,16 @@ export default function Header() {
                   >
                     <Link
                       href={item.href}
-                      className="flex items-center px-3 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md"
+                      className={`flex items-center px-3 py-3 text-sm font-medium rounded-md
+                        ${isActive(item.href)
+                          ? 'text-zinc-900 bg-zinc-100'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <item.icon className="mr-3 h-5 w-5" />
+                      <item.icon className={`mr-3 h-5 w-5 ${
+                        isActive(item.href) ? 'text-zinc-900' : 'text-gray-500'
+                      }`} />
                       {item.name}
                     </Link>
                   </motion.div>

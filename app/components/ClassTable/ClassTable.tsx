@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Search, Plus, MoreVertical, Edit2, Trash2, User, Eye } from 'lucide-react';
 import { 
@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
+import { useToast } from "@/hooks/use-toast";
+
 interface ClassType {
   id: number;
   name: string;
@@ -86,22 +89,26 @@ const Alert = ({ message, type = 'error', onClose }: { message: string; type?: '
 // Custom Dropdown Component
 const ActionDropdown = ({ 
   classId, 
-  refreshData 
+  refreshData,
+  classItem,
+  onDelete
 }: { 
   classId: number;
   refreshData: () => void;
+  classItem: ClassData;
+  onDelete: (id: number) => void;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this class?')) {
-      return;
-    }
-
+    setIsDeleting(true);
+    onDelete(classId);
+    
     try {
-      setIsDeleting(true);
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}class/${classId}`,
         {
@@ -114,16 +121,23 @@ const ActionDropdown = ({
       );
 
       if (!response.ok) {
+        refreshData();
         throw new Error('Failed to delete class');
       }
 
-      alert('Class deleted successfully');
-      refreshData();
+      toast({
+        title: "Success",
+        description: "Class deleted successfully",
+      });
     } catch (error) {
-      alert('Failed to delete class');
-      console.error('Delete error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete class",
+        variant: "destructive",
+      });
     } finally {
       setIsDeleting(false);
+      setShowDeleteModal(false);
       setIsOpen(false);
     }
   };
@@ -134,7 +148,7 @@ const ActionDropdown = ({
         router.push(`/edit-class/${classId}`);
         break;
       case 'delete':
-        handleDelete();
+        setShowDeleteModal(true);
         break;
       case 'details':
         router.push(`/class-details/${classId}`);
@@ -147,58 +161,69 @@ const ActionDropdown = ({
   };
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-1 rounded hover:bg-zinc-100"
-        disabled={isDeleting}
-      >
-        <MoreVertical size={20} className="text-zinc-600" />
-      </button>
-      
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white z-20 py-1">
-            <button
-              onClick={() => handleAction('details')}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
-              disabled={isDeleting}
-            >
-              <Eye size={16} />
-              View details
-            </button>
-            <button
-              onClick={() => handleAction('edit')}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
-              disabled={isDeleting}
-            >
-              <Edit2 size={16} />
-              Edit details
-            </button>
-            <button
-              onClick={() => handleAction('roster')}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
-              disabled={isDeleting}
-            >
-              <User size={16} />
-              View roster
-            </button>
-            <button
-              onClick={() => handleAction('delete')}
-              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-              disabled={isDeleting}
-            >
-              <Trash2 size={16} />
-              {isDeleting ? 'Deleting...' : 'Delete class'}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+    <>
+      <div className="relative">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-1 rounded hover:bg-zinc-100"
+          disabled={isDeleting}
+        >
+          <MoreVertical size={20} className="text-zinc-600" />
+        </button>
+        
+        {isOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setIsOpen(false)}
+            />
+            <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white z-20 py-1">
+              <button
+                onClick={() => handleAction('details')}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
+                disabled={isDeleting}
+              >
+                <Eye size={16} />
+                View details
+              </button>
+              <button
+                onClick={() => handleAction('edit')}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
+                disabled={isDeleting}
+              >
+                <Edit2 size={16} />
+                Edit details
+              </button>
+              <button
+                onClick={() => handleAction('roster')}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
+                disabled={isDeleting}
+              >
+                <User size={16} />
+                View roster
+              </button>
+              <button
+                onClick={() => handleAction('delete')}
+                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                disabled={isDeleting}
+              >
+                <Trash2 size={16} />
+                {isDeleting ? 'Deleting...' : 'Delete class'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Delete Class"
+        message={`Are you sure you want to delete the class "${classItem.title}"? This action cannot be undone.`}
+        isLoading={isDeleting}
+      />
+    </>
   );
 };
 
@@ -237,6 +262,7 @@ const ClassTable = () => {
 
   const [classTypes, setClassTypes] = useState<ClassType[]>([]);
   interface Country {
+    name: ReactNode;
     id: number;
     CountryName: string;
     currency: string;
@@ -412,6 +438,11 @@ const ClassTable = () => {
       ))}
     </div>
   );
+
+  const deleteClassLocally = (classId: number) => {
+    setClasses(prevClasses => prevClasses.filter(c => c.id !== classId));
+  };
+
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       {error && (
@@ -588,7 +619,7 @@ const ClassTable = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
-            {classes && classes.length > 0 ? (
+            {classes && classes?.length > 0 ? (
   classes.map((classItem) => (
     <tr key={classItem.id} className="hover:bg-zinc-50">
       <TableCell>{classItem.classType?.name || 'N/A'}</TableCell>
@@ -604,11 +635,11 @@ const ClassTable = () => {
       <TableCell>
         {new Date(classItem.endDate).toLocaleDateString()}
       </TableCell>
-      <TableCell>{classItem.instructor || 'Not assigned'}</TableCell>
+      <TableCell>{classItem?.instructor || 'Not assigned'}</TableCell>
       <TableCell>
         <span className={`px-2 py-1 rounded-full text-xs ${
           classItem.status === '1' 
-            ? 'bg-green-100 text-green-800' 
+            ? 'bg-green-100 text-green-800'
             : classItem.status === '2'
             ? 'bg-yellow-100 text-yellow-800'
             : 'bg-red-100 text-red-800'
@@ -626,6 +657,8 @@ const ClassTable = () => {
         <ActionDropdown 
           classId={classItem.id}
           refreshData={fetchClasses}
+          classItem={classItem}
+          onDelete={deleteClassLocally}
         />
       </TableCell>
     </tr>
