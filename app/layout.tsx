@@ -56,7 +56,7 @@ export default function RootLayout({
 
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {/* <AuthWrapper> */}
+        <AuthWrapper>
           <div className="flex h-screen bg-gray-100">
             {/* {!isLoginPage && <Sidebar />} */}
             <div className="flex-1 flex flex-col overflow-hidden">
@@ -70,7 +70,7 @@ export default function RootLayout({
            
             </div>
           </div>
-        {/* </AuthWrapper> */}
+        </AuthWrapper>
         <Toaster />
       </body>
     </html>

@@ -3,7 +3,8 @@ import { Bell, User, LogOut, Home, Users, BookOpen, Calendar, MapPin, Menu, X,Ba
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePathname } from 'next/navigation';
+import { usePathname,useRouter } from 'next/navigation';
+// import {  } from 'next/router';
 
 export default function Header() {
   const pathname = usePathname();
@@ -11,7 +12,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
-
+const router = useRouter();
   const menuItems = [
     { name: 'Dashboard', icon: Home, href: '/' },
     { name: 'Students', icon: Users, href: '/students' },
@@ -37,7 +38,7 @@ export default function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
-    window.location.reload();
+    window.location.pathname = '/login';
   };
 
   const sidebarVariants = {
