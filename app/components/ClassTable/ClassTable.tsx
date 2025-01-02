@@ -2,6 +2,7 @@
 import React, { useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Search, Plus, MoreVertical, Edit2, Trash2, User, Eye } from 'lucide-react';
+import Link  from 'next/link';
 import { 
   Select,
   SelectContent,
@@ -13,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import { useToast } from "@/hooks/use-toast";
+
+import ClassTypeDropdown1 from '@/app/components/DropDown/ClassTypeDropdown1';
 
 interface ClassType {
   id: number;
@@ -443,6 +446,17 @@ const ClassTable = () => {
     setClasses(prevClasses => prevClasses.filter(c => c.id !== classId));
   };
 
+
+  const refreshClassTypes = async () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+    };
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}classtype`, { headers });
+    const data = await response.json();
+    setClassTypes(data.data);
+  };
+
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       {error && (
@@ -516,11 +530,18 @@ const ClassTable = () => {
               <SelectValue placeholder="Select Instructor" />
             </SelectTrigger>
             <SelectContent>
-              {instructors?.map((instructor) => (
+              {
+              instructors.length > 0 ?
+              instructors?.map((instructor) => (
                 <SelectItem key={instructor.id} value={instructor.id.toString()}>
                   {instructor.name}
                 </SelectItem>
-              ))}
+              ))
+            : 
+            <div className='text-center text-zinc-500  text-sm p-4'>
+              <p>No Instructors Found. <Link  href={"/instructors"} className='hover:underline text-black hover:scale-105'>Create One</Link></p>
+            </div>
+            }
             </SelectContent>
           </Select>
         </div>
@@ -544,24 +565,12 @@ const ClassTable = () => {
           </Select>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label>Class Type</Label>
-          <Select
-            value={searchParams.classTypeId}
-            onValueChange={(value) => setSearchParams({ ...searchParams, classTypeId: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select Class Type" />
-            </SelectTrigger>
-            <SelectContent>
-              {classTypes?.map((type) => (
-                <SelectItem key={type.id} value={type.id.toString()}>
-                  {type.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <ClassTypeDropdown1
+  searchParams={searchParams}
+  // @ts-ignore
+  setSearchParams={setSearchParams}
+  classTypes={classTypes}
+/>
 
         <div className="flex flex-col gap-2">
           <Label>Show Class</Label>

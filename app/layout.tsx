@@ -53,6 +53,7 @@ export default function RootLayout({
   const isLoginPage = pathname === "/login";
 
   return (
+
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {/* <AuthWrapper> */}
@@ -60,9 +61,13 @@ export default function RootLayout({
             {/* {!isLoginPage && <Sidebar />} */}
             <div className="flex-1 flex flex-col overflow-hidden">
               {!isLoginPage && <Header />}
+
               <main className="flex-1 overflow-x-hidden mx-auto max-w-7xl w-full overflow-y-auto bg-gray-100 p-2">
                 {children}
               </main>
+           
+
+           
             </div>
           </div>
         {/* </AuthWrapper> */}

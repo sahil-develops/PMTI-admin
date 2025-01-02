@@ -1,8 +1,22 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+
+interface Country {
+  id: number;
+  CountryName: string;
+  currency: string;
+}
 
 interface SignupData {
   name: string;
@@ -70,7 +84,30 @@ const SignIn = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'success' | 'error'>('success');
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingCountries, setIsLoadingCountries] = useState(false);
 
+  useEffect(() => {
+    fetchCountries();
+  }, []);
+
+  const fetchCountries = async () => {
+    setIsLoadingCountries(true);
+    try {
+      const response = await fetch('http://192.252.156.251:25769/country');
+      if (!response.ok) throw new Error('Failed to fetch countries');
+      const data = await response.json();
+      setCountries(data.data);
+    } catch (error) {
+      console.error('Error fetching countries:', error);
+    } finally {
+      setIsLoadingCountries(false);
+    }
+  };
+  const filteredCountries = countries.filter(country =>
+    country.CountryName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   const router = useRouter()
 
   const [signupData, setSignupData] = useState<SignupData>({
@@ -78,7 +115,7 @@ const SignIn = () => {
     designation: '',
     phone: '',
     email: '',
-    countryId: 1,
+    countryId: 4,
     isSuperAdmin: true,
     isActive: true,
     password: '',
@@ -258,7 +295,48 @@ const SignIn = () => {
                   onChange={(e) => setSignupData({ ...signupData, designation: e.target.value })}
                 />
               </div>
-
+              <div className="space-y-2">
+              <div className="space-y-2">
+  <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+    Country
+  </label>
+  <Select 
+    value={signupData.countryId.toString()} 
+    onValueChange={(value) => setSignupData({ ...signupData, countryId: parseInt(value) })}
+  >
+    <SelectTrigger className='bg-white'>
+      <SelectValue placeholder="Select a country" className='bg-white' />
+    </SelectTrigger>
+    <SelectContent>
+      <div className="sticky top-0 p-2 bg-white">
+        <Input
+          placeholder="Search countries..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="h-8 bg-white"
+        />
+      </div>
+      <div className="max-h-[300px] overflow-y-auto">
+        {isLoadingCountries ? (
+          <div className="flex items-center justify-center p-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+          </div>
+        ) : filteredCountries.length > 0 ? (
+          filteredCountries.map((country) => (
+            <SelectItem key={country.id} value={country.id.toString()} className='bg-white'>
+              {country.CountryName} ({country.currency})
+            </SelectItem>
+          ))
+        ) : (
+          <div className="p-2 text-center text-sm text-gray-500">
+            No countries found
+          </div>
+        )}
+      </div>
+    </SelectContent>
+  </Select>
+</div>
+                
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                   Phone
@@ -300,6 +378,7 @@ const SignIn = () => {
                   onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                 />
               </div>
+            </div>
             </div>
 
             <div>
