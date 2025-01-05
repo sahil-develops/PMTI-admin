@@ -167,7 +167,7 @@ const ActionDropdown = ({
   const handleAction = (action: string) => {
     switch (action) {
       case "edit":
-        router.push(`/edit-class/${classId}`);
+        router.push(`/editClass/${classId}`);
         break;
       case "delete":
         setShowDeleteModal(true);
@@ -176,7 +176,7 @@ const ActionDropdown = ({
         router.push(`/class-details/${classId}`);
         break;
       case "roster":
-        router.push(`/class-roster/${classId}`);
+        router.push(`/class-details/${classId}`);
         break;
     }
     setIsOpen(false);

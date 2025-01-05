@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical,Edit2, Eye } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from 'next/navigation';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Course {
   id: number;
@@ -41,12 +42,43 @@ interface ApiResponse {
   };
 }
 
+const TableSkeleton = () => (
+  <div className="rounded-md border">
+    <div className="relative overflow-x-auto">
+      <div className="bg-gray-50 border-b">
+        <div className="grid grid-cols-10 gap-4 px-6 py-4">
+          {[...Array(10)].map((_, i) => (
+            <Skeleton key={i} className="h-4 w-20" />
+          ))}
+        </div>
+      </div>
+
+      <div className="divide-y">
+        {[...Array(5)].map((_, rowIndex) => (
+          <div key={rowIndex} className="bg-white hover:bg-gray-50">
+            <div className="grid grid-cols-10 gap-4 px-6 py-4">
+              {[...Array(10)].map((_, colIndex) => (
+                <Skeleton 
+                  key={colIndex} 
+                  className={`h-4 ${colIndex === 1 ? 'w-32' : 'w-16'}`} 
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 const CourseList = () => {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const fetchCourses = async () => {
+      setIsLoading(true);
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}course`, {
           headers: {
@@ -64,19 +96,29 @@ const CourseList = () => {
         }
       } catch (error) {
         console.error('Error fetching courses:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchCourses();
   }, []);
 
-  const handleViewDetails = (courseId: number) => {
-    router.push(`/courses/${courseId}`);
-  };
+  if (isLoading) {
+    return <TableSkeleton />;
+  }
 
   if (!courses || courses.length === 0) {
     return <div className="text-center p-4">No Data Found</div>;
   }
+
+  const handleViewDetails = (courseId: number) => {
+    router.push(`/courses/${courseId}`);
+  };
+
+  const handleEditDetails = (courseId: number) => {
+    router.push(`/courses/${courseId}/edit`);
+  };
 
   return (
     <div className="rounded-md border">
@@ -123,7 +165,14 @@ const CourseList = () => {
                       <DropdownMenuItem
                         onClick={() => handleViewDetails(course.id)}
                       >
+                        <Eye className="h-4 w-4" />
                         View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleEditDetails(course.id)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        Edit Details
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

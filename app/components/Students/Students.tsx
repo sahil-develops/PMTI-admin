@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { User, MapPin, Phone, Briefcase, Mail, Lock } from 'lucide-react';
+import { User, MapPin, Phone, Briefcase, Mail, Lock, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,17 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import api from '@/app/lib/api';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 const cityData = [
   {
@@ -44,10 +55,6 @@ const cityData = [
   }
 ];
 
-const Students = () => {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 interface Student {
   id: number;
   name: string;
@@ -63,22 +70,54 @@ interface Student {
   email: string;
 }
 
-const [students, setStudents] = useState<Student[]>([]);
-const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-const [studentsLoading, setStudentsLoading] = useState(true);
-const [editFormData, setEditFormData] = useState({
-  name: "",
-  address: "",
-  city: "",
-  state: "",
-  country: "",
-  zipCode: "",
-  phone: "",
-  companyName: "",
-  profession: "",
-  referredBy: "",
-  email: "",
-});
+interface StudentResponse {
+  message: string;
+  error: string;
+  success: boolean;
+  data: StudentData[];
+}
+
+interface StudentData {
+  id: number;
+  uid: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  zipCode: string;
+  phone: string;
+  email: string;
+  companyName: string;
+  profession: string;
+  referredBy: string;
+  signupDate: string;
+  downloadedInfoPac: boolean;
+  isDelete: boolean;
+  active: boolean;
+  lastLogin: string;
+}
+
+const Students = () => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [studentsLoading, setStudentsLoading] = useState(true);
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    address: "",
+    city: "",
+    state: "",
+    country: "",
+    zipCode: "",
+    phone: "",
+    companyName: "",
+    profession: "",
+    referredBy: "",
+    email: "",
+  });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -114,83 +153,78 @@ const [editFormData, setEditFormData] = useState({
     }
   };
 
-  
-  // Add this function to handle student selection
-const handleStudentSelect = (studentId: string) => {
-  const student = students.find(s => s.id === parseInt(studentId));
-  if (student) {
-    setSelectedStudent(student);
-    setEditFormData({
-      name: student.name,
-      address: student.address,
-      city: student.city,
-      state: student.state,
-      country: student.country,
-      zipCode: student.zipCode,
-      phone: student.phone,
-      companyName: student.companyName,
-      profession: student.profession,
-      referredBy: student.referredBy || "",
-      email: student.email,
-    });
-    setErrors({});
-  }
-};
-
-
-const handleUpdate = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm()) {
-    toast({
-      title: "Error",
-      description: "Please check the form for errors",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const response = await api.put(`/students/${selectedStudent?.id}`, {
-      ...editFormData,
-      updatedBy: 'admin',
-    });
-
-    if (response.status === 200) {
-      toast({
-        title: "Success",
-        description: "Student information updated successfully",
-        variant: "default",
-      });
-      await fetchStudents(); // Refresh the list
-      setSelectedStudent(null);
+  const handleStudentSelect = (studentId: string) => {
+    const student = students.find(s => s.id === parseInt(studentId));
+    if (student) {
+      setSelectedStudent(student);
       setEditFormData({
-        name: "",
-        address: "",
-        city: "",
-        state: "",
-        country: "",
-        zipCode: "",
-        phone: "",
-        companyName: "",
-        profession: "",
-        referredBy: "",
-        email: "",
+        name: student.name,
+        address: student.address,
+        city: student.city,
+        state: student.state,
+        country: student.country,
+        zipCode: student.zipCode,
+        phone: student.phone,
+        companyName: student.companyName,
+        profession: student.profession,
+        referredBy: student.referredBy || "",
+        email: student.email,
       });
+      setErrors({});
     }
-  } catch (error: any) {
-    console.error('Error updating student:', error);
-    toast({
-      title: "Error",
-      description: error.response?.data?.message || "Failed to update student information",
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) {
+      toast({
+        title: "Error",
+        description: "Please check the form for errors",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    setLoading(true);
+    try {
+      const response = await api.patch(`${process.env.NEXT_PUBLIC_API_URL}students/${selectedStudent?.id}`, {
+        ...editFormData,
+        updatedBy: 'admin',
+      });
+
+      if (response.status === 200) {
+        toast({
+          title: "Success",
+          description: "Student information updated successfully",
+          variant: "default",
+        });
+        await fetchStudents(); // Refresh the list
+        setSelectedStudent(null);
+        setEditFormData({
+          name: "",
+          address: "",
+          city: "",
+          state: "",
+          country: "",
+          zipCode: "",
+          phone: "",
+          companyName: "",
+          profession: "",
+          referredBy: "",
+          email: "",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error updating student:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update student information",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -322,6 +356,402 @@ const handleUpdate = async (e: React.FormEvent) => {
     setLoading(false);
   };
 
+  const studentSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Invalid email address"),
+    address: z.string().min(5, "Address must be at least 5 characters"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    country: z.string().min(1, "Country is required"),
+    zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid zip code"),
+    phone: z.string().regex(/^\d{3}-\d{3}-\d{4}$/, "Invalid phone number format (XXX-XXX-XXXX)"),
+    companyName: z.string().min(1, "Company name is required"),
+    profession: z.string().min(1, "Profession is required"),
+    referredBy: z.string().optional(),
+  });
+
+  type StudentFormValues = z.infer<typeof studentSchema>;
+
+  const EditStudentForm = ({ student, onCancel, onSuccess }: { 
+    student: Student; 
+    onCancel: () => void;
+    onSuccess: () => void;
+  }) => {
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const form = useForm<StudentFormValues>({
+      resolver: zodResolver(studentSchema),
+      defaultValues: {
+        name: student.name,
+        email: student.email,
+        address: student.address,
+        city: student.city,
+        state: student.state,
+        country: student.country,
+        zipCode: student.zipCode,
+        phone: student.phone,
+        companyName: student.companyName,
+        profession: student.profession,
+        referredBy: student.referredBy || "",
+      },
+    });
+
+    const onSubmit = async (data: StudentFormValues) => {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}students/${student.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+          body: JSON.stringify({
+            ...data,
+            updatedBy: 'admin',
+          }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to update student');
+        }
+
+        toast({
+          title: "Success",
+          description: "Student information updated successfully",
+        });
+        onSuccess();
+      } catch (error) {
+        console.error('Error updating student:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to update student",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Input {...field} className="pl-10" placeholder="Full Name" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Input {...field} type="email" className="pl-10" placeholder="Email" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Input {...field} className="pl-10" placeholder="Address" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select City" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cityData.flatMap(item =>
+                        item.cities.map(city => (
+                          <SelectItem key={city} value={city}>
+                            {city}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="state"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>State</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Input {...field} className="pl-10 bg-gray-50" readOnly placeholder="State" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Country</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Input {...field} className="pl-10 bg-gray-50" readOnly placeholder="Country" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="zipCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Zip Code</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Input {...field} className="pl-10" placeholder="Zip Code (e.g., 12345 or 12345-6789)" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Input {...field} className="pl-10" placeholder="Phone (XXX-XXX-XXXX)" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="companyName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Name</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Input {...field} className="pl-10" placeholder="Company Name" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="profession"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Profession</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Input {...field} className="pl-10" placeholder="Profession" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="referredBy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Referred By</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <Input {...field} className="pl-10" placeholder="Referred By (Optional)" />
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-500" />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="flex justify-end space-x-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update Student'
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    );
+  };
+
+  const StudentsTable = () => {
+    const [students, setStudents] = useState<StudentData[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      fetchStudents();
+    }, []);
+
+    const fetchStudents = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}students`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        });
+        const data: StudentResponse = await response.json();
+        if (data.success) {
+          setStudents(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching students:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isLoading) {
+      return (
+        <div className="w-full mt-8">
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="bg-gray-50 p-4 rounded-lg animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">All Students</h2>
+        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">UID</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Email</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Company</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Location</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Phone</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Last Login</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {students.map((student) => (
+                  <tr key={student.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-gray-900">{student.uid}</td>
+                    <td className="px-4 py-3 text-gray-900">{student.name}</td>
+                    <td className="px-4 py-3 text-gray-500">{student.email}</td>
+                    <td className="px-4 py-3 text-gray-500">{student.companyName}</td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {`${student.city}, ${student.state}`}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{student.phone}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        student.active 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {student.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {new Date(student.lastLogin).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Card className="w-full max-w-7xl mx-auto">
@@ -336,60 +766,79 @@ const handleUpdate = async (e: React.FormEvent) => {
             <TabsTrigger value="edit">Edit Student</TabsTrigger>
           </TabsList>
           <TabsContent value="add">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       id="name"
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
-                      className="pl-10"
+                      className="pl-9 h-9"
                       placeholder="Full Name"
                     />
                   </div>
                   {errors.name && (
-                    <p className="text-sm text-red-500">{errors.name}</p>
+                    <p className="text-xs text-red-500">{errors.name}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       id="email"
                       name="email"
                       type="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="pl-10"
+                      className="pl-9 h-9"
                       placeholder="Email"
                     />
                   </div>
                   {errors.email && (
-                    <p className="text-sm text-red-500">{errors.email}</p>
+                    <p className="text-xs text-red-500">{errors.email}</p>
                   )}
                 </div>
 
-                                <div className="space-y-2">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="pl-9 h-9"
+                      placeholder="Password"
+                    />
+                  </div>
+                  {errors.password && (
+                    <p className="text-xs text-red-500">{errors.password}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       id="address"
                       name="address"
                       value={formData.address}
                       onChange={handleChange}
-                      className="pl-10"
+                      className="pl-9 h-9"
                       placeholder="Address"
                     />
                   </div>
                   {errors.address && (
-                    <p className="text-sm text-red-500">{errors.address}</p>
+                    <p className="text-xs text-red-500">{errors.address}</p>
                   )}
                 </div>
 
@@ -399,7 +848,7 @@ const handleUpdate = async (e: React.FormEvent) => {
                     value={formData.city}
                     onValueChange={(value) => handleCitySelect(value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9">
                       <SelectValue placeholder="Select City" />
                     </SelectTrigger>
                     <SelectContent>
@@ -413,450 +862,132 @@ const handleUpdate = async (e: React.FormEvent) => {
                     </SelectContent>
                   </Select>
                   {errors.city && (
-                    <p className="text-sm text-red-500">{errors.city}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <Input
-                      id="state"
-                      name="state"
-                      value={formData.state}
-                      readOnly
-                      className="pl-10 bg-gray-50"
-                      placeholder="State"
-                    />
-                  </div>
-                  {errors.state && (
-                    <p className="text-sm text-red-500">{errors.state}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <Input
-                      id="country"
-                      name="country"
-                      value={formData.country}
-                      readOnly
-                      className="pl-10 bg-gray-50"
-                      placeholder="Country"
-                    />
-                  </div>
-                  {errors.country && (
-                    <p className="text-sm text-red-500">{errors.country}</p>
+                    <p className="text-xs text-red-500">{errors.city}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="zipCode">Zip Code</Label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       id="zipCode"
                       name="zipCode"
                       value={formData.zipCode}
                       onChange={handleChange}
-                      className="pl-10"
-                      placeholder="Zip Code (e.g., 12345 or 12345-6789)"
+                      className="pl-9 h-9"
+                      placeholder="Zip Code"
                     />
                   </div>
                   {errors.zipCode && (
-                    <p className="text-sm text-red-500">{errors.zipCode}</p>
+                    <p className="text-xs text-red-500">{errors.zipCode}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
+                  <Label htmlFor="phone">Phone</Label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       id="phone"
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="pl-10"
-                      placeholder="Phone (XXX-XXX-XXXX)"
+                      className="pl-9 h-9"
+                      placeholder="XXX-XXX-XXXX"
                     />
                   </div>
                   {errors.phone && (
-                    <p className="text-sm text-red-500">{errors.phone}</p>
+                    <p className="text-xs text-red-500">{errors.phone}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="companyName">Company Name</Label>
+                  <Label htmlFor="companyName">Company</Label>
                   <div className="relative">
-                    <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       id="companyName"
                       name="companyName"
                       value={formData.companyName}
                       onChange={handleChange}
-                      className="pl-10"
+                      className="pl-9 h-9"
                       placeholder="Company Name"
                     />
                   </div>
                   {errors.companyName && (
-                    <p className="text-sm text-red-500">{errors.companyName}</p>
+                    <p className="text-xs text-red-500">{errors.companyName}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="profession">Profession</Label>
                   <div className="relative">
-                    <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       id="profession"
                       name="profession"
                       value={formData.profession}
                       onChange={handleChange}
-                      className="pl-10"
+                      className="pl-9 h-9"
                       placeholder="Profession"
                     />
                   </div>
                   {errors.profession && (
-                    <p className="text-sm text-red-500">{errors.profession}</p>
+                    <p className="text-xs text-red-500">{errors.profession}</p>
                   )}
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="referredBy">Referred By</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <Input
-                      id="referredBy"
-                      name="referredBy"
-                      value={formData.referredBy}
-                      onChange={handleChange}
-                      className="pl-10"
-                      placeholder="Referred By (Optional)"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      className="pl-10"
-                      placeholder="Password"
-                    />
-                  </div>
-                  {errors.password && (
-                    <p className="text-sm text-red-500">{errors.password}</p>
+              <div className="flex justify-end pt-4">
+                <Button type="submit" disabled={loading} className="w-auto px-8">
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    "Add Student"
                   )}
-                </div>
-
-                <div className="col-span-2">
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Adding Student..." : "Add Student"}
-                  </Button>
-                </div>
+                </Button>
               </div>
             </form>
           </TabsContent>
           <TabsContent value="edit" className="space-y-6">
-  {!selectedStudent ? (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Select Student to Edit</Label>
-        <Select onValueChange={handleStudentSelect}>
-          <SelectTrigger>
-            <SelectValue placeholder="Choose a student" />
-          </SelectTrigger>
-          <SelectContent>
-            {students.map((student) => (
-              <SelectItem key={student.id} value={student.id.toString()}>
-                {student.name} ({student.email})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  ) : (
-    <form onSubmit={handleUpdate} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="edit-name">Full Name</Label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              id="edit-name"
-              name="name"
-              value={editFormData.name}
-              onChange={(e) => setEditFormData(prev => ({
-                ...prev,
-                [e.target.name]: e.target.value
-              }))}
-              className="pl-10"
-              placeholder="Full Name"
-            />
-          </div>
-          {errors.name && (
-            <p className="text-sm text-red-500">{errors.name}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-email">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              id="edit-email"
-              name="email"
-              type="email"
-              value={editFormData.email}
-              onChange={(e) => setEditFormData(prev => ({
-                ...prev,
-                [e.target.name]: e.target.value
-              }))}
-              className="pl-10"
-              placeholder="Email"
-            />
-          </div>
-          {errors.email && (
-            <p className="text-sm text-red-500">{errors.email}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-address">Address</Label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              id="edit-address"
-              name="address"
-              value={editFormData.address}
-              onChange={(e) => setEditFormData(prev => ({
-                ...prev,
-                [e.target.name]: e.target.value
-              }))}
-              className="pl-10"
-              placeholder="Address"
-            />
-          </div>
-          {errors.address && (
-            <p className="text-sm text-red-500">{errors.address}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-city">City</Label>
-          <Select
-            value={editFormData.city}
-            onValueChange={(value) => {
-              const locationData = cityData.find((item) => item.cities.includes(value));
-              if (locationData) {
-                setEditFormData(prev => ({
-                  ...prev,
-                  city: value,
-                  state: locationData.state,
-                  country: locationData.country
-                }));
-              }
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select City" />
-            </SelectTrigger>
-            <SelectContent>
-              {cityData.flatMap(item =>
-                item.cities.map(city => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-          {errors.city && (
-            <p className="text-sm text-red-500">{errors.city}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-state">State</Label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              id="edit-state"
-              name="state"
-              value={editFormData.state}
-              readOnly
-              className="pl-10 bg-gray-50"
-              placeholder="State"
-            />
-          </div>
-          {errors.state && (
-            <p className="text-sm text-red-500">{errors.state}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-country">Country</Label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              id="edit-country"
-              name="country"
-              value={editFormData.country}
-              readOnly
-              className="pl-10 bg-gray-50"
-              placeholder="Country"
-            />
-          </div>
-          {errors.country && (
-            <p className="text-sm text-red-500">{errors.country}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-zipCode">Zip Code</Label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              id="edit-zipCode"
-              name="zipCode"
-              value={editFormData.zipCode}
-              onChange={(e) => setEditFormData(prev => ({
-                ...prev,
-                [e.target.name]: e.target.value
-              }))}
-              className="pl-10"
-              placeholder="Zip Code (e.g., 12345 or 12345-6789)"
-            />
-          </div>
-          {errors.zipCode && (
-            <p className="text-sm text-red-500">{errors.zipCode}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-phone">Phone Number</Label>
-          <div className="relative">
-            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              id="edit-phone"
-              name="phone"
-              value={editFormData.phone}
-              onChange={(e) => setEditFormData(prev => ({
-                ...prev,
-                [e.target.name]: e.target.value
-              }))}
-              className="pl-10"
-              placeholder="Phone (XXX-XXX-XXXX)"
-            />
-          </div>
-          {errors.phone && (
-            <p className="text-sm text-red-500">{errors.phone}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-companyName">Company Name</Label>
-          <div className="relative">
-            <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              id="edit-companyName"
-              name="companyName"
-              value={editFormData.companyName}
-              onChange={(e) => setEditFormData(prev => ({
-                ...prev,
-                [e.target.name]: e.target.value
-              }))}
-              className="pl-10"
-              placeholder="Company Name"
-            />
-          </div>
-          {errors.companyName && (
-            <p className="text-sm text-red-500">{errors.companyName}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-profession">Profession</Label>
-          <div className="relative">
-            <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              id="edit-profession"
-              name="profession"
-              value={editFormData.profession}
-              onChange={(e) => setEditFormData(prev => ({
-                ...prev,
-                [e.target.name]: e.target.value
-              }))}
-              className="pl-10"
-              placeholder="Profession"
-            />
-          </div>
-          {errors.profession && (
-            <p className="text-sm text-red-500">{errors.profession}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-referredBy">Referred By</Label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              id="edit-referredBy"
-              name="referredBy"
-              value={editFormData.referredBy}
-              onChange={(e) => setEditFormData(prev => ({
-                ...prev,
-                [e.target.name]: e.target.value
-              }))}
-              className="pl-10"
-              placeholder="Referred By (Optional)"
-            />
-          </div>
-        </div>
-
-        <div className="col-span-2 flex justify-end space-x-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setSelectedStudent(null);
-              setEditFormData({
-                name: "",
-                address: "",
-                city: "",
-                state: "",
-                country: "",
-                zipCode: "",
-                phone: "",
-                companyName: "",
-                profession: "",
-                referredBy: "",
-                email: "",
-              });
-            }}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? "Updating..." : "Update Student"}
-          </Button>
-        </div>
-      </div>
-    </form>
-  )}
-</TabsContent>
+            {!selectedStudent ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Select Student to Edit</Label>
+                  <Select onValueChange={handleStudentSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a student" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {students.map((student) => (
+                        <SelectItem key={student.id} value={student.id.toString()}>
+                          {student.name} ({student.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : (
+              <EditStudentForm
+                student={selectedStudent}
+                onCancel={() => {
+                  setSelectedStudent(null);
+                }}
+                onSuccess={() => {
+                  setSelectedStudent(null);
+                  fetchStudents();
+                }}
+              />
+            )}
+          </TabsContent>
         </Tabs>
+        
+        <StudentsTable />
       </CardContent>
     </Card>
   );

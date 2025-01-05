@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useEffect, useState, use } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface User {
   id: string;
@@ -25,14 +27,12 @@ interface Category {
 interface ClassType {
   id: number;
   name: string;
-  description: string | null;
+  description: null | string;
   isDelete: boolean;
   active: boolean;
 }
 
-interface CourseDetails {
-  createdAt: string;
-  updateAt: string;
+interface Course {
   id: number;
   courseName: string;
   shortName: string;
@@ -51,154 +51,259 @@ interface CourseDetails {
   classType: ClassType;
 }
 
-interface CourseDetailsResponse {
+interface ApiResponse {
   message: string;
   error: string;
   success: boolean;
-  data: CourseDetails[];
+  data: Course[];
 }
 
-export default function CourseDetailsPage() {
-  const params = useParams();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [courseDetails, setCourseDetails] = useState<CourseDetails | null>(null);
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+const SkeletonCard = () => (
+  <div className="border rounded-lg">
+    <div className="bg-gray-50 px-4 py-2 border-b">
+      <Skeleton className="h-4 w-24" />
+    </div>
+    <div className="p-4 space-y-3">
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-4 w-full" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-4 w-full" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-4 w-full" />
+      </div>
+    </div>
+  </div>
+);
+
+const LoadingSkeleton = () => (
+  <div className="w-full">
+    {/* Breadcrumb Skeleton */}
+    <div className="flex items-center gap-2 mb-4">
+      <Skeleton className="h-4 w-16" />
+      <span>›</span>
+      <Skeleton className="h-4 w-16" />
+      <span>›</span>
+      <Skeleton className="h-4 w-24" />
+    </div>
+
+    {/* Main Content Skeleton */}
+    <div className="bg-white rounded-lg shadow-sm">
+      <div className="p-6">
+        <Skeleton className="h-7 w-48 mb-6" />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Basic Information Skeleton */}
+          <SkeletonCard />
+
+          {/* Pricing Information Skeleton */}
+          <SkeletonCard />
+
+          {/* Category Information Skeleton */}
+          <SkeletonCard />
+
+          {/* Description Skeleton - Full Width */}
+          <div className="border rounded-lg md:col-span-2 lg:col-span-3">
+            <div className="bg-gray-50 px-4 py-2 border-b">
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <div className="p-4">
+              <Skeleton className="h-20 w-full" />
+            </div>
+          </div>
+
+          {/* Management Information Skeleton */}
+          <div className="border rounded-lg md:col-span-2 lg:col-span-3">
+            <div className="bg-gray-50 px-4 py-2 border-b">
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+export default function CourseDetails({ params }: PageProps) {
+  const resolvedParams = use(params);
+  const router = useRouter();
+  const { toast } = useToast();
+  const [course, setCourse] = useState<Course | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCourseDetails = async () => {
-      setLoading(true);
-      setError(null);
-
+    const fetchCourse = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}course/${params.id}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}course/${resolvedParams.id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         });
-
+        
         if (!response.ok) {
-          throw new Error("Failed to fetch course details");
+          throw new Error('Failed to fetch course');
         }
-
-        const data: CourseDetailsResponse = await response.json();
-        if (data.data.length > 0) {
-          setCourseDetails(data.data[0]);
+        
+        const data: ApiResponse = await response.json();
+        if (data.success && data.data.length > 0) {
+          setCourse(data.data[0]);
         } else {
-          throw new Error("Course not found");
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: data.error || "Failed to fetch course details",
+          });
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
+      } catch (error) {
+        console.error('Error fetching course:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load course details. Please try again later.",
+        });
+        router.push('/courses');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    if (params.id) {
-      fetchCourseDetails();
-    }
-  }, [params.id]);
+    fetchCourse();
+  }, [resolvedParams.id, toast, router]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
 
-  if (loading) {
+  if (!course) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Loading...</p>
+      <div className="container mx-auto p-6">
+        <div className="text-center text-red-600">
+          Course not found or error loading course details
+        </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-4">
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (!courseDetails) {
-    return (
-      <div className="p-4">
-        <Alert>
-          <AlertDescription>No course details found</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
+    <div className="py-3 px-4">
+      <div className="text-sm text-gray-500">{label}</div>
+      <div className="mt-1 text-sm">{value || '-'}</div>
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{courseDetails.courseName}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold mb-2">Course Information</h3>
-              <div className="space-y-2">
-                <p><span className="font-medium">Short Name:</span> {courseDetails.shortName}</p>
-                <p><span className="font-medium">Duration:</span> {courseDetails.courseDuration} hours</p>
-                <p><span className="font-medium">Category:</span> {courseDetails.category.name}</p>
-                <p><span className="font-medium">Class Type:</span> {courseDetails.classType.name}</p>
+    <div className="w-full">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 mb-4 text-gray-500">
+        <Link href="/" className="hover:text-gray-700">
+          Home
+        </Link>
+        <span>›</span>
+        <Link href="/courses" className="hover:text-gray-700">
+          Courses
+        </Link>
+        <span>›</span>
+        <span>Course Details</span>
+      </div>
+
+      {/* Main Content Card */}
+      <div className="bg-white rounded-lg shadow-sm">
+        <div className="p-6">
+          <h1 className="text-xl font-semibold mb-6">Course Details</h1>
+
+          {/* Grid Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Basic Information */}
+            <div className="space-y-0 border rounded-lg">
+              <div className="bg-gray-50 px-4 py-2 border-b">
+                <h2 className="font-medium">Basic Information</h2>
               </div>
+              <DetailRow label="Course ID" value={course.id} />
+              <DetailRow label="Title" value={course.courseName} />
+              <DetailRow label="Short Name" value={course.shortName} />
+              <DetailRow label="Course Duration" value={`${course.courseDuration} hours`} />
             </div>
 
-            <div>
-              <h3 className="font-semibold mb-2">Pricing</h3>
-              <div className="space-y-2">
-                <p><span className="font-medium">Regular Price:</span> ${courseDetails.price}</p>
-                <p><span className="font-medium">External Price:</span> ${courseDetails.extPrice}</p>
+            {/* Pricing Information */}
+            <div className="space-y-0 border rounded-lg">
+              <div className="bg-gray-50 px-4 py-2 border-b">
+                <h2 className="font-medium">Pricing Details</h2>
               </div>
+              <DetailRow label="Amount" value={`$${course.price}`} />
+              <DetailRow label="External Price" value={`$${course.extPrice}`} />
+              <DetailRow 
+                label="Status" 
+                value={
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    course.isGuestAccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {course.isGuestAccess ? 'Active' : 'Inactive'}
+                  </span>
+                } 
+              />
             </div>
 
-            <div className="col-span-2">
-              <h3 className="font-semibold mb-2">Description</h3>
-              <p className="text-gray-700">{courseDetails.description}</p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">Access Settings</h3>
-              <div className="space-y-2">
-                <p>
-                  <span className="font-medium">Guest Access:</span>{" "}
-                  {courseDetails.isGuestAccess ? "Enabled" : "Disabled"}
-                </p>
-                <p>
-                  <span className="font-medium">Visibility:</span>{" "}
-                  {courseDetails.isVisible ? "Visible" : "Hidden"}
-                </p>
+            {/* Category Information */}
+            <div className="space-y-0 border rounded-lg">
+              <div className="bg-gray-50 px-4 py-2 border-b">
+                <h2 className="font-medium">Category Information</h2>
               </div>
+              <DetailRow label="Category" value={course.category.name} />
+              <DetailRow label="Category Description" value={course.category.description} />
+              <DetailRow label="Class Type" value={course.classType.name} />
             </div>
 
-            <div>
-              <h3 className="font-semibold mb-2">Management Information</h3>
-              <div className="space-y-2">
-                <p>
-                  <span className="font-medium">Created By:</span>{" "}
-                  {courseDetails.createdBy.name} on{" "}
-                  {formatDate(courseDetails.createdAt)}
-                </p>
-                <p>
-                  <span className="font-medium">Last Updated By:</span>{" "}
-                  {courseDetails.updatedBy.name} on{" "}
-                  {formatDate(courseDetails.updateAt)}
-                </p>
+            {/* Description - Full Width */}
+            <div className="space-y-0 border rounded-lg md:col-span-2 lg:col-span-3">
+              <div className="bg-gray-50 px-4 py-2 border-b">
+                <h2 className="font-medium">Description</h2>
+              </div>
+              <DetailRow label="Course Description" value={course.description} />
+            </div>
+
+            {/* Management Information */}
+            <div className="space-y-0 border rounded-lg md:col-span-2 lg:col-span-3">
+              <div className="bg-gray-50 px-4 py-2 border-b">
+                <h2 className="font-medium">Management Information</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+                <DetailRow 
+                  label="Created By" 
+                  value={`${course.createdBy.name}`} 
+                />
+                <DetailRow 
+                  label="Created On" 
+                  value={new Date(course.createdOn).toLocaleDateString()} 
+                />
+                <DetailRow 
+                  label="Updated By" 
+                  value={`${course.updatedBy.name}`} 
+                />
+                <DetailRow 
+                  label="Updated On" 
+                  value={new Date(course.updatedOn).toLocaleDateString()} 
+                />
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
