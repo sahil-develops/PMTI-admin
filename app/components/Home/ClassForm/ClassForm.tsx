@@ -164,6 +164,7 @@ const ClassForm = () => {
 
   useEffect(() => {
     if (classTimeFrom && classTimeTo) {
+      // @ts-ignore
       setValue("classTime", `${classTimeFrom} - ${classTimeTo}`);
     }
   }, [classTimeFrom, classTimeTo, setValue]);

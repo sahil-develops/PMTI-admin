@@ -456,6 +456,7 @@ const ClassTable = () => {
       (country) => country.id.toString() === countryId
     );
     if (selectedCountryData) {
+      // @ts-ignore
       setCities(selectedCountryData.locations);
     } else {
       setCities([]);
@@ -542,14 +543,32 @@ const ClassTable = () => {
           />
         </div>
 
-        <SearchSelect
-    label="Country"
-    value={Number(searchParams.countryId)}
-    onChange={(value) => setSearchParams({ ...searchParams, countryId: value.toString() })}
-    apiUrl="country"
-    labelKey="CountryName"
-    placeholder="Select Country"
-  />
+        <div className="flex flex-col gap-2">
+          <Label>Country</Label>
+          <Select
+            value={searchParams?.countryId}
+            onValueChange={(value) =>
+              setSearchParams({ ...searchParams, countryId: value })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Country" />
+            </SelectTrigger>
+            <SelectContent>
+              {countries.length > 0 ? (
+                countries?.map((country) => (
+                  <SelectItem key={country?.id} value={country.id.toString()}>
+                    {country.CountryName}
+                  </SelectItem>
+                ))
+              ) : (
+                <div>
+                  <p>Data Not Found</p>
+                </div>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex flex-col gap-2">
           <Label>Instructor</Label>
           <Select

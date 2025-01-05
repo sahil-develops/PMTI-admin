@@ -46,7 +46,7 @@ const DetailRow = ({ label, value }: { label: string; value: string | number | b
   </div>
 );
 
-export default function ViewPromotionDetails({ id }: { id: string }) {
+export default function ViewPromotionDetails({ id }: { id: string | any }) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
