@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2,Plus } from 'lucide-react';
 import { 
   Select,
   SelectContent,
@@ -12,28 +12,30 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
-interface CreateClassTypeFormProps {
-  onCancel: () => void;
-  onSuccess: () => void;
+
+interface ClassTypeDropdownProps {
+  searchParams: SearchParams;
+  setSearchParams: (params: SearchParams) => void;
+  classTypes: ClassType[];
+  refreshClassTypes: () => void;
 }
 
 interface SearchParams {
-    classTypeId: string;
-  }
-  
-  interface ClassType {
-    id: number;
-    name: string;
-  }
-  
-  interface ClassTypeDropdownProps {
-    searchParams: SearchParams;
-    setSearchParams: (params: SearchParams) => void;
-    classTypes: ClassType[];
-  }
-  
+  classTypeId: string;
+}
 
-const CreateClassTypeForm: React.FC<CreateClassTypeFormProps> = ({ onCancel, onSuccess }) => {
+interface ClassType {
+  id: number;
+  name: string;
+}
+
+interface CreateClassTypeFormProps {
+  onCancel: () => void;
+  onSuccess: () => void;
+  refreshClassTypes: () => void;
+}
+
+const CreateClassTypeForm: React.FC<CreateClassTypeFormProps> = ({ onCancel, onSuccess, refreshClassTypes }) => {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -55,6 +57,7 @@ const CreateClassTypeForm: React.FC<CreateClassTypeFormProps> = ({ onCancel, onS
       if (!response.ok) throw new Error('Failed to create class type');
       
       setIsSuccess(true);
+      refreshClassTypes();
       setTimeout(() => {
         onSuccess();
       }, 1000);
@@ -109,27 +112,31 @@ const EmptyState: React.FC<{ onClick: () => void }> = ({ onClick }) => (
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
-    className="p-4 text-center"
+    whileHover={{ backgroundBlendMode: "difference", scale: 1.01 }}
+    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+    className="py-2 px-3 m-2 rounded-lg text-center flex gap-x-3 bg-gray-100 hover:bg-gray-300 justify-start items-center flex-row cursor-pointer group"
   >
-    <p className="text-sm text-zinc-500">
-      No Class Types found,{' '}
-      <button
-        onClick={onClick}
-        className="text-zinc-900 font-medium hover:underline"
-      >
-        Create one
-      </button>
-    </p>
+    <motion.div
+      whileHover={{ rotate: 80 }}
+      transition={{ duration: 0.2 }}
+    >
+      <Plus className="w-6 h-6 text-zinc-500 group-hover:text-zinc-700" />
+    </motion.div>
+
+    <motion.button
+      onClick={onClick}
+      whileTap={{ scale: 0.95 }}
+      className="text-zinc-900 font-medium hover:underline"
+    >
+      Create one
+    </motion.button>
   </motion.div>
 );
-
-
-const ClassTypeDropdown1: React.FC<ClassTypeDropdownProps> = ({ searchParams, setSearchParams, classTypes }) => {
+const ClassTypeDropdown: React.FC<ClassTypeDropdownProps> = ({ searchParams, setSearchParams, classTypes, refreshClassTypes }) => {
   const [isCreating, setIsCreating] = useState(false);
 
   const handleSuccess = () => {
     setIsCreating(false);
-    // Trigger refetch of class types
   };
 
   return (
@@ -143,16 +150,16 @@ const ClassTypeDropdown1: React.FC<ClassTypeDropdownProps> = ({ searchParams, se
           <SelectValue placeholder="Select Class Type" />
         </SelectTrigger>
         <SelectContent>
-          {classTypes.length > 0 ? (
-            classTypes.map((type) => (
-              <SelectItem key={type.id} value={type.id.toString()}>
-                {type.name}
-              </SelectItem>
-            ))
-          ) : isCreating ? (
+          {classTypes.map((type) => (
+            <SelectItem key={type.id} value={type.id.toString()}>
+              {type.name}
+            </SelectItem>
+          ))}
+          {isCreating ? (
             <CreateClassTypeForm 
               onCancel={() => setIsCreating(false)}
               onSuccess={handleSuccess}
+              refreshClassTypes={refreshClassTypes}
             />
           ) : (
             <EmptyState onClick={() => setIsCreating(true)} />
@@ -163,4 +170,4 @@ const ClassTypeDropdown1: React.FC<ClassTypeDropdownProps> = ({ searchParams, se
   );
 };
 
-export default ClassTypeDropdown1;
+export default ClassTypeDropdown;

@@ -49,8 +49,8 @@ interface Promotion {
   };
 }
 
-const TableHeader = ({ children }: { children: React.ReactNode }) => (
-  <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">{children}</th>
+const TableHeader = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <th className={`px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap ${className}`}>{children}</th>
 );
 
 const TableCell = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
@@ -326,7 +326,7 @@ export default function PromotionsPage() {
       {loading ? (
         <TableShimmer />
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto pb-40">
           <table className="w-full border-collapse">
             <thead className="bg-zinc-50">
               <tr>

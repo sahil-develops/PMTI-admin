@@ -1,9 +1,18 @@
-'use client'
-import React, { useState, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import { Calendar, Search, Plus, MoreVertical, Edit2, Trash2, User, Eye } from 'lucide-react';
-import Link  from 'next/link';
-import { 
+"use client";
+import React, { useState, useEffect, ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Calendar,
+  Search,
+  Plus,
+  MoreVertical,
+  Edit2,
+  Trash2,
+  User,
+  Eye,
+} from "lucide-react";
+import Link from "next/link";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -14,8 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import { useToast } from "@/hooks/use-toast";
-
-import ClassTypeDropdown1 from '@/app/components/DropDown/ClassTypeDropdown1';
+import SearchSelect from '../DropDown/SearchSelect';
+import ClassTypeDropdown1 from "@/app/components/DropDown/ClassTypeDropdown1";
 
 interface ClassType {
   id: number;
@@ -55,7 +64,6 @@ interface ClassData {
   address: string;
 }
 
-
 interface Metadata {
   total: number;
   totalPages: number;
@@ -76,26 +84,37 @@ interface SearchParams {
   showClass: string;
 }
 
-
 // Custom Alert Component
-const Alert = ({ message, type = 'error', onClose }: { message: string; type?: 'error' | 'success'; onClose: () => void }) => (
-  <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg ${
-    type === 'error' ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'
-  }`}>
+const Alert = ({
+  message,
+  type = "error",
+  onClose,
+}: {
+  message: string;
+  type?: "error" | "success";
+  onClose: () => void;
+}) => (
+  <div
+    className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg ${
+      type === "error" ? "bg-red-50 text-red-800" : "bg-green-50 text-green-800"
+    }`}
+  >
     <div className="flex justify-between items-center">
       <p>{message}</p>
-      <button onClick={onClose} className="ml-4 text-sm hover:text-opacity-75">×</button>
+      <button onClick={onClose} className="ml-4 text-sm hover:text-opacity-75">
+        ×
+      </button>
     </div>
   </div>
 );
 
 // Custom Dropdown Component
-const ActionDropdown = ({ 
-  classId, 
+const ActionDropdown = ({
+  classId,
   refreshData,
   classItem,
-  onDelete
-}: { 
+  onDelete,
+}: {
   classId: number;
   refreshData: () => void;
   classItem: ClassData;
@@ -110,22 +129,22 @@ const ActionDropdown = ({
   const handleDelete = async () => {
     setIsDeleting(true);
     onDelete(classId);
-    
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}class/${classId}`,
         {
-          method: 'DELETE',
+          method: "DELETE",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         }
       );
 
       if (!response.ok) {
         refreshData();
-        throw new Error('Failed to delete class');
+        throw new Error("Failed to delete class");
       }
 
       toast({
@@ -147,16 +166,16 @@ const ActionDropdown = ({
 
   const handleAction = (action: string) => {
     switch (action) {
-      case 'edit':
+      case "edit":
         router.push(`/edit-class/${classId}`);
         break;
-      case 'delete':
+      case "delete":
         setShowDeleteModal(true);
         break;
-      case 'details':
+      case "details":
         router.push(`/class-details/${classId}`);
         break;
-      case 'roster':
+      case "roster":
         router.push(`/class-roster/${classId}`);
         break;
     }
@@ -173,7 +192,7 @@ const ActionDropdown = ({
         >
           <MoreVertical size={20} className="text-zinc-600" />
         </button>
-        
+
         {isOpen && (
           <>
             <div
@@ -182,7 +201,7 @@ const ActionDropdown = ({
             />
             <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white z-20 py-1">
               <button
-                onClick={() => handleAction('details')}
+                onClick={() => handleAction("details")}
                 className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
                 disabled={isDeleting}
               >
@@ -190,7 +209,7 @@ const ActionDropdown = ({
                 View details
               </button>
               <button
-                onClick={() => handleAction('edit')}
+                onClick={() => handleAction("edit")}
                 className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
                 disabled={isDeleting}
               >
@@ -198,7 +217,7 @@ const ActionDropdown = ({
                 Edit details
               </button>
               <button
-                onClick={() => handleAction('roster')}
+                onClick={() => handleAction("roster")}
                 className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
                 disabled={isDeleting}
               >
@@ -206,12 +225,12 @@ const ActionDropdown = ({
                 View roster
               </button>
               <button
-                onClick={() => handleAction('delete')}
+                onClick={() => handleAction("delete")}
                 className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                 disabled={isDeleting}
               >
                 <Trash2 size={16} />
-                {isDeleting ? 'Deleting...' : 'Delete class'}
+                {isDeleting ? "Deleting..." : "Delete class"}
               </button>
             </div>
           </>
@@ -231,10 +250,18 @@ const ActionDropdown = ({
 };
 
 const TableHeader = ({ children }: { children: React.ReactNode }) => (
-  <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">{children}</th>
+  <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">
+    {children}
+  </th>
 );
 
-const TableCell = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+const TableCell = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
   <td className={`px-4 py-4 text-sm text-zinc-600 ${className}`}>{children}</td>
 );
 
@@ -245,7 +272,7 @@ const ClassTable = () => {
   const [error, setError] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   interface Instructor {
     id: number;
     name: string;
@@ -257,7 +284,9 @@ const ClassTable = () => {
     name: string;
   }
 
-  const [courseCategories, setCourseCategories] = useState<CourseCategory[]>([]);
+  const [courseCategories, setCourseCategories] = useState<CourseCategory[]>(
+    []
+  );
   interface ClassType {
     id: number;
     name: string;
@@ -265,7 +294,6 @@ const ClassTable = () => {
 
   const [classTypes, setClassTypes] = useState<ClassType[]>([]);
   interface Country {
-    name: ReactNode;
     id: number;
     CountryName: string;
     currency: string;
@@ -274,66 +302,66 @@ const ClassTable = () => {
     updatedBy: number | null;
     __locations__: Location[];
   }
-  
-  const [countries, setCountries] = useState<Country[]>([]);
-  
-  const [cities, setCities] = useState<Location[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<string>('');
-  const [searchParams, setSearchParams] = useState<SearchParams>({
-    startDateFrom: '',
-    startDateTo: '',
-    countryId: '',
-    locationId: '',
-    instructorId: '',
-    courseCategoryId: '',
-    classTypeId: '',
-    showClass: '',
-  });
 
+  const [countries, setCountries] = useState<Country[]>([]);
+
+  const [cities, setCities] = useState<Location[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [searchParams, setSearchParams] = useState<SearchParams>({
+    startDateFrom: "",
+    startDateTo: "",
+    countryId: "",
+    locationId: "",
+    instructorId: "",
+    courseCategoryId: "",
+    classTypeId: "",
+    showClass: "",
+  });
 
   const fetchDropdownData = async () => {
     try {
       const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
       };
-  
-      const [
-        instructorsRes,
-        categoriesRes,
-        classTypesRes,
-        countriesRes
-      ] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}instructor`, { headers }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}category`, { headers }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}classtype`, { headers }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}country`, { headers })
-      ]);
-  
-      const [
-        instructorsData,
-        categoriesData,
-        classTypesData,
-        countriesData
-      ] = await Promise.all([
-        instructorsRes.json(),
-        categoriesRes.json(),
-        classTypesRes.json(),
-        countriesRes.json()
-      ]);
-  
-      setInstructors(instructorsData.data.map((instructor: any) => ({
-        id: instructor.id,
-        name: instructor.name
-      })));
+
+      const [instructorsRes, categoriesRes, classTypesRes, countriesRes] =
+        await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}instructor`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}category`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}classtype`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}country`, { headers }),
+        ]);
+
+      const [instructorsData, categoriesData, classTypesData, countriesData] =
+        await Promise.all([
+          instructorsRes.json(),
+          categoriesRes.json(),
+          classTypesRes.json(),
+          countriesRes.json(),
+        ]);
+
+      setInstructors(
+        instructorsData.data.map((instructor: any) => ({
+          id: instructor.id,
+          name: instructor.name,
+        }))
+      );
       setCourseCategories(categoriesData.data);
       setClassTypes(classTypesData.data);
-      setCountries(countriesData.data.map((country: any) => ({
-        id: country.id,
-        name: country.CountryName
-      })));
+      setCountries(
+        countriesData.data.map((country: any) => ({
+          id: country.id,
+          CountryName: country.CountryName,
+          currency: country.currency,
+          isActive: country.isActive,
+          addedBy: country.addedBy,
+          updatedBy: country.updatedBy,
+          __locations__: country.__locations__,
+        }))
+      );
     } catch (error) {
-      console.error('Error fetching dropdown data:', error);
+      console.error("Error fetching dropdown data:", error);
     } finally {
       setIsLoadingDropdowns(false);
     }
@@ -343,9 +371,7 @@ const ClassTable = () => {
     fetchDropdownData();
   }, []);
 
-
-
-  const [globalSearch, setGlobalSearch] = useState('');
+  const [globalSearch, setGlobalSearch] = useState("");
 
   const calculateAvailableSpots = (classItem: ClassData) => {
     const enrolled = classItem.enrolledStudents || 0;
@@ -357,39 +383,45 @@ const ClassTable = () => {
       setLoading(true);
       const queryParams = new URLSearchParams({
         page: currentPage.toString(),
-        sort: 'id:DESC',
-        limit: '10'
+        sort: "id:DESC",
+        limit: "10",
       });
 
       // Add filter parameters if they exist
-      if (searchParams.courseCategoryId) queryParams.append('courseCategory', searchParams.courseCategoryId);
-      if (searchParams.classTypeId) queryParams.append('classType', searchParams.classTypeId);
-      if (searchParams.locationId) queryParams.append('locationId', searchParams.locationId);
-      if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
-      if (searchParams.startDateFrom) queryParams.append('startDateFrom', searchParams.startDateFrom);
-      if (searchParams.startDateTo) queryParams.append('startDateTo', searchParams.startDateTo);
-      if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId); // Add this line
+      if (searchParams.courseCategoryId)
+        queryParams.append("courseCategory", searchParams.courseCategoryId);
+      if (searchParams.classTypeId)
+        queryParams.append("classType", searchParams.classTypeId);
+      if (searchParams.locationId)
+        queryParams.append("locationId", searchParams.locationId);
+      if (searchParams.instructorId)
+        queryParams.append("instructorId", searchParams.instructorId);
+      if (searchParams.startDateFrom)
+        queryParams.append("startDateFrom", searchParams.startDateFrom);
+      if (searchParams.startDateTo)
+        queryParams.append("startDateTo", searchParams.startDateTo);
+      if (searchParams.countryId)
+        queryParams.append("countryId", searchParams.countryId); // Add this line
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}class/?${queryParams.toString()}`,
+        `${process.env.NEXT_PUBLIC_API_URL}class`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-          }
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
         }
       );
 
-      if (!response.ok) throw new Error('Failed to fetch classes');
-      
+      if (!response.ok) throw new Error("Failed to fetch classes");
+
       const data = await response.json();
       setClasses(data.data.data);
       setMetadata(data.data.metadata);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     fetchClasses();
@@ -402,25 +434,27 @@ const ClassTable = () => {
 
   const handleReset = () => {
     setSearchParams({
-      startDateFrom: '',
-      startDateTo: '',
-      countryId: '',
-      locationId: '',
-      instructorId: '',
-      courseCategoryId: '',
-      classTypeId: '',
-      showClass: '',
+      startDateFrom: "",
+      startDateTo: "",
+      countryId: "",
+      locationId: "",
+      instructorId: "",
+      courseCategoryId: "",
+      classTypeId: "",
+      showClass: "",
     });
-    setGlobalSearch('');
+    setGlobalSearch("");
     setCurrentPage(1);
   };
 
   const handleCountryChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const countryId = event.target.value;
     setSelectedCountry(countryId);
-    setSearchParams(prev => ({ ...prev, countryId }));
+    setSearchParams((prev) => ({ ...prev, countryId }));
 
-    const selectedCountryData = countries.find(country => country.id.toString() === countryId);
+    const selectedCountryData = countries.find(
+      (country) => country.id.toString() === countryId
+    );
     if (selectedCountryData) {
       setCities(selectedCountryData.locations);
     } else {
@@ -430,7 +464,7 @@ const ClassTable = () => {
 
   const handleCityChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const locationId = event.target.value;
-    setSearchParams(prev => ({ ...prev, locationId }));
+    setSearchParams((prev) => ({ ...prev, locationId }));
   };
 
   // Loading shimmer component
@@ -443,16 +477,18 @@ const ClassTable = () => {
   );
 
   const deleteClassLocally = (classId: number) => {
-    setClasses(prevClasses => prevClasses.filter(c => c.id !== classId));
+    setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
   };
-
 
   const refreshClassTypes = async () => {
     const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
     };
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}classtype`, { headers });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}classtype`,
+      { headers }
+    );
     const data = await response.json();
     setClassTypes(data.data);
   };
@@ -460,18 +496,16 @@ const ClassTable = () => {
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       {error && (
-        <Alert
-          message={error}
-          type="error"
-          onClose={() => setError(null)}
-        />
+        <Alert message={error} type="error" onClose={() => setError(null)} />
       )}
 
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <p className="font-semibold leading-none tracking-tight text-xl">Classes</p>
+        <p className="font-semibold leading-none tracking-tight text-xl">
+          Classes
+        </p>
         <button
-          onClick={() => router.push('/addclass')}
+          onClick={() => router.push("/addclass")}
           className="flex items-center gap-2 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
         >
           <Plus size={20} />
@@ -487,7 +521,12 @@ const ClassTable = () => {
             type="date"
             id="startDateFrom"
             value={searchParams.startDateFrom}
-            onChange={(e) => setSearchParams({ ...searchParams, startDateFrom: e.target.value })}
+            onChange={(e) =>
+              setSearchParams({
+                ...searchParams,
+                startDateFrom: e.target.value,
+              })
+            }
           />
         </div>
 
@@ -497,51 +536,54 @@ const ClassTable = () => {
             type="date"
             id="startDateTo"
             value={searchParams.startDateTo}
-            onChange={(e) => setSearchParams({ ...searchParams, startDateTo: e.target.value })}
+            onChange={(e) =>
+              setSearchParams({ ...searchParams, startDateTo: e.target.value })
+            }
           />
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label>Country</Label>
-          <Select
-            value={searchParams.countryId}
-            onValueChange={(value) => setSearchParams({ ...searchParams, countryId: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select Country" />
-            </SelectTrigger>
-            <SelectContent>
-              {countries?.map((country) => (
-                <SelectItem key={country.id} value={country.id.toString()}>
-                  {country.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
+        <SearchSelect
+    label="Country"
+    value={Number(searchParams.countryId)}
+    onChange={(value) => setSearchParams({ ...searchParams, countryId: value.toString() })}
+    apiUrl="country"
+    labelKey="CountryName"
+    placeholder="Select Country"
+  />
         <div className="flex flex-col gap-2">
           <Label>Instructor</Label>
           <Select
             value={searchParams.instructorId}
-            onValueChange={(value) => setSearchParams({ ...searchParams, instructorId: value })}
+            onValueChange={(value) =>
+              setSearchParams({ ...searchParams, instructorId: value })
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Select Instructor" />
             </SelectTrigger>
             <SelectContent>
-              {
-              instructors.length > 0 ?
-              instructors?.map((instructor) => (
-                <SelectItem key={instructor.id} value={instructor.id.toString()}>
-                  {instructor.name}
-                </SelectItem>
-              ))
-            : 
-            <div className='text-center text-zinc-500  text-sm p-4'>
-              <p>No Instructors Found. <Link  href={"/instructors"} className='hover:underline text-black hover:scale-105'>Create One</Link></p>
-            </div>
-            }
+              {instructors.length > 0 ? (
+                instructors?.map((instructor) => (
+                  <SelectItem
+                    key={instructor.id}
+                    value={instructor.id.toString()}
+                  >
+                    {instructor.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <div className="text-center text-zinc-500  text-sm p-4">
+                  <p>
+                    No Instructors Found.{" "}
+                    <Link
+                      href={"/instructors"}
+                      className="hover:underline text-black hover:scale-105"
+                    >
+                      Create One
+                    </Link>
+                  </p>
+                </div>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -550,33 +592,42 @@ const ClassTable = () => {
           <Label>Course Category</Label>
           <Select
             value={searchParams.courseCategoryId}
-            onValueChange={(value) => setSearchParams({ ...searchParams, courseCategoryId: value })}
+            onValueChange={(value) =>
+              setSearchParams({ ...searchParams, courseCategoryId: value })
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Select Category" />
             </SelectTrigger>
             <SelectContent>
-              {courseCategories?.map((category) => (
-                <SelectItem key={category.id} value={category.id.toString()}>
-                  {category.name}
-                </SelectItem>
-              ))}
+              {courseCategories.length > 0
+                ? courseCategories?.map((category) => (
+                    <SelectItem
+                      key={category.id}
+                      value={category.id.toString()}
+                    >
+                      {category.name}
+                    </SelectItem>
+                  ))
+                : "Data not found"}
             </SelectContent>
           </Select>
         </div>
 
         <ClassTypeDropdown1
-  searchParams={searchParams}
-  // @ts-ignore
-  setSearchParams={setSearchParams}
-  classTypes={classTypes}
-/>
+          searchParams={searchParams}
+          // @ts-ignore
+          setSearchParams={setSearchParams}
+          classTypes={classTypes}
+        />
 
         <div className="flex flex-col gap-2">
           <Label>Show Class</Label>
           <Select
             value={searchParams.showClass}
-            onValueChange={(value) => setSearchParams({ ...searchParams, showClass: value })}
+            onValueChange={(value) =>
+              setSearchParams({ ...searchParams, showClass: value })
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Select Status" />
@@ -589,7 +640,6 @@ const ClassTable = () => {
           </Select>
         </div>
       </div>
-
 
       {/* Action Buttons */}
       <div className="flex gap-4 mb-6">
@@ -611,7 +661,7 @@ const ClassTable = () => {
       {loading ? (
         <TableShimmer />
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto pb-40">
           <table className="w-full">
             <thead className="bg-zinc-50">
               <tr>
@@ -628,88 +678,94 @@ const ClassTable = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
-            {classes && classes?.length > 0 ? (
-  classes.map((classItem) => (
-    <tr key={classItem.id} className="hover:bg-zinc-50">
-      <TableCell>{classItem.classType?.name || 'N/A'}</TableCell>
-      <TableCell className="font-medium text-zinc-900">
-        {classItem.title}
-      </TableCell>
-      <TableCell>
-        {classItem.location?.location || 'N/A'}
-      </TableCell>
-      <TableCell>
-        {new Date(classItem.startDate).toLocaleDateString()}
-      </TableCell>
-      <TableCell>
-        {new Date(classItem.endDate).toLocaleDateString()}
-      </TableCell>
-      <TableCell>{classItem?.instructor || 'Not assigned'}</TableCell>
-      <TableCell>
-        <span className={`px-2 py-1 rounded-full text-xs ${
-          classItem.status === '1' 
-            ? 'bg-green-100 text-green-800'
-            : classItem.status === '2'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-red-100 text-red-800'
-        }`}>
-          {classItem.status === '1' ? 'Active' : classItem.status === '2' ? 'Pending' : 'Inactive'}
-        </span>
-      </TableCell>
-      <TableCell>
-        {classItem.enrolledStudents || 0}
-      </TableCell>
-      <TableCell>
-        {calculateAvailableSpots(classItem)}
-      </TableCell>
-      <TableCell>
-        <ActionDropdown 
-          classId={classItem.id}
-          refreshData={fetchClasses}
-          classItem={classItem}
-          onDelete={deleteClassLocally}
-        />
-      </TableCell>
-    </tr>
-  ))
-) : (
-  <tr>
-    <td colSpan={10} className="text-center py-4">
-      No data found
-    </td>
-  </tr>
-)}
+              {classes && classes.length > 0 ? (
+                classes.map((classItem) => (
+                  <tr key={classItem.id} className="hover:bg-zinc-50">
+                    <TableCell>{classItem.classType?.name || "N/A"}</TableCell>
+                    <TableCell className="font-medium text-zinc-900">
+                      {classItem.title}
+                    </TableCell>
+                    <TableCell>
+                      {classItem.location?.location || "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(classItem.startDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(classItem.endDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {/* This line is really important */}
+                      {/* @ts-ignore */}
+                      {classItem?.instructor?.name || "Not assigned"}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          classItem.status === "1"
+                            ? "bg-green-100 text-green-800"
+                            : classItem.status === "2"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {classItem.status === "1"
+                          ? "Active"
+                          : classItem.status === "2"
+                          ? "Pending"
+                          : "Inactive"}
+                      </span>
+                    </TableCell>
+                    <TableCell>{classItem.enrolledStudents || 0}</TableCell>
+                    <TableCell>{calculateAvailableSpots(classItem)}</TableCell>
+                    <TableCell>
+                      <ActionDropdown
+                        classId={classItem.id}
+                        refreshData={fetchClasses}
+                        classItem={classItem}
+                        onDelete={deleteClassLocally}
+                      />
+                    </TableCell>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={10} className="text-center py-4">
+                    No data found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       )}
 
-{/* Pagination */}
-{metadata && (
-  <div className="flex justify-between items-center mt-6">
-    <span className="text-sm text-zinc-600">
-      Showing page {metadata.currentPage} of {metadata.totalPages}
-    </span>
-    <div className="flex gap-2">
-      <button
-        onClick={() => setCurrentPage((prev) => prev - 1)}
-        disabled={!metadata.hasPrevious}
-        className="px-4 py-2 border border-zinc-300 rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 hover:bg-zinc-50"
-      >
-        Previous
-      </button>
-      <button
-        onClick={() => setCurrentPage((prev) => prev + 1)}
-        disabled={!metadata.hasNext}
-        className="px-4 py-2 border border-zinc-300 rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 hover:bg-zinc-200"
-      >
-        Next
-      </button>
+      {/* Pagination */}
+      {metadata && (
+        <div className="flex justify-between items-center mt-6">
+          <span className="text-sm text-zinc-600">
+            Showing page {metadata.currentPage} of {metadata.totalPages}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentPage((prev) => prev - 1)}
+              disabled={!metadata.hasPrevious}
+              className="px-4 py-2 border border-zinc-300 rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 hover:bg-zinc-50"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setCurrentPage((prev) => prev + 1)}
+              disabled={!metadata.hasNext}
+              className="px-4 py-2 border border-zinc-300 rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 hover:bg-zinc-200"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-)}
-</div>
-);
+  );
 };
 
 export default ClassTable;

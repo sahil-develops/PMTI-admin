@@ -1,136 +1,260 @@
 'use client'
-import React, { useState } from "react";
+import React, {useState,useEffect} from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+
+// Define the form schema with Zod
+const classFormSchema = z.object({
+  // Basic Information
+  title: z.string()
+    .min(3, "Title must be at least 3 characters")
+    .max(100, "Title must not exceed 100 characters")
+    .regex(/^[a-zA-Z0-9\s]+$/, "Title must contain only letters, numbers and spaces"),
+  
+  description: z.string()
+    .min(10, "Description must be at least 10 characters")
+    .max(500, "Description must not exceed 500 characters"),
+
+  // IDs and Numbers
+  categoryId: z.coerce.number().positive("Category ID is required"),
+  classTypeId: z.coerce.number().positive("Class Type ID is required"),
+  countryId: z.coerce.number().positive("Country ID is required"),
+  locationId: z.coerce.number().positive("Location ID is required"),
+  instructorId: z.coerce.number().positive("Instructor ID is required"),
+  
+  // Students and Price
+  maxStudent: z.coerce.number()
+    .min(1, "Maximum students must be at least 1")
+    .max(100, "Maximum 100 students allowed"),
+  minStudent: z.coerce.number()
+    .min(1, "Minimum students must be at least 1"),
+  price: z.coerce.number()
+    .positive("Price must be greater than 0")
+    .max(10000, "Price cannot exceed 10000"),
+
+  // Address
+  address: z.string()
+    .min(5, "Address must be at least 5 characters")
+    .max(200, "Address must not exceed 200 characters")
+    .regex(/^[a-zA-Z0-9\s,.-]+$/, "Please enter a valid address"),
+
+  // Dates
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+
+  // Time
+  classTimeFrom: z.string().min(1, "Start time is required"),
+  classTimeTo: z.string().min(1, "End time is required"),
+  formattedTimeFrom: z.string(),
+  formattedTimeTo: z.string(),
+
+  // Course ID
+  onlineCourseId: z.string()
+    .regex(/^[A-Z]{2,}-\d{4}-[A-Z0-9]+$/, "Please enter a valid course ID (e.g., OC-2024-ADVJS)"),
+
+  // Booleans
+  onlineAvailable: z.boolean(),
+  isCorpClass: z.boolean(),
+  status: z.boolean().default(true),
+  isCancel: z.boolean().default(false),
+  isDelete: z.boolean().default(false),
+
+  // Added/Updated By
+  addedBy: z.number().default(1),
+  updatedBy: z.number().default(1),
+
+  // Optional Hotel and Travel Information
+  hotel: z.string().optional(),
+  hotelEmailId: z.string()
+    .email("Please enter a valid email address")
+    .optional()
+    .or(z.literal("")),
+  hotelContactNo: z.string()
+    .regex(/^\+?[1-9]\d{1,14}$/, "Please enter a valid phone number")
+    .optional()
+    .or(z.literal("")),
+  flightConfirmation: z.string()
+    .regex(/^[A-Z]+-\d{6}$/, "Please enter a valid flight confirmation (e.g., FLIGHT-123456)")
+    .optional()
+    .or(z.literal("")),
+  carConfirmation: z.string()
+    .regex(/^[A-Z]+-\d{6}$/, "Please enter a valid car confirmation (e.g., CAR-123456)")
+    .optional()
+    .or(z.literal("")),
+  hotelConfirmation: z.string()
+    .regex(/^[A-Z]+-\d{6}$/, "Please enter a valid hotel confirmation (e.g., HOTEL-123456)")
+    .optional()
+    .or(z.literal(""))
+}).refine(
+  (data) => {
+    // Validate that endDate is after startDate
+    const start = new Date(data.startDate);
+    const end = new Date(data.endDate);
+    return end > start;
+  },
+  {
+    message: "End date must be after start date",
+    path: ["endDate"]
+  }
+).refine(
+  (data) => {
+    // Validate that classTimeTo is after classTimeFrom
+    const from = new Date(`2000/01/01 ${data.classTimeFrom}`);
+    const to = new Date(`2000/01/01 ${data.classTimeTo}`);
+    return to > from;
+  },
+  {
+    message: "End time must be after start time",
+    path: ["classTimeTo"]
+  }
+).refine(
+  (data) => {
+    // Validate that minStudent is less than maxStudent
+    return data.minStudent <= data.maxStudent;
+  },
+  {
+    message: "Minimum students cannot exceed maximum students",
+    path: ["minStudent"]
+  }
+);
+
+
+type ClassFormData = z.infer<typeof classFormSchema>;
 
 const ClassForm = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    categoryId: 1,
-    classTypeId: 2,
-    countryId: 1,
-    locationId: 2,
-    address: "",
-    startDate: "",
-    endDate: "",
-    maxStudent: 30,
-    minStudent: 5,
-    price: 150.0,
-    status: true,
-    instructorId: 1,
-    onlineAvailable: true,
-    isCancel: false,
-    addedBy: 1,
-    updatedBy: 1,
-    isDelete: false,
-    classTime: "",
-    onlineCourseId: "",
-    isCorpClass: false,
-    hotel: "",
-    hotelEmailId: "",
-    hotelContactNo: "",
-    flightConfirmation: "",
-    carConfirmation: "",
-    hotelConfirmation: ""
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors }
+  } = useForm<ClassFormData>({
+    resolver: zodResolver(classFormSchema),
+    defaultValues: {
+      categoryId: 1,
+      classTypeId: 2,
+      countryId: 1,
+      locationId: 2,
+      maxStudent: 30,
+      minStudent: 5,
+      price: 150.0,
+      status: true,
+      onlineAvailable: true,
+      isCancel: false,
+      addedBy: 1,
+      updatedBy: 1,
+      isDelete: false,
+      formattedTimeFrom: '',
+      formattedTimeTo: ''
+    }
   });
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
+  // Watch classTimeFrom and classTimeTo to combine them
+  const classTimeFrom = watch("classTimeFrom");
+  const classTimeTo = watch("classTimeTo");
 
-  const handleSubmit = async (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    setLoading(true);
-    setShowError(false);
-
-    try {
-      if (!formData.title || !formData.description) {
-        throw new Error("Title and description are required");
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          categoryId: Number(formData.categoryId),
-          classTypeId: Number(formData.classTypeId),
-          countryId: Number(formData.countryId),
-          locationId: Number(formData.locationId),
-          maxStudent: Number(formData.maxStudent),
-          minStudent: Number(formData.minStudent),
-          price: Number(formData.price),
-          addedBy: Number(formData.addedBy),
-          updatedBy: Number(formData.updatedBy),
-          instructorId: Number(formData.instructorId)
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create class");
-      }
-
-      setShowSuccess(true);
-      setFormData({
-        title: "",
-        description: "",
-        categoryId: 1,
-        classTypeId: 2,
-        countryId: 1,
-        locationId: 2,
-        address: "",
-        startDate: "",
-        endDate: "",
-        maxStudent: 30,
-        minStudent: 5,
-        price: 150.0,
-        status: true,
-        instructorId: 1,
-        onlineAvailable: true,
-        isCancel: false,
-        addedBy: 1,
-        updatedBy: 1,
-        isDelete: false,
-        classTime: "",
-        onlineCourseId: "",
-        isCorpClass: false,
-        hotel: "",
-        hotelEmailId: "",
-        hotelContactNo: "",
-        flightConfirmation: "",
-        carConfirmation: "",
-        hotelConfirmation: "",
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage("An unknown error occurred");
-      }
-      setShowError(true);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (classTimeFrom && classTimeTo) {
+      setValue("classTime", `${classTimeFrom} - ${classTimeTo}`);
     }
-  };
+  }, [classTimeFrom, classTimeTo, setValue]);
 
+// Add this after your imports
+const formatTime = (time: string) => {
+  if (!time) return '';
+  try {
+    const date = new Date(`2000-01-01T${time}`);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).replace(/\s+/g, ''); // Remove space between time and AM/PM
+  } catch (e) {
+    return '';
+  }
+};
+
+// Update your onSubmit function
+const onSubmit = async (data: ClassFormData) => {
+  setLoading(true);
+  setShowError(false);
+
+  try {
+    // Format the times
+    const formattedTimeFrom = formatTime(data.classTimeFrom);
+    const formattedTimeTo = formatTime(data.classTimeTo);
+    
+    // Prepare the data for submission
+    const submitData = {
+      ...data,
+      classTime: `${formattedTimeFrom} - ${formattedTimeTo}`,
+      // Convert IDs to numbers
+      categoryId: Number(data.categoryId),
+      classTypeId: Number(data.classTypeId),
+      countryId: Number(data.countryId),
+      locationId: Number(data.locationId),
+      maxStudent: Number(data.maxStudent),
+      minStudent: Number(data.minStudent),
+      price: Number(data.price),
+      addedBy: Number(data.addedBy),
+      updatedBy: Number(data.updatedBy),
+      instructorId: Number(data.instructorId)
+    };
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("accessToken")}`
+      },
+      body: JSON.stringify(submitData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to create class");
+    }
+
+    setShowSuccess(true);
+  } catch (error) {
+    setErrorMessage(error instanceof Error ? error.message : "An unknown error occurred");
+    setShowError(true);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // Reusable form field component
+  const FormField = ({ label, name, type = "text", required = true, ...props }: { label: string; name: keyof ClassFormData; type?: string; required?: boolean; [key: string]: any }) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <input
+        type={type}
+        {...register(name)}
+        className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
+          errors[name] ? 'border-red-500' : 'border-gray-300'
+        } focus:border-blue-500 focus:ring-blue-500`}
+        {...props}
+      />
+      {errors[name] && (
+        <p className="mt-1 text-sm text-red-500">{errors[name]?.message}</p>
+      )}
+    </div>
+  );
   return (
     <div className="max-w-7xl mx-auto p-0">
+      {/* Breadcrumb */}
       <nav className="flex my-4" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 text-sm">
           <li>
@@ -141,289 +265,245 @@ const ClassForm = () => {
           <li>
             <ChevronRight className="w-4 h-4 text-zinc-400" />
           </li>
-          <li className="text-zinc-900 font-medium">
-            Add Class
-          </li>
+          <li className="text-zinc-900 font-medium">Add Class</li>
         </ol>
       </nav>
-      <h1 className="text-3xl font-bold tracking-tight">Add Class</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <h1 className="text-3xl font-bold tracking-tight mb-6">Add Class</h1>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="flex flex-col lg:px-0 sm:px-2 px-4 pt-4 lg:flex-row gap-4 justify-center">
+          {/* Left Column */}
           <div className="space-y-4 w-full lg:w-1/2">
-            {/* Left Column */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Title</label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                required
-              />
-            </div>
+            <FormField
+              label="Title"
+              name="title"
+              placeholder="Enter class title"
+            />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <label className="block text-sm font-medium text-gray-700">
+                Description <span className="text-red-500">*</span>
+              </label>
               <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
+                {...register("description")}
                 rows={3}
-                className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                required
+                className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
+                  errors.description ? 'border-red-500' : 'border-gray-300'
+                } focus:border-blue-500 focus:ring-blue-500`}
+              />
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                label="Category ID"
+                name="categoryId"
+                type="number"
+              />
+
+              <FormField
+                label="Class Type ID"
+                name="classTypeId"
+                type="number"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Category ID</label>
-                <input
-                  type="number"
-                  name="categoryId"
-                  value={formData.categoryId}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                  required
-                />
-              </div>
+              <FormField
+                label="Country ID"
+                name="countryId"
+                type="number"
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Class Type ID</label>
-                <input
-                  type="number"
-                  name="classTypeId"
-                  value={formData.classTypeId}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Country ID</label>
-                <input
-                  type="number"
-                  name="countryId"
-                  value={formData.countryId}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Location ID</label>
-                <input
-                  type="number"
-                  name="locationId"
-                  value={formData.locationId}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Address</label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                required
+              <FormField
+                label="Location ID"
+                name="locationId"
+                type="number"
               />
             </div>
+
+            <FormField
+              label="Address"
+              name="address"
+              placeholder="Enter complete address"
+            />
 
             <div className="flex items-center gap-4">
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  name="onlineAvailable"
-                  checked={formData.onlineAvailable}
-                  onChange={handleInputChange}
+                  {...register("onlineAvailable")}
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <label className="ml-2 block text-sm text-gray-700">Online Available</label>
+                <label className="ml-2 block text-sm text-gray-700">
+                  Online Available
+                </label>
               </div>
 
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  name="isCorpClass"
-                  checked={formData.isCorpClass}
-                  onChange={handleInputChange}
+                  {...register("isCorpClass")}
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <label className="ml-2 block text-sm text-gray-700">Corporate Class</label>
+                <label className="ml-2 block text-sm text-gray-700">
+                  Corporate Class
+                </label>
               </div>
             </div>
           </div>
 
+          {/* Right Column */}
           <div className="w-full lg:w-1/2 space-y-4">
-            {/* Right Column */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Start Date</label>
-                <input
-                  type="datetime-local"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                  required
-                />
-              </div>
+              <FormField
+                label="Start Date"
+                name="startDate"
+                type="datetime-local"
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">End Date</label>
-                <input
-                  type="datetime-local"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Class Time</label>
-              <input
-                type="text"
-                name="classTime"
-                value={formData.classTime}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                required
+              <FormField
+                label="End Date"
+                name="endDate"
+                type="datetime-local"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Online Course ID</label>
-              <input
-                type="text"
-                name="onlineCourseId"
-                value={formData.onlineCourseId}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                required
-              />
-            </div>
+            {/* Time Input Section */}
+
+<div className="space-y-2">
+  <label className="block text-sm font-medium text-gray-700">
+    Class Time <span className="text-red-500">*</span>
+  </label>
+  <div className="grid grid-cols-2 gap-4">
+    <div>
+      <label className="block text-sm text-gray-600">From</label>
+      <input
+        type="time"
+        {...register("classTimeFrom", {
+          onChange: (e) => {
+            const formattedTime = formatTime(e.target.value);
+            setValue("formattedTimeFrom", formattedTime);
+          }
+        })}
+        className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
+          errors.classTimeFrom ? 'border-red-500' : 'border-gray-300'
+        } focus:border-blue-500 focus:ring-blue-500`}
+      />
+      {errors.classTimeFrom && (
+        <p className="mt-1 text-sm text-red-500">{errors.classTimeFrom.message}</p>
+      )}
+    </div>
+    <div>
+      <label className="block text-sm text-gray-600">To</label>
+      <input
+        type="time"
+        {...register("classTimeTo", {
+          onChange: (e) => {
+            const formattedTime = formatTime(e.target.value);
+            setValue("formattedTimeTo", formattedTime);
+          }
+        })}
+        className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
+          errors.classTimeTo ? 'border-red-500' : 'border-gray-300'
+        } focus:border-blue-500 focus:ring-blue-500`}
+      />
+      {errors.classTimeTo && (
+        <p className="mt-1 text-sm text-red-500">{errors.classTimeTo.message}</p>
+      )}
+    </div>
+  </div>
+  {/* Show formatted time for preview */}
+  {watch('formattedTimeFrom') && watch('formattedTimeTo') && (
+    <p className="text-sm text-gray-500">
+      Class Time: {watch('formattedTimeFrom')} - {watch('formattedTimeTo')}
+    </p>
+  )}
+</div>
+
+            <FormField
+              label="Online Course ID"
+              name="onlineCourseId"
+              placeholder="OC-2024-ADVJS"
+            />
+
+            <FormField
+              label="Instructor ID"
+              name="instructorId"
+              type="number"
+              placeholder="Enter instructor ID"
+            />
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Max Students</label>
-                <input
-                  type="number"
-                  name="maxStudent"
-                  value={formData.maxStudent}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Min Students</label>
-                <input
-                  type="number"
-                  name="minStudent"
-                  value={formData.minStudent}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Price</label>
-              <input
+              <FormField
+                label="Max Students"
+                name="maxStudent"
                 type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleInputChange}
-                step="0.01"
-                className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                required
+              />
+
+              <FormField
+                label="Min Students"
+                name="minStudent"
+                type="number"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Hotel</label>
-              <input
-                type="text"
-                name="hotel"
-                value={formData.hotel}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-              />
-            </div>
+            <FormField
+              label="Price"
+              name="price"
+              type="number"
+              step="0.01"
+            />
+
+            {/* Optional Fields */}
+            <FormField
+              label="Hotel"
+              name="hotel"
+              required={false}
+              placeholder="Hotel name"
+            />
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Hotel Email</label>
-                <input
-                  type="email"
-                  name="hotelEmailId"
-                  value={formData.hotelEmailId}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                />
-              </div>
+              <FormField
+                label="Hotel Email"
+                name="hotelEmailId"
+                type="email"
+                required={false}
+                placeholder="hotel@example.com"
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Hotel Contact</label>
-                <input
-                  type="tel"
-                  name="hotelContactNo"
-                  value={formData.hotelContactNo}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                />
-              </div>
+              <FormField
+                label="Hotel Contact"
+                name="hotelContactNo"
+                required={false}
+                placeholder="+1234567890"
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Flight Confirmation</label>
-                <input
-                  type="text"
-                  name="flightConfirmation"
-                  value={formData.flightConfirmation}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                />
-              </div>
+              <FormField
+                label="Flight Confirmation"
+                name="flightConfirmation"
+                required={false}
+                placeholder="FLIGHT-123456"
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Car Confirmation</label>
-                <input
-                  type="text"
-                  name="carConfirmation"
-                  value={formData.carConfirmation}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                />
-              </div>
+              <FormField
+                label="Car Confirmation"
+                name="carConfirmation"
+                required={false}
+                placeholder="CAR-123456"
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Hotel Confirmation</label>
-                <input
-                  type="text"
-                  name="hotelConfirmation"
-                  value={formData.hotelConfirmation}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-gray-800 border"
-                />
-              </div>
+              <FormField
+                label="Hotel Confirmation"
+                name="hotelConfirmation"
+                required={false}
+                placeholder="HOTEL-123456"
+              />
             </div>
           </div>
         </div>
@@ -453,7 +533,7 @@ const ClassForm = () => {
             <button
               onClick={() => {
                 setShowSuccess(false);
-                window.location.href = '/classes'; // Redirect to classes list
+                window.location.href = '/';
               }}
               className="mt-4 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
@@ -487,6 +567,6 @@ const ClassForm = () => {
       )}
     </div>
   );
-};
+}
 
 export default ClassForm;

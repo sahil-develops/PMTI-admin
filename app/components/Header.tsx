@@ -17,9 +17,9 @@ const router = useRouter();
     { name: 'Dashboard', icon: Home, href: '/' },
     { name: 'Students', icon: Users, href: '/students' },
     { name: 'Instructors', icon: Users, href: '/instructors' },
-    { name: 'Classes', icon: Calendar, href: '/classes' },
+    // { name: 'Classes', icon: Calendar, href: '/classes' },
     { name: 'Courses', icon: BookOpen, href: '/courses' },
-    { name: 'Locations', icon: MapPin, href: '/locations' },
+    // { name: 'Locations', icon: MapPin, href: '/locations' },
     { name: 'Promotions', icon: BadgePercent, href: '/promotions' },
   ];
 

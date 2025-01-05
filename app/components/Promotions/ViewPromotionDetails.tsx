@@ -4,8 +4,9 @@ import { useRouter } from 'next/navigation';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import Link from 'next/link';
 
 interface PromotionDetails {
   id: number;
@@ -95,16 +96,38 @@ export default function ViewPromotionDetails({ id }: { id: string }) {
   }
 
   return (
+    <div>
+   <nav className="flex my-4" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 text-sm">
+          <li>
+            <Link href="/" className="text-zinc-500 hover:text-zinc-700">
+              Home
+            </Link>
+          </li>
+          <li>
+            <ChevronRight className="w-4 h-4 text-zinc-400" />
+          </li>
+          <li>
+            <Link href="/classes" className="text-zinc-500 hover:text-zinc-700">
+             Promotion
+            </Link>
+          </li>
+          <li>
+            <ChevronRight className="w-4 h-4 text-zinc-400" />
+          </li>
+          <li className="text-zinc-900 font-medium">Promotion Details</li>
+        </ol>
+      </nav>
     <div className="p-6 bg-white rounded-lg shadow">
       <div className="flex items-center gap-4 mb-6">
-        <Button
+        {/* <Button
           variant="outline"
           onClick={() => router.push('/promotions')}
           className="flex items-center gap-2"
-        >
+          >
           <ArrowLeft size={16} />
           Back to Promotions
-        </Button>
+          </Button> */}
         <h1 className="text-2xl font-semibold text-zinc-900">Promotion Details</h1>
       </div>
 
@@ -123,14 +146,15 @@ export default function ViewPromotionDetails({ id }: { id: string }) {
           <DetailRow 
             label="Start Date" 
             value={format(new Date(promotion.startDate), 'MMM dd, yyyy')} 
-          />
+            />
           <DetailRow 
             label="End Date" 
             value={format(new Date(promotion.endDate), 'MMM dd, yyyy')} 
-          />
+            />
           <DetailRow label="Status" value={promotion.active} />
         </div>
       </Card>
     </div>
+            </div>
   );
 } 
