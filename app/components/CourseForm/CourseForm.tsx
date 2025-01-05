@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import CourseList from "./CourseList";
 
 interface CourseFormData {
   courseName: string;
@@ -32,12 +30,15 @@ interface CourseFormData {
   categoryId: number;
 }
 
-export default function CourseForm() {
+interface CourseFormProps {
+  onSuccess?: () => void;
+}
+
+const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
   const [formData, setFormData] = useState<CourseFormData>({
     courseName: "",
     shortName: "",
@@ -75,7 +76,7 @@ export default function CourseForm() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/course`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}course`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -90,6 +91,9 @@ export default function CourseForm() {
       }
 
       setShowSuccess(true);
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "An unknown error occurred");
       setShowError(true);
@@ -99,142 +103,144 @@ export default function CourseForm() {
   };
 
   return (
-    <div className="max-w-7xl flex flex-col gap-y-5 mx-auto p-4">
-        <div>
-
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New Course</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="courseName">Course Name</Label>
-                <Input
-                  id="courseName"
-                  name="courseName"
-                  value={formData.courseName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="shortName">Short Name</Label>
-                <Input
-                  id="shortName"
-                  name="shortName"
-                  value={formData.shortName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  required
-                  className="min-h-[100px]"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="courseDuration">Duration (hours)</Label>
-                <Input
-                  id="courseDuration"
-                  name="courseDuration"
-                  type="number"
-                  value={formData.courseDuration}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="classType">Class Type</Label>
-                <Input
-                  id="classType"
-                  name="classType"
-                  type="number"
-                  value={formData.classType}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="price">Price ($)</Label>
-                <Input
-                  id="price"
-                  name="price"
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="extPrice">External Price ($)</Label>
-                <Input
-                  id="extPrice"
-                  name="extPrice"
-                  type="number"
-                  step="0.01"
-                  value={formData.extPrice}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="categoryId">Category ID</Label>
-                <Input
-                  id="categoryId"
-                  name="categoryId"
-                  type="number"
-                  value={formData.categoryId}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="isGuestAccess">Guest Access</Label>
-                <Switch
-                  id="isGuestAccess"
-                  checked={formData.isGuestAccess}
-                  onCheckedChange={() => handleSwitchChange("isGuestAccess")}
-                />
-              </div>
-
-              <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="isVisible">Visible</Label>
-                <Switch
-                  id="isVisible"
-                  checked={formData.isVisible}
-                  onCheckedChange={() => handleSwitchChange("isVisible")}
-                />
-              </div>
+    <Card className="mb-4">
+      <CardHeader className="p-4 pb-0">
+        <CardTitle className="text-lg">Create New Course</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="courseName" className="text-sm">Course Name</Label>
+              <Input
+                id="courseName"
+                name="courseName"
+                value={formData.courseName}
+                onChange={handleInputChange}
+                required
+                className="h-8"
+              />
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? "Creating..." : "Create Course"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            <div className="space-y-1">
+              <Label htmlFor="shortName" className="text-sm">Short Name</Label>
+              <Input
+                id="shortName"
+                name="shortName"
+                value={formData.shortName}
+                onChange={handleInputChange}
+                required
+                className="h-8"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="courseDuration" className="text-sm">Duration (hours)</Label>
+              <Input
+                id="courseDuration"
+                name="courseDuration"
+                type="number"
+                value={formData.courseDuration}
+                onChange={handleInputChange}
+                required
+                className="h-8"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="classType" className="text-sm">Class Type</Label>
+              <Input
+                id="classType"
+                name="classType"
+                type="number"
+                value={formData.classType}
+                onChange={handleInputChange}
+                required
+                className="h-8"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="price" className="text-sm">Price ($)</Label>
+              <Input
+                id="price"
+                name="price"
+                type="number"
+                step="0.01"
+                value={formData.price}
+                onChange={handleInputChange}
+                required
+                className="h-8"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="extPrice" className="text-sm">External Price ($)</Label>
+              <Input
+                id="extPrice"
+                name="extPrice"
+                type="number"
+                step="0.01"
+                value={formData.extPrice}
+                onChange={handleInputChange}
+                required
+                className="h-8"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="categoryId" className="text-sm">Category ID</Label>
+              <Input
+                id="categoryId"
+                name="categoryId"
+                type="number"
+                value={formData.categoryId}
+                onChange={handleInputChange}
+                required
+                className="h-8"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="isGuestAccess" className="text-sm">Guest Access</Label>
+              <Switch
+                id="isGuestAccess"
+                checked={formData.isGuestAccess}
+                onCheckedChange={() => handleSwitchChange("isGuestAccess")}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="isVisible" className="text-sm">Visible</Label>
+              <Switch
+                id="isVisible"
+                checked={formData.isVisible}
+                onCheckedChange={() => handleSwitchChange("isVisible")}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="description" className="text-sm">Description</Label>
+            <Textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              required
+              className="h-20 resize-none"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full h-9"
+            disabled={loading}
+          >
+            {loading ? "Creating..." : "Create Course"}
+          </Button>
+        </form>
+      </CardContent>
 
       {/* Success Modal */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
@@ -269,12 +275,8 @@ export default function CourseForm() {
           </div>
         </DialogContent>
       </Dialog>
-      </div>
-
-      <div>
-
-      <CourseList/>
-      </div>
-    </div>
+    </Card>
   );
-}
+};
+
+export default CourseForm;
