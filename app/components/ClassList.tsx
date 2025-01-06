@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { fetchClasses } from '../lib/api'
+import fetchClasses from '../lib/api'
 
 
 export default function ClassList() {
@@ -11,8 +11,8 @@ export default function ClassList() {
   useEffect(() => {
     const loadClasses = async () => {
       try {
-        const data = await fetchClasses({ limit: 10, page: 1 })
-        setClasses(data)
+        const response = await fetchClasses('/classes', { params: { limit: 10, page: 1 } })
+        setClasses(response.data)
       } catch (error) {
         console.error('Failed to fetch classes:', error)
       } finally {
