@@ -1,12 +1,24 @@
 "use client";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 import Header from "./components/Header";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { useMemo, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
+
+// Configure the Inter font
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+});
+
+// Configure JetBrains Mono for monospace
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+});
 
 // AuthWrapper component to handle authentication
 const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -33,41 +45,24 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   return null;
 };
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { id } = useParams();
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
 
   return (
-
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <body className="min-h-screen bg-background font-sans antialiased">
         <AuthWrapper>
-          <div className="flex h-screen bg-gray-100">
-            {/* {!isLoginPage && <Sidebar />} */}
+          <div className="flex flex-col h-screen bg-gray-100">
+            {!isLoginPage && <Header />}
             <div className="flex-1 flex flex-col overflow-hidden">
-              {!isLoginPage && <Header />}
-
               <main className="flex-1 overflow-x-hidden mx-auto max-w-7xl w-full overflow-y-auto bg-gray-100 p-2">
                 {children}
               </main>
-           
-
-           
             </div>
           </div>
         </AuthWrapper>
