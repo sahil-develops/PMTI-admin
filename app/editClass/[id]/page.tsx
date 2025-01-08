@@ -70,7 +70,9 @@ interface ApiResponse {
 }
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: {
+    id: string;
+  };
 }
 
 const LoadingSkeleton = () => (
@@ -100,7 +102,7 @@ const LoadingSkeleton = () => (
 );
 
 export default function EditClass({ params }: PageProps) {
-  const resolvedParams = use(params);
+  const { id } = params;
   const router = useRouter();
   const { toast } = useToast();
   const [classData, setClassData] = useState<ClassData | null>(null);
@@ -110,7 +112,7 @@ export default function EditClass({ params }: PageProps) {
   useEffect(() => {
     const fetchClass = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class/${resolvedParams.id}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -142,14 +144,14 @@ export default function EditClass({ params }: PageProps) {
     };
 
     fetchClass();
-  }, [resolvedParams.id, toast, router]);
+  }, [id, toast, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class/${resolvedParams.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -175,7 +177,7 @@ export default function EditClass({ params }: PageProps) {
           title: "Success",
           description: "Class updated successfully",
         });
-        router.push(`/class-details/${resolvedParams.id}`);
+        router.push(`/class-details/${id}`);
         router.refresh();
       } else {
         throw new Error(data.error || 'Failed to update class');
@@ -218,7 +220,7 @@ export default function EditClass({ params }: PageProps) {
         </Link>
         <span>›</span>
         <Link 
-          href={`/class-details/${resolvedParams.id}`} 
+          href={`/class-details/${id}`} 
           className="hover:text-gray-700"
         >
           Class Details

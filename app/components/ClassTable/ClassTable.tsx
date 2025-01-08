@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Calendar,
   Search,
@@ -25,6 +25,7 @@ import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import { useToast } from "@/hooks/use-toast";
 import SearchSelect from '../DropDown/SearchSelect';
 import ClassTypeDropdown1 from "@/app/components/DropDown/ClassTypeDropdown1";
+import { ClassSearchForm } from './ClassSearchForm';
 
 interface ClassType {
   id: number;
@@ -265,13 +266,13 @@ const TableCell = ({
   <td className={`px-4 py-4 text-sm text-zinc-600 ${className}`}>{children}</td>
 );
 
-const ClassTable = () => {
-  const router = useRouter();
+export function ClassTable() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
 
   interface Instructor {
     id: number;
@@ -378,32 +379,62 @@ const ClassTable = () => {
     return classItem.maxStudent - enrolled;
   };
 
-  const fetchClasses = async () => {
+  // Initial data fetch
+  useEffect(() => {
+    async function fetchInitialClasses() {
+      try {
+        setLoading(true);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}class`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            },
+          }
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch classes');
+        }
+
+        const data = await response.json();
+        setClasses(data.data.data);
+        setMetadata(data.data.metadata);
+      } catch (error) {
+        console.error('Error fetching classes:', error);
+        setError(error instanceof Error ? error.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchInitialClasses();
+  }, []); // Empty dependency array for initial load only
+
+  // Modified handleSearch function
+  const handleSearch = async () => {
     try {
       setLoading(true);
-      const queryParams = new URLSearchParams({
-        page: currentPage.toString(),
-        sort: "id:DESC",
-        limit: "10",
-      });
+      
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      
+      // Only add parameters that have values
+      if (searchParams.startDateFrom) queryParams.append('startDateFrom', searchParams.startDateFrom);
+      if (searchParams.startDateTo) queryParams.append('startDateTo', searchParams.startDateTo);
+      if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId);
+      if (searchParams.locationId) queryParams.append('locationId', searchParams.locationId);
+      if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
+      if (searchParams.courseCategoryId) queryParams.append('courseCategory', searchParams.courseCategoryId);
+      if (searchParams.classTypeId) queryParams.append('classType', searchParams.classTypeId);
+      if (searchParams.showClass) queryParams.append('showClass', searchParams.showClass);
+      
+      // Add pagination
+      queryParams.append('page', currentPage.toString());
+      queryParams.append('limit', '10');
 
-      // Add filter parameters if they exist
-      if (searchParams.courseCategoryId)
-        queryParams.append("courseCategory", searchParams.courseCategoryId);
-      if (searchParams.classTypeId)
-        queryParams.append("classType", searchParams.classTypeId);
-      if (searchParams.locationId)
-        queryParams.append("locationId", searchParams.locationId);
-      if (searchParams.instructorId)
-        queryParams.append("instructorId", searchParams.instructorId);
-      if (searchParams.startDateFrom)
-        queryParams.append("startDateFrom", searchParams.startDateFrom);
-      if (searchParams.startDateTo)
-        queryParams.append("startDateTo", searchParams.startDateTo);
-      if (searchParams.countryId)
-        queryParams.append("countryId", searchParams.countryId); // Add this line
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}class`,
+        `${process.env.NEXT_PUBLIC_API_URL}class?${queryParams.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -411,28 +442,24 @@ const ClassTable = () => {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to fetch classes");
+      if (!response.ok) {
+        throw new Error('Failed to fetch classes');
+      }
 
       const data = await response.json();
       setClasses(data.data.data);
       setMetadata(data.data.metadata);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchClasses();
-  }, [currentPage]);
-
-  const handleSearch = () => {
-    setCurrentPage(1);
-    fetchClasses();
-  };
-
-  const handleReset = () => {
+  // Modified handleReset function
+  const handleReset = async () => {
+    // Reset search parameters
     setSearchParams({
       startDateFrom: "",
       startDateTo: "",
@@ -445,6 +472,32 @@ const ClassTable = () => {
     });
     setGlobalSearch("");
     setCurrentPage(1);
+
+    // Fetch initial data again
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}class`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch classes');
+      }
+
+      const data = await response.json();
+      setClasses(data.data.data);
+      setMetadata(data.data.metadata);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCountryChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -494,6 +547,7 @@ const ClassTable = () => {
     setClassTypes(data.data);
   };
 
+  const router = useRouter();
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       {error && (
@@ -740,7 +794,7 @@ const ClassTable = () => {
                     <TableCell>
                       <ActionDropdown
                         classId={classItem.id}
-                        refreshData={fetchClasses}
+                        refreshData={() => setClasses([])}
                         classItem={classItem}
                         onDelete={deleteClassLocally}
                       />
@@ -785,6 +839,6 @@ const ClassTable = () => {
       )}
     </div>
   );
-};
+}
 
 export default ClassTable;

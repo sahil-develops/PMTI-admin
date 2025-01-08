@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -63,7 +63,7 @@ interface ApiResponse {
 }
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 const LoadingSkeleton = () => (
@@ -95,7 +95,6 @@ const LoadingSkeleton = () => (
 );
 
 export default function EditClass({ params }: PageProps) {
-  const resolvedParams = use(params);
   const router = useRouter();
   const { toast } = useToast();
   const [classData, setClassData] = useState<ClassData | null>(null);
@@ -105,7 +104,7 @@ export default function EditClass({ params }: PageProps) {
   useEffect(() => {
     const fetchClass = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class/${resolvedParams.id}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class/${params.id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -137,14 +136,14 @@ export default function EditClass({ params }: PageProps) {
     };
 
     fetchClass();
-  }, [resolvedParams.id, toast, router]);
+  }, [params.id, toast, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class/${resolvedParams.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class/${params.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -172,7 +171,7 @@ export default function EditClass({ params }: PageProps) {
           title: "Success",
           description: "Class updated successfully",
         });
-        router.push(`/class-details/${resolvedParams.id}`);
+        router.push(`/class-details/${params.id}`);
         router.refresh();
       } else {
         throw new Error(data.error || 'Failed to update class');
@@ -369,4 +368,4 @@ export default function EditClass({ params }: PageProps) {
       </div>
     </div>
   );
-} 
+}

@@ -40,7 +40,6 @@ const DetailSection = ({ title, children }: { title: string; children: React.Rea
 
 export default function ClassDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const unwrappedParams = use(params);
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +47,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     const fetchClassDetails = async () => {
       try {
+        const unwrappedParams = await params;
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}class/${unwrappedParams.id}`,
           {
@@ -75,7 +75,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     };
 
     fetchClassDetails();
-  }, [unwrappedParams.id]);
+  }, [params]);
 
   if (loading) {
     return (

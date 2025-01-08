@@ -1,5 +1,5 @@
 'use client'
-import { Bell, User, LogOut, Home, Users, BookOpen, Calendar, MapPin, Menu, X,BadgePercent } from 'lucide-react';
+import { Bell, User, LogOut, Home, Users, BookOpen,FileUser, Menu, X,BadgePercent } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,6 +21,7 @@ const router = useRouter();
     { name: 'Courses', icon: BookOpen, href: '/courses' },
     // { name: 'Locations', icon: MapPin, href: '/locations' },
     { name: 'Promotions', icon: BadgePercent, href: '/promotions' },
+    { name: 'Enrollment', icon: FileUser, href: '/enrollment' },
   ];
 
   useEffect(() => {
