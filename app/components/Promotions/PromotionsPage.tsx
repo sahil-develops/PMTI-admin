@@ -85,7 +85,7 @@ const ActionDropdown = ({
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}promotions/${promotionId}`,
+        `https://api.4pmti.com/promotions/${promotionId}`,
         {
           method: 'DELETE',
           headers: {
@@ -260,7 +260,7 @@ export default function PromotionsPage() {
   const fetchPromotions = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}promotions`, {
+      const response = await fetch(`https://api.4pmti.com/promotions`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

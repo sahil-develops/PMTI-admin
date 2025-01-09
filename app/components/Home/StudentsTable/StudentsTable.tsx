@@ -157,7 +157,7 @@ const StudentTable = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}students`);
+      const response = await fetch(`https://api.4pmti.com/students`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -191,7 +191,7 @@ const StudentTable = () => {
 
     try {
       setDeletingId(selectedStudent.id);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}students/${selectedStudent.id}`, {
+      const response = await fetch(`https://api.4pmti.com/students/${selectedStudent.id}`, {
         method: 'DELETE',
       });
 

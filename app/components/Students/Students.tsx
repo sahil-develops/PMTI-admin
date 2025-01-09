@@ -187,7 +187,7 @@ const Students = () => {
 
     setLoading(true);
     try {
-      const response = await api.patch(`${process.env.NEXT_PUBLIC_API_URL}students/${selectedStudent?.id}`, {
+      const response = await api.patch(`https://api.4pmti.com/students/${selectedStudent?.id}`, {
         ...editFormData,
         updatedBy: 'admin',
       });
@@ -311,7 +311,7 @@ const Students = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}auth/signup/student`, {
+      const response = await axios.post(`https://api.4pmti.com/auth/signup/student`, {
         ...formData,
         signupDate: new Date().toISOString(),
         downloadedInfoPac: true,
@@ -400,7 +400,7 @@ const Students = () => {
     const onSubmit = async (data: StudentFormValues) => {
       setIsSubmitting(true);
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}students/${student.id}`, {
+        const response = await fetch(`https://api.4pmti.com/students/${student.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -672,7 +672,7 @@ const Students = () => {
 
     const fetchStudents = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}students`, {
+        const response = await fetch(`https://api.4pmti.com/students`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },

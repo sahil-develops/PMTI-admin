@@ -54,7 +54,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}promotions/${id}`,
+        `https://api.4pmti.com/promotions/${id}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -96,7 +96,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}promotions/${id}`,
+        `https://api.4pmti.com/promotions/${id}`,
         {
           method: 'PATCH',
           headers: {

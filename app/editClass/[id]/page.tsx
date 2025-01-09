@@ -112,7 +112,7 @@ export default function EditClass({ params }: PageProps) {
   useEffect(() => {
     const fetchClass = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class/${id}`, {
+        const response = await fetch(`https://api.4pmti.com/class/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -151,7 +151,7 @@ export default function EditClass({ params }: PageProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class/${id}`, {
+      const response = await fetch(`https://api.4pmti.com/class/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

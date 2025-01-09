@@ -55,9 +55,9 @@ export default function AddPromotionForm() {
         };
 
         const [countriesRes, categoriesRes, classTypesRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}country`, { headers }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}category`, { headers }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}classtype`, { headers })
+          fetch(`https://api.4pmti.com/country`, { headers }),
+          fetch(`https://api.4pmti.com/category`, { headers }),
+          fetch(`https://api.4pmti.com/classtype`, { headers })
         ]);
 
         const [countriesData, categoriesData, classTypesData] = await Promise.all([
@@ -99,7 +99,7 @@ export default function AddPromotionForm() {
         updatedBy: 7,
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}promotions`, {
+      const response = await fetch(`https://api.4pmti.com/promotions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -55,7 +55,7 @@ export default function ViewPromotionDetails({ id }: { id: string | any }) {
   useEffect(() => {
     const fetchPromotionDetails = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}promotions/${id}`, {
+        const response = await fetch(`https://api.4pmti.com/promotions/${id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
           },

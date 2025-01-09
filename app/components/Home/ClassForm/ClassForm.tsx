@@ -211,7 +211,7 @@ const onSubmit = async (data: ClassFormData) => {
       instructorId: Number(data.instructorId)
     };
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}class`, {
+    const response = await fetch(`https://api.4pmti.com/class`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

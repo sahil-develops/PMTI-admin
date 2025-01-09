@@ -49,7 +49,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       try {
         const unwrappedParams = await params;
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}class/${unwrappedParams.id}`,
+          `https://api.4pmti.com/class/${unwrappedParams.id}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,

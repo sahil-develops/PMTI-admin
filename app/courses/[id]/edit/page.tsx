@@ -74,7 +74,7 @@ export default function EditCourse({ params }: PageProps) {
     const fetchCourse = async () => {
       setIsFetching(true);
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}course/${resolvedParams.id}`, {
+        const response = await fetch(`https://api.4pmti.com/course/${resolvedParams.id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -115,7 +115,7 @@ export default function EditCourse({ params }: PageProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}course/${resolvedParams.id}`, {
+      const response = await fetch(`https://api.4pmti.com/course/${resolvedParams.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

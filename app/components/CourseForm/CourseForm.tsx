@@ -76,7 +76,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}course`, {
+      const response = await fetch(`https://api.4pmti.com/course`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

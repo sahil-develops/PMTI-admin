@@ -133,7 +133,7 @@ const ActionDropdown = ({
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}class/${classId}`,
+        `https://api.4pmti.com/class/${classId}`,
         {
           method: "DELETE",
           headers: {
@@ -328,10 +328,10 @@ export function ClassTable() {
 
       const [instructorsRes, categoriesRes, classTypesRes, countriesRes] =
         await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}instructor`, { headers }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}category`, { headers }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}classtype`, { headers }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}country`, { headers }),
+          fetch(`https://api.4pmti.com/instructor`, { headers }),
+          fetch(`https://api.4pmti.com/category`, { headers }),
+          fetch(`https://api.4pmti.com/classtype`, { headers }),
+          fetch(`https://api.4pmti.com/country`, { headers }),
         ]);
 
       const [instructorsData, categoriesData, classTypesData, countriesData] =
@@ -385,7 +385,7 @@ export function ClassTable() {
       try {
         setLoading(true);
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}class`,
+          `https://api.4pmti.com/class`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -434,7 +434,7 @@ export function ClassTable() {
       queryParams.append('limit', '10');
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}class?${queryParams.toString()}`,
+        `https://api.4pmti.com/class?${queryParams.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -477,7 +477,7 @@ export function ClassTable() {
     try {
       setLoading(true);
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}class`,
+        `https://api.4pmti.com/class`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -540,7 +540,7 @@ export function ClassTable() {
       Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
     };
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}classtype`,
+      `https://api.4pmti.com/classtype`,
       { headers }
     );
     const data = await response.json();

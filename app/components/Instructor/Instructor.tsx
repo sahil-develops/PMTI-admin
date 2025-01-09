@@ -92,7 +92,7 @@ const Instructor = () => {
     };
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}auth/signup/instructor`, {
+      const response = await fetch(`https://api.4pmti.com/auth/signup/instructor`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

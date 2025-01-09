@@ -97,7 +97,7 @@ export default function EnrollmentPage() {
     try {
       setIsSubmitting(true)
       // Add your API call here
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}enrollment`, {
+      const response = await fetch(`https://api.4pmti.com/enrollment`, {
         method: 'POST',
         
         headers: {

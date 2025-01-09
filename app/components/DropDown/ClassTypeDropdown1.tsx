@@ -45,7 +45,7 @@ const CreateClassTypeForm: React.FC<CreateClassTypeFormProps> = ({ onCancel, onS
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}classtype`, {
+      const response = await fetch(`https://api.4pmti.com/classtype`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

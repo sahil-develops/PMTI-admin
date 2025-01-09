@@ -150,7 +150,7 @@ export default function CourseDetails({ params }: PageProps) {
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}course/${resolvedParams.id}`, {
+        const response = await fetch(`https://api.4pmti.com/course/${resolvedParams.id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },

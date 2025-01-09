@@ -143,7 +143,7 @@ const SignIn = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}auth/signup/admin`, {
+      const response = await fetch(`https://api.4pmti.com/auth/signup/admin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ const SignIn = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}auth/login`, {
+      const response = await fetch(`https://api.4pmti.com/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
