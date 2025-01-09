@@ -30,6 +30,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { useState } from "react"
+import { AlertCircle } from "lucide-react"
 
 const formSchema = z.object({
   courseId: z.number(),
@@ -63,6 +64,17 @@ const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   downloadedInfoPac: z.boolean(),
 })
+
+const UnderProgressBanner = () => (
+  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+    <div className="flex items-center">
+      <AlertCircle className="h-5 w-5 text-yellow-400" />
+      <p className="ml-3 text-sm text-yellow-700">
+        This enrollment form is currently under development. Some features may not be fully functional.
+      </p>
+    </div>
+  </div>
+)
 
 export default function EnrollmentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -109,9 +121,10 @@ export default function EnrollmentPage() {
 
   return (
     <div className="container mx-auto py-6">
+      <UnderProgressBanner />
       <Card className="bg-zinc-50">
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">Course Enrollment</CardTitle>
+          <CardTitle className="text-xl font-semibold">Course Enrollment </CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
