@@ -754,7 +754,7 @@ const Students = () => {
   };
 
   return (
-    <Card className="w-full max-w-7xl mx-auto">
+    <Card className="w-full max-w-full mx-auto">
       <CardHeader>
         <CardTitle>Student Registration</CardTitle>
         <CardDescription>Register a new student account</CardDescription>

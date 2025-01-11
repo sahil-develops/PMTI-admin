@@ -106,7 +106,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
   if (!classDetails) return null;
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="max-w-full mx-auto p-6">
       {/* Breadcrumb */}
       <nav className="flex my-4" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 text-sm">

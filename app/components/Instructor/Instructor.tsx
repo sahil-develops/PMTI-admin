@@ -118,8 +118,8 @@ const Instructor = () => {
 
   return (
     <>
-      <div className="flex min-h-screen items-start max-w-7xl w-full justify-start px-4">
-        <Card className="w-full max-w-7xl">
+      <div className="flex min-h-screen items-start max-w-full w-full justify-start ">
+        <Card className="w-full max-w-full">
           <CardHeader>
             <CardTitle>Instructor Signup</CardTitle>
             <CardDescription>Create your instructor account to get started</CardDescription>

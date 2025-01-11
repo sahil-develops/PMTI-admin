@@ -120,7 +120,7 @@ export default function EnrollmentPage() {
   }
 
   return (
-    <div className="container mx-auto py-6">
+    <div className=" py-6">
       <UnderProgressBanner />
       <Card className="bg-zinc-50">
         <CardHeader>

@@ -165,7 +165,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
           <li className="text-zinc-900 font-medium">Edit Promotion</li>
         </ol>
       </nav>
-    <Card className="max-w-7xl mx-5 ">
+    <Card className="max-w-full mx-5 ">
       <CardHeader>
         <CardTitle>Edit Promotion</CardTitle>
         <CardDescription>Make changes to the promotion details</CardDescription>

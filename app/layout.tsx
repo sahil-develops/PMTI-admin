@@ -60,7 +60,7 @@ export default function RootLayout({
           <div className="flex flex-col h-screen bg-gray-100">
             {!isLoginPage && <Header />}
             <div className="flex-1 flex flex-col overflow-hidden">
-              <main className="flex-1 overflow-x-hidden mx-auto max-w-7xl w-full overflow-y-auto bg-gray-100 p-2">
+              <main className="flex-1 overflow-x-hidden mx-auto max-w-full w-full overflow-y-auto bg-gray-100 p-2">
                 {children}
               </main>
             </div>
