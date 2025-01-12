@@ -1192,7 +1192,7 @@ export function ClassTable() {
                           : "Inactive"}
                       </span>
                     </TableCell>
-                    <TableCell>{classItem.enrolledStudents || 0}</TableCell>
+                    <TableCell>{classItem.minStudent || 0}</TableCell>
                     <TableCell>{calculateAvailableSpots(classItem)}</TableCell>
                     <TableCell>
                       <ActionDropdown

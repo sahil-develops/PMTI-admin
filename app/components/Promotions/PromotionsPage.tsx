@@ -17,6 +17,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PromotionFilter {
   id?: string;
@@ -45,8 +50,26 @@ interface Promotion {
   description: string;
   active: boolean;
   country: {
+    id: number;
     CountryName: string;
   };
+  category: {
+    id: number;
+    name: string;
+  };
+  classType: {
+    id: number;
+    name: string;
+  };
+}
+
+interface FilterState {
+  id: string;
+  country: string;
+  amountMin: string;
+  amountMax: string;
+  startDate: Date | undefined;
+  endDate: Date | undefined;
 }
 
 const TableHeader = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
@@ -225,6 +248,14 @@ export default function PromotionsPage() {
   const [filteredPromotions, setFilteredPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const [filters, setFilters] = useState<FilterState>({
+    id: '',
+    country: 'all',
+    amountMin: '',
+    amountMax: '',
+    startDate: undefined,
+    endDate: undefined,
+  });
 
   // Debounced search function
   const debouncedSearch = useCallback(
@@ -291,6 +322,52 @@ export default function PromotionsPage() {
     }
   };
 
+  const applyFilters = useCallback(() => {
+    let results = [...promotions];
+
+    if (filters.id) {
+      results = results.filter(p => 
+        p.promotionId.toLowerCase().includes(filters.id.toLowerCase())
+      );
+    }
+
+    if (filters.country && filters.country !== 'all') {
+      results = results.filter(p => 
+        p.country.id.toString() === filters.country
+      );
+    }
+
+    if (filters.amountMin) {
+      results = results.filter(p => 
+        parseFloat(p.amount) >= parseFloat(filters.amountMin)
+      );
+    }
+
+    if (filters.amountMax) {
+      results = results.filter(p => 
+        parseFloat(p.amount) <= parseFloat(filters.amountMax)
+      );
+    }
+
+    if (filters.startDate) {
+      results = results.filter(p => 
+        new Date(p.startDate) >= filters.startDate!
+      );
+    }
+
+    if (filters.endDate) {
+      results = results.filter(p => 
+        new Date(p.endDate) <= filters.endDate!
+      );
+    }
+
+    setFilteredPromotions(results);
+  }, [filters, promotions]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [filters, applyFilters]);
+
   useEffect(() => {
     fetchPromotions();
     // Cleanup debounce on component unmount
@@ -301,26 +378,151 @@ export default function PromotionsPage() {
 
   return (
     <div className="p-6 bg-white rounded-lg shadow">
-      <div className="flex justify-between items-center mb-6">
-        <p className="font-semibold leading-none tracking-tight text-xl">Promotions</p>
-        <button
-          onClick={() => router.push('/promotions/add')}
-          className="flex items-center gap-2 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
-        >
-          <Plus size={20} />
-          Add Promotion
-        </button>
-      </div>
+      <div className="space-y-4 mb-6">
+        <div className="flex justify-between items-center">
+          <p className="font-semibold leading-none tracking-tight text-xl">Promotions</p>
+          <button
+            onClick={() => router.push('/promotions/add')}
+            className="flex items-center gap-2 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
+          >
+            <Plus size={20} />
+            Add Promotion
+          </button>
+        </div>
 
-      {/* Search Input */}
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-        <Input
-          className="pl-10 w-full md:w-96"
-          placeholder="Search promotions..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-        />
+        <div className=" space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" size={20} />
+            <Input
+              className="pl-10 w-full bg-zinc-50/50 border-zinc-200"
+              placeholder="Search promotions..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm text-zinc-500 mb-1.5 block">Promotion ID</label>
+              <Input
+                className="bg-zinc-50/50 border-zinc-200"
+                placeholder="Search by ID..."
+                value={filters.id}
+                onChange={(e) => setFilters(prev => ({ ...prev, id: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-zinc-500 mb-1.5 block">Country</label>
+              <Select
+                value={filters.country}
+                onValueChange={(value) => setFilters(prev => ({ ...prev, country: value }))}
+              >
+                <SelectTrigger className="bg-zinc-50/50 border-zinc-200">
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Countries</SelectItem>
+                  {Array.from(new Set(promotions.map(p => p.country)))
+                    .map(country => (
+                      <SelectItem key={country.id} value={country.id.toString()}>
+                        {country.CountryName}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm text-zinc-500 mb-1.5 block">Amount Range</label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  className="bg-zinc-50/50 border-zinc-200"
+                  placeholder="Min"
+                  value={filters.amountMin}
+                  onChange={(e) => setFilters(prev => ({ ...prev, amountMin: e.target.value }))}
+                />
+                <Input
+                  type="number"
+                  className="bg-zinc-50/50 border-zinc-200"
+                  placeholder="Max"
+                  value={filters.amountMax}
+                  onChange={(e) => setFilters(prev => ({ ...prev, amountMax: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="md:col-span-2 lg:col-span-3">
+              <label className="text-sm text-zinc-500 mb-1.5 block">Date Range</label>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`bg-zinc-50/50 border-zinc-200 w-full justify-start text-left font-normal ${
+                        !filters.startDate && "text-zinc-500"
+                      }`}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {filters.startDate ? format(filters.startDate, "PPP") : "Start date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filters.startDate}
+                      onSelect={(date) => setFilters(prev => ({ ...prev, startDate: date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`bg-zinc-50/50 border-zinc-200 w-full justify-start text-left font-normal ${
+                        !filters.endDate && "text-zinc-500"
+                      }`}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {filters.endDate ? format(filters.endDate, "PPP") : "End date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filters.endDate}
+                      onSelect={(date) => setFilters(prev => ({ ...prev, endDate: date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              className="text-zinc-500 hover:text-zinc-900"
+              onClick={() => {
+                setFilters({
+                  id: '',
+                  country: 'all',
+                  amountMin: '',
+                  amountMax: '',
+                  startDate: undefined,
+                  endDate: undefined,
+                });
+                setFilteredPromotions(promotions);
+              }}
+            >
+              Reset Filters
+            </Button>
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -337,6 +539,8 @@ export default function PromotionsPage() {
                 <TableHeader className="whitespace-nowrap">Start Date</TableHeader>
                 <TableHeader className="whitespace-nowrap">End Date</TableHeader>
                 <TableHeader className="whitespace-nowrap">Status</TableHeader>
+                <TableHeader className="whitespace-nowrap">Category</TableHeader>
+                <TableHeader className="whitespace-nowrap">Class Type</TableHeader>
                 <TableHeader className="whitespace-nowrap">Actions</TableHeader>
               </tr>
             </thead>
@@ -373,6 +577,12 @@ export default function PromotionsPage() {
                       }`}>
                         {promotion.active ? 'Active' : 'Inactive'}
                       </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {promotion.category.name}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {promotion.classType.name}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       <ActionDropdown 

@@ -16,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+// import { SuccessModal } from "@/";
+import {SuccessModal} from "../../components/SuccessModal";
 
 interface ClassType {
   id: number;
@@ -60,6 +62,17 @@ interface ClassData {
   hotelConfirmation: string;
   createdAt: string;
   updateAt: string;
+  instructor: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  participants?: {
+    id: number;
+    name: string;
+    email: string;
+  }[];
 }
 
 interface ApiResponse {
@@ -73,6 +86,13 @@ interface PageProps {
   params: {
     id: string;
   };
+}
+
+interface Instructor {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
 }
 
 const LoadingSkeleton = () => (
@@ -101,6 +121,42 @@ const LoadingSkeleton = () => (
   </div>
 );
 
+/**
+ * EditClass Component
+ * 
+ * A form component for editing class details with the following features:
+ * - Real-time date validation
+ * - Instructor selection and management
+ * - Participant search and filtering
+ * - Corporate class specific fields
+ * - Comprehensive error handling
+ * 
+ * @param {PageProps} props - Contains the class ID from the URL params
+ */
+
+// Custom hook for form error handling
+const useFormErrors = () => {
+  const [errors, setErrors] = useState<{
+    [key: string]: string;
+  }>({});
+
+  const setError = (field: string, message: string) => {
+    setErrors(prev => ({ ...prev, [field]: message }));
+  };
+
+  const clearError = (field: string) => {
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      return newErrors;
+    });
+  };
+
+  const clearAllErrors = () => setErrors({});
+
+  return { errors, setError, clearError, clearAllErrors };
+};
+
 export default function EditClass({ params }: PageProps) {
   const { id } = params;
   const router = useRouter();
@@ -108,6 +164,13 @@ export default function EditClass({ params }: PageProps) {
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [participants, setParticipants] = useState<ClassData['participants']>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateError, setDateError] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const { errors, setError, clearError, clearAllErrors } = useFormErrors();
 
   useEffect(() => {
     const fetchClass = async () => {
@@ -146,8 +209,87 @@ export default function EditClass({ params }: PageProps) {
     fetchClass();
   }, [id, toast, router]);
 
+  useEffect(() => {
+    const fetchInstructors = async () => {
+      try {
+        const response = await fetch('https://api.4pmti.com/instructor', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch instructors');
+        
+        const data = await response.json();
+        if (data.success) {
+          setInstructors(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching instructors:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load instructors",
+        });
+      }
+    };
+
+    fetchInstructors();
+  }, []);
+
+  const validateDates = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (end < start) {
+      setDateError('End date cannot be before start date');
+      return false;
+    }
+    
+    setDateError('');
+    return true;
+  };
+
+  // Validate form fields
+  const validateForm = (): boolean => {
+    clearAllErrors();
+    let isValid = true;
+
+    if (classData && !classData.title?.trim()) {
+      setError('title', 'Title is required');
+      isValid = false;
+    }
+
+    if (classData && !classData.startDate) {
+      setError('startDate', 'Start date is required');
+      isValid = false;
+    }
+
+    if (classData && !classData.endDate) {
+      setError('endDate', 'End date is required');
+      isValid = false;
+    }
+
+    if (classData && !classData.instructor?.id) {
+      setError('instructor', 'Please select an instructor');
+      isValid = false;
+    }
+
+    return isValid;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (classData && !validateForm() || classData && !validateDates(classData.startDate, classData.endDate)) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please check all required fields and try again.",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -158,27 +300,20 @@ export default function EditClass({ params }: PageProps) {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
         body: JSON.stringify({
-          title: classData?.title,
-          description: classData?.description,
-          startDate: classData?.startDate,
-          endDate: classData?.endDate,
-          maxStudent: classData?.maxStudent,
-          minStudent: classData?.minStudent,
-          price: classData?.price,
-          address: classData?.address,
-          onlineAvailable: classData?.onlineAvailable,
-          status: classData?.status,
+          ...(classData || {}),
+          startDate: classData ? new Date(classData.startDate).toISOString() : '',
+          endDate: classData ? new Date(classData.endDate).toISOString() : '',
         }),
       });
 
       const data = await response.json();
       if (data.success) {
-        toast({
-          title: "Success",
-          description: "Class updated successfully",
-        });
-        router.push(`/class-details/${id}`);
-        router.refresh();
+        setShowSuccessModal(true);
+        setTimeout(() => {
+          setShowSuccessModal(false);
+          router.push(`/class-details/${id}`);
+          router.refresh();
+        }, 1500);
       } else {
         throw new Error(data.error || 'Failed to update class');
       }
@@ -187,7 +322,7 @@ export default function EditClass({ params }: PageProps) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update class. Please try again later.",
+        description: (error as Error).message || "Failed to update class. Please try again later.",
       });
     } finally {
       setIsLoading(false);
@@ -232,95 +367,136 @@ export default function EditClass({ params }: PageProps) {
       <div className="bg-white rounded-lg shadow-sm">
         <div className="p-6">
           <h1 className="text-xl font-semibold mb-2">Edit Class</h1>
-          <p className="text-gray-500 mb-6">Make changes to the class details</p>
+          <p className="text-gray-500 mb-6">Update class details and instructor information</p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Basic Information */}
-              <div className="space-y-4">
-                <div>
-                  <Label>Title</Label>
-                  <Input
-                    value={classData.title}
-                    onChange={(e) => setClassData({ ...classData, title: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Start Date</Label>
-                  <Input
-                    type="date"
-                    value={classData.startDate.split('T')[0]}
-                    onChange={(e) => setClassData({ ...classData, startDate: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>End Date</Label>
-                  <Input
-                    type="date"
-                    value={classData.endDate.split('T')[0]}
-                    onChange={(e) => setClassData({ ...classData, endDate: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Class Time</Label>
-                  <Input
-                    value={classData.classTime}
-                    onChange={(e) => setClassData({ ...classData, classTime: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label>Online Course ID</Label>
-                  <Input
-                    value={classData.onlineCourseId}
-                    onChange={(e) => setClassData({ ...classData, onlineCourseId: e.target.value })}
-                  />
-                </div>
+            {/* Essential Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <Label>Title <span className="text-red-500">*</span></Label>
+                <Input
+                  value={classData.title}
+                  onChange={(e) => {
+                    setClassData({ ...classData, title: e.target.value });
+                    clearError('title');
+                  }}
+                  required
+                  className={errors.title ? 'border-red-500' : ''}
+                />
+                {errors.title && (
+                  <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+                )}
               </div>
 
-              {/* Additional Information */}
-              <div className="space-y-4">
-                <div>
-                  <Label>Price</Label>
-                  <Input
-                    type="text"
-                    value={classData.price}
-                    onChange={(e) => setClassData({ ...classData, price: e.target.value })}
-                    required
-                  />
-                </div>
+              <div>
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={classData.startDate.split('T')[0]}
+                  onChange={(e) => setClassData({ ...classData, startDate: e.target.value })}
+                  required
+                />
+              </div>
 
-                <div>
-                  <Label>Min Students</Label>
-                  <Input
-                    type="number"
-                    value={classData.minStudent}
-                    onChange={(e) => setClassData({ ...classData, minStudent: parseInt(e.target.value) })}
-                    required
-                  />
-                </div>
+              <div>
+                <Label>End Date</Label>
+                <Input
+                  type="date"
+                  value={classData.endDate.split('T')[0]}
+                  onChange={(e) => setClassData({ ...classData, endDate: e.target.value })}
+                  required
+                />
+              </div>
 
-                <div>
-                  <Label>Max Students</Label>
-                  <Input
-                    type="number"
-                    value={classData.maxStudent}
-                    onChange={(e) => setClassData({ ...classData, maxStudent: parseInt(e.target.value) })}
-                    required
-                  />
-                </div>
+              <div>
+                <Label>Class Time</Label>
+                <Input
+                  value={classData.classTime}
+                  onChange={(e) => setClassData({ ...classData, classTime: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Price</Label>
+                <Input
+                  type="text"
+                  value={classData.price}
+                  onChange={(e) => setClassData({ ...classData, price: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Online Course ID</Label>
+                <Input
+                  value={classData.onlineCourseId}
+                  onChange={(e) => setClassData({ ...classData, onlineCourseId: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label>Min Students</Label>
+                <Input
+                  type="number"
+                  value={classData.minStudent}
+                  onChange={(e) => setClassData({ ...classData, minStudent: parseInt(e.target.value) })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Max Students</Label>
+                <Input
+                  type="number"
+                  value={classData.maxStudent}
+                  onChange={(e) => setClassData({ ...classData, maxStudent: parseInt(e.target.value) })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={classData.status}
+                  onValueChange={(value) => setClassData({ ...classData, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Active</SelectItem>
+                    <SelectItem value="2">Pending</SelectItem>
+                    <SelectItem value="0">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            {/* Corporate Class Section */}
-            <div className="space-y-4 border-t pt-4">
+            {/* Address and Description */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Address</Label>
+                <Input
+                  value={classData.address}
+                  onChange={(e) => setClassData({ ...classData, address: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Description</Label>
+                <textarea
+                  value={classData.description}
+                  onChange={(e) => setClassData({ ...classData, description: e.target.value })}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={2}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Checkboxes in a row */}
+            <div className="flex gap-6">
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -332,105 +508,166 @@ export default function EditClass({ params }: PageProps) {
                 <Label htmlFor="isCorpClass">Corporate Class</Label>
               </div>
 
-              {classData.isCorpClass && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Hotel</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={classData.onlineAvailable}
+                  onChange={(e) => setClassData({ ...classData, onlineAvailable: e.target.checked })}
+                  className="rounded border-gray-300"
+                  id="onlineAvailable"
+                />
+                <Label htmlFor="onlineAvailable">Online Available</Label>
+              </div>
+            </div>
+
+            {/* Corporate Class Details - Shown only when isCorpClass is true */}
+            {classData.isCorpClass && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
+                <div>
+                  <Label>Hotel</Label>
+                  <Input
+                    value={classData.hotel}
+                    onChange={(e) => setClassData({ ...classData, hotel: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Hotel Email</Label>
+                  <Input
+                    type="email"
+                    value={classData.hotelEmailId}
+                    onChange={(e) => setClassData({ ...classData, hotelEmailId: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Hotel Contact</Label>
+                  <Input
+                    value={classData.hotelContactNo}
+                    onChange={(e) => setClassData({ ...classData, hotelContactNo: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Hotel Confirmation</Label>
+                  <Input
+                    value={classData.hotelConfirmation}
+                    onChange={(e) => setClassData({ ...classData, hotelConfirmation: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Flight Confirmation</Label>
+                  <Input
+                    value={classData.flightConfirmation}
+                    onChange={(e) => setClassData({ ...classData, flightConfirmation: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Car Confirmation</Label>
+                  <Input
+                    value={classData.carConfirmation}
+                    onChange={(e) => setClassData({ ...classData, carConfirmation: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Instructor Information */}
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-medium mb-4">Instructor Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Select Instructor <span className="text-red-500">*</span></Label>
+                  <Select
+                    value={classData.instructor?.id?.toString()}
+                    onValueChange={(value) => {
+                      const selectedInstructor = instructors.find(i => i.id.toString() === value);
+                      if (selectedInstructor) {
+                        setClassData({
+                          ...classData,
+                          instructor: selectedInstructor
+                        });
+                        clearError('instructor');
+                      }
+                    }}
+                  >
+                    <SelectTrigger className={errors.instructor ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="Select Instructor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {instructors.map((instructor) => (
+                        <SelectItem key={instructor.id} value={instructor.id.toString()}>
+                          {instructor.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.instructor && (
+                    <p className="text-red-500 text-sm mt-1">{errors.instructor}</p>
+                  )}
+                </div>
+
+                {/* Read-only instructor details */}
+                {classData.instructor && (
+                  <>
+                    <div>
+                      <Label>Email</Label>
+                      <Input value={classData.instructor.email} disabled />
+                    </div>
+                    <div>
+                      <Label>Phone</Label>
+                      <Input value={classData.instructor.phone} disabled />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Participants Section */}
+            {participants && participants.length > 0 && (
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium">Class Participants</h3>
+                  <div className="w-64">
                     <Input
-                      value={classData.hotel}
-                      onChange={(e) => setClassData({ ...classData, hotel: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Hotel Email</Label>
-                    <Input
-                      type="email"
-                      value={classData.hotelEmailId}
-                      onChange={(e) => setClassData({ ...classData, hotelEmailId: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Hotel Contact</Label>
-                    <Input
-                      value={classData.hotelContactNo}
-                      onChange={(e) => setClassData({ ...classData, hotelContactNo: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Hotel Confirmation</Label>
-                    <Input
-                      value={classData.hotelConfirmation}
-                      onChange={(e) => setClassData({ ...classData, hotelConfirmation: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Flight Confirmation</Label>
-                    <Input
-                      value={classData.flightConfirmation}
-                      onChange={(e) => setClassData({ ...classData, flightConfirmation: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Car Confirmation</Label>
-                    <Input
-                      value={classData.carConfirmation}
-                      onChange={(e) => setClassData({ ...classData, carConfirmation: e.target.value })}
+                      placeholder="Search participants..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
                 </div>
-              )}
-            </div>
+                
+                <div className="max-h-64 overflow-y-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left bg-gray-50">
+                        <th className="p-2">Name</th>
+                        <th className="p-2">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {participants
+                        .filter(p => 
+                          p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          p.email.toLowerCase().includes(searchTerm.toLowerCase())
+                        )
+                        .map((participant) => (
+                          <tr key={participant.id} className="border-t">
+                            <td className="p-2">{participant.name}</td>
+                            <td className="p-2">{participant.email}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
-            {/* Full Width Fields */}
-            <div>
-              <Label>Address</Label>
-              <Input
-                value={classData.address}
-                onChange={(e) => setClassData({ ...classData, address: e.target.value })}
-                required
-              />
-            </div>
+            {dateError && (
+              <div className="text-red-500 text-sm mt-2">
+                {dateError}
+              </div>
+            )}
 
-            <div>
-              <Label>Description</Label>
-              <textarea
-                value={classData.description}
-                onChange={(e) => setClassData({ ...classData, description: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={4}
-                required
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={classData.onlineAvailable}
-                onChange={(e) => setClassData({ ...classData, onlineAvailable: e.target.checked })}
-                className="rounded border-gray-300"
-                id="onlineAvailable"
-              />
-              <Label htmlFor="onlineAvailable">Online Available</Label>
-            </div>
-
-            <div>
-              <Label>Status</Label>
-              <Select
-                value={classData.status}
-                onValueChange={(value) => setClassData({ ...classData, status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Active</SelectItem>
-                  <SelectItem value="2">Pending</SelectItem>
-                  <SelectItem value="0">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4">
+            {/* Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
@@ -457,6 +694,12 @@ export default function EditClass({ params }: PageProps) {
           </form>
         </div>
       </div>
+      
+      <SuccessModal 
+        isOpen={showSuccessModal}
+        message="Class has been updated successfully! Redirecting..."
+        className="sm:max-w-[425px]"
+      />
     </div>
   );
 }

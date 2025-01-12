@@ -1,5 +1,5 @@
 'use client'
-import { Bell, User, LogOut, Home, Users, BookOpen,FileUser, Menu, X,BadgePercent } from 'lucide-react';
+import { Bell, User, LogOut, Home, Users, BookOpen,FileUser, Menu, X,BadgePercent, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,9 +13,18 @@ export default function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 const router = useRouter();
+  const [isUsersDropdownOpen, setIsUsersDropdownOpen] = useState(false);
   const menuItems = [
     { name: 'Dashboard', icon: Home, href: '/' },
-    { name: 'Students', icon: Users, href: '/students' },
+    {
+      name: 'Users',
+      icon: Users,
+      hasDropdown: true,
+      dropdownItems: [
+        { name: 'Students', href: '/students' },
+        { name: 'Admin', href: '/admin' },
+      ]
+    },
     { name: 'Instructors', icon: Users, href: '/instructors' },
     // { name: 'Classes', icon: Calendar, href: '/classes' },
     { name: 'Courses', icon: BookOpen, href: '/courses' },
@@ -114,27 +123,71 @@ const router = useRouter();
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-4">
             {menuItems.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center md:px-0 lg:px-1 py-2 text-sm font-medium rounded-md 
-                  ${isActive(item.href)
-                    ? 'text-zinc-900 bg-zinc-100'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  } relative group`}
-              >
-                <item.icon className={`mr-2 h-5 w-5 ${
-                  isActive(item.href) ? 'text-zinc-900' : 'text-gray-500'
-                }`} />
-                {item.name}
-                {isActive(item.href) && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900"
-                    initial={false}
-                  />
+              <div key={typeof item === 'object' && item?.name ? item.name : ''} className="relative">
+                {typeof item === 'object' && item?.hasDropdown ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsUsersDropdownOpen(!isUsersDropdownOpen)}
+                      className={`flex items-center md:px-0 lg:px-1 py-2 text-sm font-medium rounded-md 
+                        ${isActive('/students') || isActive('/admin')
+                          ? 'text-zinc-900 bg-zinc-100'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        } relative group`}
+                    >
+                      <item.icon className="mr-2 h-5 w-5 text-gray-500" />
+                      {item.name}
+                      <ChevronDown className="ml-1 h-4 w-4" />
+                    </button>
+                    
+                    <AnimatePresence>
+                      {isUsersDropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+                        >
+                          {item.dropdownItems.map((dropdownItem) => (
+                            <Link
+                              key={dropdownItem.name}
+                              href={dropdownItem.href}
+                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              onClick={() => setIsUsersDropdownOpen(false)}
+                            >
+                              {dropdownItem.name}
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <Link
+                    href={typeof item === 'object' && item?.href ? item.href : ''}
+                    className={`flex items-center md:px-0 lg:px-1 py-2 text-sm font-medium rounded-md 
+                      ${typeof item === 'object' && item?.href && isActive(item.href)
+                        ? 'text-zinc-900 bg-zinc-100'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      } relative group`}
+                  >
+                    {typeof item === 'object' && item?.icon && (
+                      <item.icon className={`mr-2 h-5 w-5 ${
+                        isActive(item?.href || '') ? 'text-zinc-900' : 'text-gray-500'
+                      }`} />
+                    )}
+                    {typeof item === 'object' && item?.name && (
+                      <span>{item.name}</span>
+                    )}
+                    {typeof item === 'object' && item?.href && isActive(item.href) && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900"
+                        initial={false}
+                      />
+                    )}
+                  </Link>
                 )}
-              </Link>
+              </div>
             ))}
           </nav>
 
@@ -203,7 +256,7 @@ const router = useRouter();
               <nav className="px-4 py-2">
                 {menuItems.map((item, index) => (
                   <motion.div
-                    key={item.name}
+                    key={typeof item === 'object' && item?.name ? item.name : ''}
                     variants={menuItemVariants}
                     initial="closed"
                     animate="open"
@@ -211,20 +264,49 @@ const router = useRouter();
                     custom={index}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <Link
-                      href={item.href}
-                      className={`flex items-center px-3 py-3 text-sm font-medium rounded-md
-                        ${isActive(item.href)
-                          ? 'text-zinc-900 bg-zinc-100'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <item.icon className={`mr-3 h-5 w-5 ${
-                        isActive(item.href) ? 'text-zinc-900' : 'text-gray-500'
-                      }`} />
-                      {item.name}
-                    </Link>
+                    {typeof item === 'object' && item?.hasDropdown ? (
+                      <>
+                        <div
+                          className="flex items-center px-3 py-3 text-sm font-medium rounded-md text-gray-600"
+                        >
+                          <item.icon className="mr-3 h-5 w-5 text-gray-500" />
+                          {item.name}
+                        </div>
+                        <div className="ml-8">
+                          {item.dropdownItems.map((dropdownItem) => (
+                            <Link
+                              key={dropdownItem.name}
+                              href={dropdownItem.href}
+                              className={`flex items-center px-3 py-3 text-sm font-medium rounded-md
+                                ${isActive(dropdownItem.href)
+                                  ? 'text-zinc-900 bg-zinc-100'
+                                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                }`}
+                              onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                              {dropdownItem.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <Link
+                        href={typeof item === 'object' && item?.href ? item.href : ''}
+                        className={`flex items-center px-3 py-3 text-sm font-medium rounded-md
+                          ${isActive(item.href)
+                            ? 'text-zinc-900 bg-zinc-100'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          }`}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {typeof item === 'object' && item.icon && (
+                          <item.icon className={`mr-3 h-5 w-5 ${
+                            isActive(item?.href) ? 'text-zinc-900' : 'text-gray-500'
+                          }`} />
+                        )}
+                        {typeof item === 'object' ? item.name : ''}
+                      </Link>
+                    )}
                   </motion.div>
                 ))}
               </nav>
