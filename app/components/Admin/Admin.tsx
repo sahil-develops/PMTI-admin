@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface AdminData {
+  countryId: number;
   id: number;
   uid: string;
   name: string;

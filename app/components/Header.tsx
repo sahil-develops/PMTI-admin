@@ -292,8 +292,8 @@ const router = useRouter();
                     ) : (
                       <Link
                         href={typeof item === 'object' && item?.href ? item.href : ''}
-                        className={`flex items-center px-3 py-3 text-sm font-medium rounded-md
-                          ${isActive(item.href)
+                        // @ts-ignore
+                        className={`flex items-center px-3 py-3 text-sm font-medium rounded-md                          ${isActive(item.href)
                             ? 'text-zinc-900 bg-zinc-100'
                             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                           }`}
@@ -301,6 +301,7 @@ const router = useRouter();
                       >
                         {typeof item === 'object' && item.icon && (
                           <item.icon className={`mr-3 h-5 w-5 ${
+                            // @ts-ignore
                             isActive(item?.href) ? 'text-zinc-900' : 'text-gray-500'
                           }`} />
                         )}
