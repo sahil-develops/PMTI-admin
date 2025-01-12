@@ -95,7 +95,7 @@ const SignIn = () => {
   const fetchCountries = async () => {
     setIsLoadingCountries(true);
     try {
-      const response = await fetch('http://192.252.156.251:25769/country');
+      const response = await fetch('https://api.4pmti.com/country');
       if (!response.ok) throw new Error('Failed to fetch countries');
       const data = await response.json();
       setCountries(data.data);
@@ -394,13 +394,13 @@ const SignIn = () => {
         )}
 
         <div className="text-center">
-          <button
+          {/* <button
             type="button"
             className="font-medium text-blue-600 hover:text-blue-500"
             onClick={() => setIsLogin(!isLogin)}
           >
             {isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
-          </button>
+          </button> */}
         </div>
       </div>
       <NotificationModal
