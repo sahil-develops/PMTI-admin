@@ -8,6 +8,42 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { use } from "react";
 
+interface Instructor {
+  id: number;
+  uid: string;
+  name: string;
+  emailID: string;
+  mobile: string;
+  telNo: string;
+  billingAddress: string;
+  contactAddress: string;
+  profile: string;
+  active: boolean;
+}
+
+interface Location {
+  id: number;
+  location: string;
+}
+
+interface Country {
+  id: number;
+  CountryName: string;
+  currency: string;
+}
+
+interface ClassType {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  description: string;
+}
+
 interface ClassDetails {
   id: number;
   title: string;
@@ -29,12 +65,21 @@ interface ClassDetails {
   flightConfirmation?: string;
   carConfirmation?: string;
   hotelConfirmation?: string;
+  instructor: Instructor;
+  location: Location;
+  country: Country;
+  classType: ClassType;
+  category: Category;
+  createdAt: string;
+  updateAt: string;
+  isCancel: boolean;
+  isDelete: boolean;
 }
 
-const DetailSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div className="space-y-2">
-    <h3 className="text-sm font-medium text-zinc-500">{title}</h3>
-    <div className="text-base text-zinc-900">{children}</div>
+const DetailSection = ({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) => (
+  <div className={`space-y-1 ${className}`}>
+    <h3 className="text-xs uppercase tracking-wider text-zinc-500">{title}</h3>
+    <div className="text-sm text-zinc-900">{children}</div>
   </div>
 );
 
@@ -106,155 +151,126 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
   if (!classDetails) return null;
 
   return (
-    <div className="max-w-full mx-auto p-6">
-      {/* Breadcrumb */}
-      <nav className="flex my-4" aria-label="Breadcrumb">
-        <ol className="inline-flex items-center space-x-1 text-sm">
-          <li>
-            <Link href="/" className="text-zinc-500 hover:text-zinc-700">
-              Home
-            </Link>
-          </li>
-          <li>
-            <ChevronRight className="w-4 h-4 text-zinc-400" />
-          </li>
-          <li>
-            <Link href="/classes" className="text-zinc-500 hover:text-zinc-700">
-              Classes
-            </Link>
-          </li>
-          <li>
-            <ChevronRight className="w-4 h-4 text-zinc-400" />
-          </li>
-          <li className="text-zinc-900 font-medium">{classDetails.title}</li>
-        </ol>
+    <div className="max-w-full mx-auto p-4 sm:p-6">
+      {/* Simplified Breadcrumb */}
+      <nav className="flex items-center space-x-2 text-sm mb-6">
+        <Link href="/" className="text-zinc-500 hover:text-zinc-700">Home</Link>
+        <ChevronRight className="w-4 h-4 text-zinc-400" />
+        <Link href="/classes" className="text-zinc-500 hover:text-zinc-700">Classes</Link>
+        <ChevronRight className="w-4 h-4 text-zinc-400" />
+        <span className="text-zinc-900">{classDetails.title}</span>
       </nav>
 
-      <div className="bg-white rounded-lg shadow p-6 space-y-8">
-        {/* Header */}
-        <div className="border-b pb-6">
-          <div className="flex justify-between items-start mb-4">
-            <h1 className="text-3xl font-bold tracking-tight">{classDetails.title}</h1>
-            <span
-              className={`px-3 py-1 rounded-full text-sm ${
-                classDetails.status === "1"
-                  ? "bg-green-100 text-green-800"
-                  : classDetails.status === "2"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-red-100 text-red-800"
-              }`}
-            >
-              {classDetails.status === "1"
-                ? "Active"
-                : classDetails.status === "2"
-                ? "Pending"
-                : "Inactive"}
+      <div className="bg-white rounded-lg shadow-sm border border-zinc-200 overflow-hidden">
+        {/* Header Section */}
+        <div className="p-6 border-b border-zinc-200">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-2xl font-semibold">{classDetails.title}</h1>
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+              classDetails.status === "1" ? "bg-green-100 text-green-800" :
+              classDetails.status === "2" ? "bg-yellow-100 text-yellow-800" :
+              "bg-red-100 text-red-800"
+            }`}>
+              {classDetails.status === "1" ? "Active" : classDetails.status === "2" ? "Pending" : "Inactive"}
             </span>
           </div>
-          <p className="text-zinc-600">{classDetails.description}</p>
+          <p className="text-sm text-zinc-600">{classDetails.description}</p>
         </div>
 
-        {/* Main Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Key Information */}
+        <div className="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           <DetailSection title="Schedule">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-zinc-500" />
-                <span>
-                  {new Date(classDetails.startDate).toLocaleDateString()} - {new Date(classDetails.endDate).toLocaleDateString()}
-                </span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-zinc-400" />
+                <span>{new Date(classDetails.startDate).toLocaleDateString()}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-zinc-500" />
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-zinc-400" />
                 <span>{classDetails.classTime}</span>
               </div>
             </div>
           </DetailSection>
 
-          <DetailSection title="Capacity">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-zinc-500" />
-              <span>
-                Min: {classDetails.minStudent} / Max: {classDetails.maxStudent} students
-              </span>
-            </div>
-          </DetailSection>
-
-          <DetailSection title="Price">
-            <span className="text-lg font-semibold">${classDetails.price}</span>
-          </DetailSection>
-
           <DetailSection title="Location">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-zinc-500" />
-              <span>{classDetails.address}</span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-zinc-400" />
+                <span>{classDetails.location.location}</span>
+              </div>
+              <span className="text-xs text-zinc-500">{classDetails.country.CountryName}</span>
             </div>
           </DetailSection>
 
-          <DetailSection title="Course ID">
-            <span>{classDetails.onlineCourseId}</span>
+          <DetailSection title="Instructor">
+            <div className="flex flex-col">
+              <span className="font-medium">{classDetails.instructor.name}</span>
+              <span className="text-xs text-zinc-500">{classDetails.instructor.emailID}</span>
+            </div>
           </DetailSection>
 
-          <DetailSection title="Class Type">
-            <div className="space-x-2">
-              {classDetails.onlineAvailable && (
-                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                  Online Available
-                </span>
-              )}
-              {classDetails.isCorpClass && (
-                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">
-                  Corporate Class
-                </span>
-              )}
+          <DetailSection title="Class Details">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-zinc-400" />
+                <span>{classDetails.minStudent}-{classDetails.maxStudent} students</span>
+              </div>
+              <span className="font-medium">${classDetails.price}</span>
             </div>
           </DetailSection>
         </div>
 
-        {/* Hotel Information */}
-        {classDetails.hotel && (
-          <div className="border-t pt-6 mt-8">
-            <h2 className="text-xl font-semibold mb-4">Travel & Accommodation</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <DetailSection title="Hotel">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-zinc-500" />
-                    <span>{classDetails.hotel}</span>
+        {/* Additional Information */}
+        <div className="border-t border-zinc-200">
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h2 className="text-sm font-medium">Course Information</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <DetailSection title="Category">
+                  {classDetails.category.name}
+                </DetailSection>
+                <DetailSection title="Type">
+                  {classDetails.classType.name}
+                </DetailSection>
+                <DetailSection title="Course ID">
+                  {classDetails.onlineCourseId}
+                </DetailSection>
+                <DetailSection title="Features">
+                  <div className="flex flex-wrap gap-2">
+                    {classDetails.onlineAvailable && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs">
+                        Online Available
+                      </span>
+                    )}
+                    {classDetails.isCorpClass && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-purple-50 text-purple-700 text-xs">
+                        Corporate
+                      </span>
+                    )}
                   </div>
+                </DetailSection>
+              </div>
+            </div>
+
+            {classDetails.hotel && (
+              <div className="space-y-4">
+                <h2 className="text-sm font-medium">Travel & Accommodation</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <DetailSection title="Hotel">
+                    {classDetails.hotel}
+                  </DetailSection>
                   {classDetails.hotelEmailId && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-zinc-500" />
+                    <DetailSection title="Contact">
                       <a href={`mailto:${classDetails.hotelEmailId}`} className="text-blue-600 hover:underline">
                         {classDetails.hotelEmailId}
                       </a>
-                    </div>
-                  )}
-                  {classDetails.hotelContactNo && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-zinc-500" />
-                      <span>{classDetails.hotelContactNo}</span>
-                    </div>
+                    </DetailSection>
                   )}
                 </div>
-              </DetailSection>
-
-              <DetailSection title="Confirmations">
-                <div className="space-y-2">
-                  {classDetails.hotelConfirmation && (
-                    <div className="text-sm">Hotel: {classDetails.hotelConfirmation}</div>
-                  )}
-                  {classDetails.flightConfirmation && (
-                    <div className="text-sm">Flight: {classDetails.flightConfirmation}</div>
-                  )}
-                  {classDetails.carConfirmation && (
-                    <div className="text-sm">Car: {classDetails.carConfirmation}</div>
-                  )}
-                </div>
-              </DetailSection>
-            </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

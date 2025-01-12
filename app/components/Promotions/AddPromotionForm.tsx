@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Country {
   id: number;
@@ -24,6 +26,49 @@ interface ClassType {
   name: string;
 }
 
+interface Instructor {
+  id: number;
+  name: string;
+  emailID: string;
+}
+
+interface Location {
+  id: number;
+  location: string;
+}
+
+interface FormData {
+  countryId: string;
+  categoryId: string;
+  classTypeId: string;
+  promotionId: string;
+  amount: string;
+  startDate: string;
+  endDate: string;
+  title: string;
+  description: string;
+  active: boolean;
+  promotionType: string;
+  address: string;
+  maxStudent: string;
+  minStudent: string;
+  price: string;
+  status: string;
+  onlineAvailable: boolean;
+  isCancel: boolean;
+  classTime: string;
+  onlineCourseId: string;
+  isCorpClass: boolean;
+  hotel: string;
+  hotelEmailId: string;
+  hotelContactNo: string;
+  flightConfirmation: string;
+  carConfirmation: string;
+  hotelConfirmation: string;
+  instructorId: string;
+  locationId: string;
+}
+
 export default function AddPromotionForm() {
   const router = useRouter();
   const { toast } = useToast();
@@ -31,8 +76,10 @@ export default function AddPromotionForm() {
   const [countries, setCountries] = useState<Country[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [classTypes, setClassTypes] = useState<ClassType[]>([]);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     countryId: '',
     categoryId: '',
     classTypeId: '',
@@ -43,10 +90,27 @@ export default function AddPromotionForm() {
     title: '',
     description: '',
     active: true,
-    promotionType: '2', // Default value
+    promotionType: '2',
+    address: '',
+    maxStudent: '',
+    minStudent: '',
+    price: '',
+    status: '1',
+    onlineAvailable: false,
+    isCancel: false,
+    classTime: '',
+    onlineCourseId: '',
+    isCorpClass: false,
+    hotel: '',
+    hotelEmailId: '',
+    hotelContactNo: '',
+    flightConfirmation: '',
+    carConfirmation: '',
+    hotelConfirmation: '',
+    instructorId: '',
+    locationId: '',
   });
 
-  // Fetch dropdown data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -54,21 +118,27 @@ export default function AddPromotionForm() {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         };
 
-        const [countriesRes, categoriesRes, classTypesRes] = await Promise.all([
+        const [countriesRes, categoriesRes, classTypesRes, instructorsRes, locationsRes] = await Promise.all([
           fetch(`https://api.4pmti.com/country`, { headers }),
           fetch(`https://api.4pmti.com/category`, { headers }),
-          fetch(`https://api.4pmti.com/classtype`, { headers })
+          fetch(`https://api.4pmti.com/classtype`, { headers }),
+          fetch(`https://api.4pmti.com/instructor`, { headers }),
+          fetch(`https://api.4pmti.com/location`, { headers })
         ]);
 
-        const [countriesData, categoriesData, classTypesData] = await Promise.all([
+        const [countriesData, categoriesData, classTypesData, instructorsData, locationsData] = await Promise.all([
           countriesRes.json(),
           categoriesRes.json(),
-          classTypesRes.json()
+          classTypesRes.json(),
+          instructorsRes.json(),
+          locationsRes.json()
         ]);
 
         setCountries(countriesData.data);
         setCategories(categoriesData.data);
         setClassTypes(classTypesData.data);
+        setInstructors(instructorsData.data);
+        setLocations(locationsData.data);
       } catch (error) {
         toast({
           title: "Error",
@@ -95,7 +165,7 @@ export default function AddPromotionForm() {
         promotionType: parseInt(formData.promotionType),
         attachedFilePath: "promotionfiles/filenotfound.gif",
         isDelete: false,
-        addedBy: 46, // You might want to get this from your auth context
+        addedBy: 46,
         updatedBy: 7,
       };
 
@@ -138,7 +208,7 @@ export default function AddPromotionForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="space-y-2">
             <Label htmlFor="promotionId">Promotion ID</Label>
             <Input
@@ -254,17 +324,181 @@ export default function AddPromotionForm() {
               onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address">Address</Label>
+            <Input
+              id="address"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="maxStudent">Maximum Students</Label>
+            <Input
+              id="maxStudent"
+              type="number"
+              value={formData.maxStudent}
+              onChange={(e) => setFormData({ ...formData, maxStudent: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="minStudent">Minimum Students</Label>
+            <Input
+              id="minStudent"
+              type="number"
+              value={formData.minStudent}
+              onChange={(e) => setFormData({ ...formData, minStudent: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="price">Price</Label>
+            <Input
+              id="price"
+              type="number"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="classTime">Class Time</Label>
+            <Input
+              id="classTime"
+              type="time"
+              value={formData.classTime}
+              onChange={(e) => setFormData({ ...formData, classTime: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="onlineCourseId">Online Course ID</Label>
+            <Input
+              id="onlineCourseId"
+              value={formData.onlineCourseId}
+              onChange={(e) => setFormData({ ...formData, onlineCourseId: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Instructor</Label>
+            <Select
+              value={formData.instructorId}
+              onValueChange={(value) => setFormData({ ...formData, instructorId: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select instructor" />
+              </SelectTrigger>
+              <SelectContent>
+                {instructors.map((instructor) => (
+                  <SelectItem key={instructor.id} value={instructor.id.toString()}>
+                    {instructor.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Location</Label>
+            <Select
+              value={formData.locationId}
+              onValueChange={(value) => setFormData({ ...formData, locationId: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id.toString()}>
+                    {location.location}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hotel">Hotel</Label>
+            <Input
+              id="hotel"
+              value={formData.hotel}
+              onChange={(e) => setFormData({ ...formData, hotel: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hotelEmailId">Hotel Email</Label>
+            <Input
+              id="hotelEmailId"
+              type="email"
+              value={formData.hotelEmailId}
+              onChange={(e) => setFormData({ ...formData, hotelEmailId: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hotelContactNo">Hotel Contact</Label>
+            <Input
+              id="hotelContactNo"
+              value={formData.hotelContactNo}
+              onChange={(e) => setFormData({ ...formData, hotelContactNo: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="flightConfirmation">Flight Confirmation</Label>
+            <Input
+              id="flightConfirmation"
+              value={formData.flightConfirmation}
+              onChange={(e) => setFormData({ ...formData, flightConfirmation: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="carConfirmation">Car Confirmation</Label>
+            <Input
+              id="carConfirmation"
+              value={formData.carConfirmation}
+              onChange={(e) => setFormData({ ...formData, carConfirmation: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hotelConfirmation">Hotel Confirmation</Label>
+            <Input
+              id="hotelConfirmation"
+              value={formData.hotelConfirmation}
+              onChange={(e) => setFormData({ ...formData, hotelConfirmation: e.target.value })}
+            />
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Input
-            id="description"
-            required
-            placeholder="Enter promotion description"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          />
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="onlineAvailable"
+              checked={formData.onlineAvailable}
+              onCheckedChange={(checked) => 
+                setFormData({ ...formData, onlineAvailable: checked as boolean })
+              }
+            />
+            <Label htmlFor="onlineAvailable">Online Available</Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="isCorpClass"
+              checked={formData.isCorpClass}
+              onCheckedChange={(checked) => 
+                setFormData({ ...formData, isCorpClass: checked as boolean })
+              }
+            />
+            <Label htmlFor="isCorpClass">Corporate Class</Label>
+          </div>
         </div>
 
         <div className="flex gap-4">

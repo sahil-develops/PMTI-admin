@@ -19,7 +19,22 @@ import {
 // import { SuccessModal } from "@/";
 import {SuccessModal} from "../../components/SuccessModal";
 
+interface Country {
+  id: number;
+  CountryName: string;
+  currency: string;
+  isActive: boolean;
+}
+
 interface ClassType {
+  id: number;
+  name: string;
+  description: string | null;
+  isDelete: boolean;
+  active: boolean;
+}
+
+interface Category {
   id: number;
   name: string;
   description: string;
@@ -65,14 +80,19 @@ interface ClassData {
   instructor: {
     id: number;
     name: string;
-    email: string;
-    phone: string;
+    emailID: string;
+    mobile: string;
+    telNo: string;
   };
   participants?: {
     id: number;
     name: string;
     email: string;
   }[];
+  location: Location;
+  country: Country;
+  classType: ClassType;
+  category: Category;
 }
 
 interface ApiResponse {
@@ -91,12 +111,13 @@ interface PageProps {
 interface Instructor {
   id: number;
   name: string;
-  email: string;
-  phone: string;
+  emailID: string;
+  mobile: string;
+  telNo: string;
 }
 
 const LoadingSkeleton = () => (
-  <div className="w-full">
+  <div className="w-full h-full">
     <div className="flex items-center gap-2 mb-4">
       <Skeleton className="h-4 w-16" />
       <span>›</span>
@@ -105,8 +126,8 @@ const LoadingSkeleton = () => (
       <Skeleton className="h-4 w-24" />
     </div>
 
-    <div className="bg-white rounded-lg shadow-sm">
-      <div className="p-6">
+    <div className="bg-white rounded-lg shadow-sm h-full">
+      <div className="p-6 h-full">
         <Skeleton className="h-7 w-48 mb-6" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[...Array(6)].map((_, i) => (
@@ -222,7 +243,14 @@ export default function EditClass({ params }: PageProps) {
         
         const data = await response.json();
         if (data.success) {
-          setInstructors(data.data);
+          const mappedInstructors = data.data.map((instructor: any) => ({
+            id: instructor.id,
+            name: instructor.name,
+            emailID: instructor.emailID,
+            mobile: instructor.mobile,
+            telNo: instructor.telNo
+          }));
+          setInstructors(mappedInstructors);
         }
       } catch (error) {
         console.error('Error fetching instructors:', error);
@@ -369,7 +397,7 @@ export default function EditClass({ params }: PageProps) {
           <h1 className="text-xl font-semibold mb-2">Edit Class</h1>
           <p className="text-gray-500 mb-6">Update class details and instructor information</p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6 h-full">
             {/* Essential Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
@@ -569,6 +597,81 @@ export default function EditClass({ params }: PageProps) {
               </div>
             )}
 
+            {/* Location, Country, Class Type, and Category Section */}
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-medium mb-4">Additional Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Location</Label>
+                  <Input
+                    value={classData.location?.location || ''}
+                    disabled
+                  />
+                </div>
+
+                <div>
+                  <Label>Country</Label>
+                  <Input
+                    value={classData.country?.CountryName || ''}
+                    disabled
+                  />
+                </div>
+
+                <div>
+                  <Label>Currency</Label>
+                  <Input
+                    value={classData.country?.currency || ''}
+                    disabled
+                  />
+                </div>
+
+                <div>
+                  <Label>Class Type</Label>
+                  <Input
+                    value={classData.classType?.name || ''}
+                    disabled
+                  />
+                </div>
+
+                <div>
+                  <Label>Category</Label>
+                  <Input
+                    value={classData.category?.name || ''}
+                    disabled
+                  />
+                </div>
+
+                <div>
+                  <Label>Category Description</Label>
+                  <Input
+                    value={classData.category?.description || ''}
+                    disabled
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Timestamps Section */}
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-medium mb-4">System Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Created At</Label>
+                  <Input
+                    value={new Date(classData.createdAt).toLocaleString()}
+                    disabled
+                  />
+                </div>
+                <div>
+                  <Label>Last Updated</Label>
+                  <Input
+                    value={new Date(classData.updateAt).toLocaleString()}
+                    disabled
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Instructor Information */}
             <div className="border-t pt-4">
               <h3 className="text-lg font-medium mb-4">Instructor Information</h3>
@@ -582,7 +685,13 @@ export default function EditClass({ params }: PageProps) {
                       if (selectedInstructor) {
                         setClassData({
                           ...classData,
-                          instructor: selectedInstructor
+                          instructor: {
+                            id: selectedInstructor.id,
+                            name: selectedInstructor.name,
+                            emailID: selectedInstructor.emailID,
+                            mobile: selectedInstructor.mobile,
+                            telNo: selectedInstructor.telNo
+                          }
                         });
                         clearError('instructor');
                       }
@@ -609,11 +718,11 @@ export default function EditClass({ params }: PageProps) {
                   <>
                     <div>
                       <Label>Email</Label>
-                      <Input value={classData.instructor.email} disabled />
+                      <Input value={classData.instructor.emailID} disabled />
                     </div>
                     <div>
                       <Label>Phone</Label>
-                      <Input value={classData.instructor.phone} disabled />
+                      <Input value={classData.instructor.mobile} disabled />
                     </div>
                   </>
                 )}
