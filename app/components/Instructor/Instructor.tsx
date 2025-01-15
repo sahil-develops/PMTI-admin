@@ -1,225 +1,219 @@
 'use client'
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { MoreVertical, Search, Plus, Edit2, Trash2, Eye } from "lucide-react";
+import api from '@/app/lib/api';
 
-const Confetti = () => {
-  const confettiCount = 50;
-  const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD'];
-  
-  return (
-    <div className="fixed inset-0 pointer-events-none">
-      {[...Array(confettiCount)].map((_, i) => {
-        const randomX = Math.random() * 100;
-        const randomDelay = Math.random() * 2;
-        const randomDuration = 2 + Math.random() * 2;
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        const randomRotation = Math.random() * 360;
-        const size = 8 + Math.random() * 8;
-
-        return (
-          <motion.div
-            key={i}
-            initial={{
-              x: `${randomX}vw`,
-              y: -20,
-              scale: 0,
-              rotate: 0
-            }}
-            animate={{
-              y: '100vh',
-              scale: 1,
-              rotate: randomRotation * 5
-            }}
-            transition={{
-              duration: randomDuration,
-              delay: randomDelay,
-              ease: 'linear'
-            }}
-            style={{
-              position: 'absolute',
-              width: size,
-              height: size,
-              backgroundColor: randomColor,
-              borderRadius: '2px',
-            }}
-          />
-        );
-      })}
-    </div>
-  );
-};
+interface Instructor {
+  id: string;
+  uid: string;
+  name: string;
+  emailID: string;
+  mobile: string;
+  telNo: string;
+  active: boolean;
+}
 
 const Instructor = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const router = useRouter();
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [filteredInstructors, setFilteredInstructors] = useState<Instructor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  useEffect(() => {
+    fetchInstructors();
+  }, []);
 
-    const formData = new FormData(e.target as HTMLFormElement);
-    const data = {
-      name: formData.get('name'),
-      emailID: formData.get('emailID'),
-      mobile: formData.get('mobile'),
-      telNo: formData.get('telNo'),
-      password: formData.get('password'),
-      billingAddress: formData.get('billingAddress'),
-      contactAddress: formData.get('contactAddress'),
-      profile: formData.get('profile'),
-      isDelete: false,
-      active: formData.get('active') === 'true'
-    };
+  useEffect(() => {
+    filterInstructors();
+  }, [searchTerm, instructors]);
 
+  const fetchInstructors = async () => {
     try {
-      const response = await fetch(`https://api.4pmti.com/auth/signup/instructor`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Signup failed');
+      const response = await api.get('instructor');
+      const data = await response.data;
+      if (data.success) {
+        setInstructors(data.data);
+        setFilteredInstructors(data.data);
       }
-
-      setSuccess(true);
-      setShowSuccessModal(true);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Something went wrong';
-      setError(errorMessage);
-      setShowErrorModal(true);
+    } catch (error) {
+      console.error('Error fetching instructors:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const filterInstructors = () => {
+    const filtered = instructors.filter(instructor => {
+      const searchStr = searchTerm.toLowerCase();
+      return (
+        instructor.name?.toLowerCase().includes(searchStr) ||
+        instructor.emailID?.toLowerCase().includes(searchStr) ||
+        instructor.mobile?.toLowerCase().includes(searchStr) ||
+        instructor.uid?.toLowerCase().includes(searchStr)
+      );
+    });
+    setFilteredInstructors(filtered);
+  };
+
+  const ActionDropdown = ({ instructor }: { instructor: Instructor }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleAction = (action: string) => {
+      switch (action) {
+        case 'view':
+          router.push(`/instructor/${instructor.id}`);
+          break;
+        case 'edit':
+          router.push(`/editInstructor/${instructor.id}`);
+          break;
+        case 'delete':
+          // Handle delete
+          break;
+      }
+      setIsOpen(false);
+    };
+
+    return (
+      <div className="relative">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+
+        {isOpen && (
+          <>
+            <div 
+              className="fixed inset-0" 
+              onClick={() => setIsOpen(false)} 
+            />
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md  py-1 z-10">
+              <button
+                onClick={() => handleAction('view')}
+                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 gap-2"
+              >
+                <Eye className="h-4 w-4" /> View details
+              </button>
+              <button
+                onClick={() => handleAction('edit')}
+                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 gap-2"
+              >
+                <Edit2 className="h-4 w-4" /> Edit details
+              </button>
+              <button
+                onClick={() => handleAction('delete')}
+                className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 gap-2"
+              >
+                <Trash2 className="h-4 w-4" /> Delete instructor
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <>
-      <div className="flex min-h-screen items-start max-w-full w-full justify-start ">
-        <Card className="w-full max-w-full">
-          <CardHeader>
-            <CardTitle>Instructor Signup</CardTitle>
-            <CardDescription>Create your instructor account to get started</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid gap-4">
-                <div className='grid lg:grid-cols-2 grid-cols-1 gap-4'>
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" name="name" required />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="emailID">Email</Label>
-                    <Input id="emailID" name="emailID" type="email" required />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="mobile">Mobile Number</Label>
-                    <Input id="mobile" name="mobile" type="tel" required />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="telNo">Telephone Number</Label>
-                    <Input id="telNo" name="telNo" type="tel" />
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" name="password" type="password" required />
-                </div>
-
-                <div className='grid lg:grid-cols-2 grid-cols-1 gap-4'>
-                  <div className="grid gap-2">
-                    <Label htmlFor="billingAddress">Billing Address</Label>
-                    <Textarea id="billingAddress" name="billingAddress" required />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="contactAddress">Contact Address</Label>
-                    <Textarea id="contactAddress" name="contactAddress" required />
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="profile">Profile Description</Label>
-                  <Textarea id="profile" name="profile" required />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch id="active" name="active" defaultChecked />
-                  <Label htmlFor="active">Active Account</Label>
-                </div>
-              </div>
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Signing up...' : 'Sign Up'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+    <div className="p-6 space-y-6 w-full bg-white rounded-lg">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-semibold">Instructors</h2>
+        <Button 
+          onClick={() => router.push('/instructors/addInstructor')}
+          className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white"
+        >
+          <Plus className="h-4 w-4" /> Add Instructor
+        </Button>
       </div>
 
-      <AlertDialog open={showErrorModal} onOpenChange={setShowErrorModal}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Error</AlertDialogTitle>
-            <AlertDialogDescription>{error}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowErrorModal(false)}>
-              Close
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="flex justify-end">
+        <div className="relative w-72">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+          <Input
+            placeholder="Search instructors..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+      </div>
 
-      <AlertDialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Success!</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your instructor account has been successfully created. You can now log in to start using your account.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowSuccessModal(false)}>
-              Continue
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Card>
+        <CardContent className="p-0">
+          <Table className='py-40'>
+            <TableHeader>
+              <TableRow className="bg-gray-50">
+                <TableHead className="text-gray-500">UID</TableHead>
+                <TableHead className="text-gray-500">Name</TableHead>
+                <TableHead className="text-gray-500">Email</TableHead>
+                <TableHead className="text-gray-500">Mobile</TableHead>
+                <TableHead className="text-gray-500">Telephone</TableHead>
+                <TableHead className="text-gray-500">Status</TableHead>
+                {/* <TableHead className="text-gray-500 w-12">Actions</TableHead> */}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-4">
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              ) : filteredInstructors.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-4">
+                    No instructors found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredInstructors.map((instructor) => (
+                  <TableRow key={instructor.id} className="hover:bg-gray-50">
+                    <TableCell className="text-gray-900">{instructor.uid}</TableCell>
+                    <TableCell className="text-gray-900 font-medium">{instructor.name}</TableCell>
+                    <TableCell className="text-gray-900">{instructor.emailID}</TableCell>
+                    <TableCell className="text-gray-900">{instructor.mobile}</TableCell>
+                    <TableCell className="text-gray-900">{instructor.telNo}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 text-sm rounded-full ${
+                        instructor.active 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {instructor.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <ActionDropdown instructor={instructor} />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <AnimatePresence>
-        {showSuccessModal && <Confetti />}
-      </AnimatePresence>
-    </>
+      <div className="flex justify-between items-center">
+        <span className="text-sm text-gray-500">
+          Showing {filteredInstructors.length} of {instructors.length} instructors
+        </span>
+      </div>
+    </div>
   );
 };
 

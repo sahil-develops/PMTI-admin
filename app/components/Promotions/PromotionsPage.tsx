@@ -31,7 +31,7 @@ interface PromotionFilter {
     eq?: number;
   };
   country?: number;
-  startDateFrom?: string;
+  startFrom?: string;
   endDateTo?: string;
 }
 

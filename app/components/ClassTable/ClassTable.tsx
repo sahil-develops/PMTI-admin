@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 
+
 interface ClassType {
   id: number;
   name: string;
@@ -86,8 +87,8 @@ interface Metadata {
 }
 
 interface SearchParams {
-  startDateFrom: string;
-  startDateTo: string;
+  startFrom: string;
+  dateTo: string;
   countryId: string;
   locationId: string;
   instructorId: string;
@@ -143,6 +144,9 @@ const ActionDropdown = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const handleViewRoster = (id: string) => {
+    router.push(`/view-roaster/${id}`);
+  };
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -195,6 +199,9 @@ const ActionDropdown = ({
       case "details":
         router.push(`/class-details/${classId}`);
         break;
+        case "roster":
+          router.push(`/view-roaster/${classId}`);
+          break;
       case "roster":
         router.push(`/class-details/${classId}`);
         break;
@@ -380,12 +387,13 @@ export function ClassTable() {
 
   const [countries, setCountries] = useState<Country[]>([]);
 
+  const [selectedCountry, setSelectedCountry] = useState<string>("52"); // Default to US
   const [cities, setCities] = useState<Location[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  
   const [searchParams, setSearchParams] = useState<SearchParams>({
-    startDateFrom: "",
-    startDateTo: "",
-    countryId: "",
+    startFrom: "",
+    dateTo: "",
+   countryId: "52",
     locationId: "",
     instructorId: "",
     courseCategoryId: "",
@@ -399,6 +407,19 @@ export function ClassTable() {
   const [selectedClasses, setSelectedClasses] = useState<number[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+// Effect to set initial US locations
+useEffect(() => {
+  if (countries.length > 0) {
+    const unitedStates = countries.find(country => country.id === 52);
+    if (unitedStates && unitedStates.__locations__) {
+      const sortedLocations = [...unitedStates.__locations__].sort((a, b) => 
+        a.location.localeCompare(b.location)
+      );
+      setCities(sortedLocations);
+    }
+  }
+}, [countries]);
 
   const fetchDropdownData = async () => {
     try {
@@ -501,9 +522,9 @@ export function ClassTable() {
       const queryParams = new URLSearchParams();
       
       // Remove global search from API call
-      if (searchParams.startDateFrom) queryParams.append('startDateFrom', searchParams.startDateFrom);
-      if (searchParams.startDateTo) queryParams.append('startDateTo', searchParams.startDateTo);
-      if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId);
+      if (searchParams.startFrom) queryParams.append('startFrom', searchParams.startFrom);
+      if (searchParams.dateTo) queryParams.append('dateTo', searchParams.dateTo);
+      if (searchParams.countryId) queryParams.append('countryId', "1");
       if (searchParams.locationId) queryParams.append('locationId', searchParams.locationId);
       if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
       if (searchParams.courseCategoryId) queryParams.append('courseCategory', searchParams.courseCategoryId);
@@ -549,8 +570,8 @@ export function ClassTable() {
   // Modified handleReset function
   const handleReset = async () => {
     setSearchParams({
-      startDateFrom: "",
-      startDateTo: "",
+      startFrom: "",
+      dateTo: "",
       countryId: "",
       locationId: "",
       instructorId: "",
@@ -564,21 +585,23 @@ export function ClassTable() {
     await handleSearch();
   };
 
-  const handleCountryChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const countryId = event.target.value;
-    setSelectedCountry(countryId);
-    setSearchParams((prev) => ({ ...prev, countryId }));
+// Country change handler
+const handleCountryChange = (countryId: string) => {
+  setSelectedCountry(countryId);
+  setSearchParams((prev) => ({ ...prev, countryId, locationId: '' }));
 
-    const selectedCountryData = countries.find(
-      (country) => country.id.toString() === countryId
+  const selectedCountryData = countries.find(
+    (country) => country.id.toString() === countryId
+  );
+  if (selectedCountryData && selectedCountryData.__locations__) {
+    const sortedLocations = [...selectedCountryData.__locations__].sort((a, b) => 
+      a.location.localeCompare(b.location)
     );
-    if (selectedCountryData) {
-      // @ts-ignore
-      setCities(selectedCountryData.locations);
-    } else {
-      setCities([]);
-    }
-  };
+    setCities(sortedLocations);
+  } else {
+    setCities([]);
+  }
+};
 
   const handleCityChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const locationId = event.target.value;
@@ -786,12 +809,12 @@ export function ClassTable() {
                 variant={"outline"}
                 className={cn(
                   "w-full justify-start text-left font-normal",
-                  !searchParams.startDateFrom && "text-muted-foreground"
+                  !searchParams.startFrom && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {searchParams.startDateFrom ? (
-                  format(new Date(searchParams.startDateFrom), "PPP")
+                {searchParams.startFrom ? (
+                  format(new Date(searchParams.startFrom), "PPP")
                 ) : (
                   <span>Pick a date</span>
                 )}
@@ -800,15 +823,15 @@ export function ClassTable() {
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarComponent
                 mode="single"
-                selected={searchParams.startDateFrom ? new Date(searchParams.startDateFrom) : undefined}
+                selected={searchParams.startFrom ? new Date(searchParams.startFrom) : undefined}
                 onSelect={(date) => {
                   setSearchParams((prev) => ({
                     ...prev,
-                    startDateFrom: date ? format(date, "yyyy-MM-dd") : "",
+                    startFrom: date ? format(date, "yyyy-MM-dd") : "",
                     // Clear end date if it's before new start date
-                    startDateTo: prev.startDateTo && date && new Date(prev.startDateTo) < date 
+                    dateTo: prev.dateTo && date && new Date(prev.dateTo) < date 
                       ? "" 
-                      : prev.startDateTo
+                      : prev.dateTo
                   }));
                 }}
                 initialFocus
@@ -825,17 +848,17 @@ export function ClassTable() {
                 variant={"outline"}
                 className={cn(
                   "w-full justify-start text-left font-normal",
-                  !searchParams.startDateTo && "text-muted-foreground",
-                  !searchParams.startDateFrom && "cursor-not-allowed opacity-50"
+                  !searchParams.dateTo && "text-muted-foreground",
+                  !searchParams.startFrom && "cursor-not-allowed opacity-50"
                 )}
-                disabled={!searchParams.startDateFrom}
+                disabled={!searchParams.startFrom}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {searchParams.startDateTo ? (
-                  format(new Date(searchParams.startDateTo), "PPP")
+                {searchParams.dateTo ? (
+                  format(new Date(searchParams.dateTo), "PPP")
                 ) : (
                   <span>
-                    {!searchParams.startDateFrom ? "Select start date first" : "Pick a date"}
+                    {!searchParams.startFrom ? "Select start date first" : "Pick a date"}
                   </span>
                 )}
               </Button>
@@ -843,16 +866,16 @@ export function ClassTable() {
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarComponent
                 mode="single"
-                selected={searchParams.startDateTo ? new Date(searchParams.startDateTo) : undefined}
+                selected={searchParams.dateTo ? new Date(searchParams.dateTo) : undefined}
                 onSelect={(date) => {
                   setSearchParams((prev) => ({
                     ...prev,
-                    startDateTo: date ? format(date, "yyyy-MM-dd") : ""
+                    dateTo: date ? format(date, "yyyy-MM-dd") : ""
                   }));
                 }}
                 disabled={(date) => {
                   // Disable dates before start date
-                  return date < (searchParams.startDateFrom ? new Date(searchParams.startDateFrom) : new Date());
+                  return date < (searchParams.startFrom ? new Date(searchParams.startFrom) : new Date());
                 }}
                 initialFocus
               />
@@ -861,73 +884,68 @@ export function ClassTable() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label>Country</Label>
-          {isLoadingDropdowns ? (
-            <Loader />
-          ) : (
-            <Select
-              value={searchParams.countryId}
-              onValueChange={(value) => {
-                setSearchParams(prev => ({ ...prev, countryId: value, locationId: '' }));
-                const selectedCountry = countries.find(c => c.id.toString() === value);
-                if (selectedCountry) {
-                  setCities(selectedCountry.__locations__);
-                } else {
-                  setCities([]);
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Country" />
-              </SelectTrigger>
-              <SelectContent>
-                {countries.map((country) => (
-                  <SelectItem 
-                    key={country.id} 
-                    value={country.id.toString()}
-                  >
-                    {country.CountryName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
+  <Label>Country</Label>
+  {isLoadingDropdowns ? (
+    <Loader />
+  ) : (
+    <Select
+      value={searchParams.countryId}
+      onValueChange={handleCountryChange}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder="Select Country" />
+      </SelectTrigger>
+      <SelectContent>
+        {countries.map((country) => (
+          <SelectItem 
+            key={country.id} 
+            value={country.id.toString()}
+          >
+            {country.CountryName}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )}
+</div>
 
-        <div className="flex flex-col gap-2">
-          <Label>Location</Label>
-          {isLoadingDropdowns ? (
-            <Loader />
-          ) : (
-            <Select
-              value={searchParams.locationId}
-              onValueChange={(value) => {
-                setSearchParams(prev => ({ ...prev, locationId: value }));
-              }}
-              disabled={!searchParams.countryId || cities.length === 0}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={
-                  !searchParams.countryId 
-                    ? "Select Country First" 
-                    : cities.length === 0 
-                      ? "No Locations Available" 
-                      : "Select Location"
-                } />
-              </SelectTrigger>
-              <SelectContent>
-                {cities.map((city) => (
-                  <SelectItem 
-                    key={city.id} 
-                    value={city.id.toString()}
-                  >
-                    {city.location}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
+
+       {/* Location Dropdown */}
+<div className="flex flex-col gap-2">
+  <Label>Location</Label>
+  {isLoadingDropdowns ? (
+    <Loader />
+  ) : (
+    <Select
+      value={searchParams.locationId}
+      onValueChange={(value) => {
+        setSearchParams(prev => ({ ...prev, locationId: value }));
+      }}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder="Select Location" />
+      </SelectTrigger>
+      <SelectContent>
+        {cities && cities.length > 0 ? (
+          cities.map((city) => (
+<SelectItem 
+  key={city.id} 
+  value={city.id.toString()}
+  className={city.isDelete ? 'text-zinc-400' : ''}
+>
+  {city.location}
+  {city.isDelete && ' (Inactive)'}
+</SelectItem>
+          ))
+        ) : (
+          <SelectItem value="no-locations" disabled>
+          No locations available
+        </SelectItem>
+        )}
+      </SelectContent>
+    </Select>
+  )}
+</div>
 
         <div className="flex flex-col gap-2">
           <Label>Instructor</Label>
