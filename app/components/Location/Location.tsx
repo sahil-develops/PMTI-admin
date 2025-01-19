@@ -1,10 +1,15 @@
 'use client'
-
 import React, { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -17,7 +22,15 @@ import { Plus, Search, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useToast } from "@/hooks/use-toast"
 
+interface Country {
+  id: number;
+  CountryName: string;
+  currency: string;
+  isActive: boolean;
+}
+
 interface Location {
+  __country__: any
   id: number
   location: string
   createdAt: string
@@ -37,6 +50,8 @@ interface ApiResponse {
 export default function LocationPage() {
   const { toast } = useToast()
   const [locations, setLocations] = useState<Location[]>([])
+  const [countries, setCountries] = useState<Country[]>([])
+  const [selectedCountry, setSelectedCountry] = useState<string>('')
   const [showActiveOnly, setShowActiveOnly] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
@@ -45,6 +60,23 @@ export default function LocationPage() {
   const [editingLocation, setEditingLocation] = useState<number | null>(null)
   const [editValue, setEditValue] = useState("")
   const [updatingName, setUpdatingName] = useState<number[]>([])
+
+  const fetchCountries = async () => {
+    try {
+      const response = await fetch('https://api.4pmti.com/country', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      })
+      const data = await response.json()
+      if (data.success) {
+        setCountries(data.data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch countries:', err)
+    }
+  }
 
   const fetchLocations = async () => {
     try {
@@ -73,6 +105,7 @@ export default function LocationPage() {
 
   useEffect(() => {
     fetchLocations()
+    fetchCountries()
   }, [])
 
   const handleStatusToggle = async (location: Location) => {
@@ -127,86 +160,13 @@ export default function LocationPage() {
     }
   }
 
-  const handleDoubleClick = (location: Location) => {
-    setEditingLocation(location.id)
-    setEditValue(location.location)
-  }
-
-  const handleUpdateLocation = async (locationId: number) => {
-    if (editValue.trim() === '') return
-
-    setUpdatingName(prev => [...prev, locationId])
-    
-    try {
-      const response = await fetch(`https://api.4pmti.com/location/${locationId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        },
-        body: JSON.stringify({
-          location: editValue.trim()
-        })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setLocations(prevLocations =>
-          prevLocations.map(loc =>
-            loc.id === locationId
-              ? { ...loc, location: editValue.trim() }
-              : loc
-          )
-        )
-        
-        toast({
-          title: "Location Updated",
-          description: "Location name has been updated successfully.",
-          duration: 3000,
-        })
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: data.error || 'Failed to update location name',
-          duration: 3000,
-        })
-      }
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: 'Failed to update location name',
-        duration: 3000,
-      })
-    } finally {
-      setUpdatingName(prev => prev.filter(id => id !== locationId))
-      setEditingLocation(null)
-    }
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent, locationId: number) => {
-    if (e.key === 'Enter') {
-      handleUpdateLocation(locationId)
-    } else if (e.key === 'Escape') {
-      setEditingLocation(null)
-    }
-  }
-
   const filteredLocations = locations.filter(location => {
     const matchesSearch = location.location.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesActive = showActiveOnly ? !location.isDelete : true
-    return matchesSearch && matchesActive
+    const matchesCountry = selectedCountry ? 
+      location.__country__?.CountryName === selectedCountry : true
+    return matchesSearch && matchesActive && matchesCountry
   })
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
 
   const LoadingSwitch = ({ checked, onChange, loading }: { checked: boolean; onChange: () => void; loading: boolean }) => (
     <div className="relative">
@@ -242,30 +202,51 @@ export default function LocationPage() {
           Locations
         </p>
         <Link href="/location/addlocation">
-          <button className="flex items-center gap-2 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700">
-            <Plus className="text-white w-8" />
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
             Add Location
-          </button>
+          </Button>
         </Link>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <input
-          type="text"
-          placeholder="Search locations..."
-          className="border border-zinc-300 rounded px-4 py-2 w-11/12"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <label className="flex items-center ml-4 whitespace-nowrap">
-          <input
-            type="checkbox"
-            className="mr-2"
-            checked={showActiveOnly}
-            onChange={() => setShowActiveOnly(!showActiveOnly)}
+      <div className="flex gap-4 mb-6">
+        <div className="flex-1">
+          <Input
+            type="text"
+            placeholder="Search locations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-          Show Active Only
-        </label>
+        </div>
+        
+        <div className="w-64">
+          <Select
+            value={selectedCountry}
+            onValueChange={setSelectedCountry}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Country" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Countries</SelectItem>
+              {countries.map((country) => (
+                <SelectItem key={country?.id} value={country?.CountryName}>
+                  {country?.CountryName || ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center whitespace-nowrap">
+          <Switch
+            id="active-only"
+            checked={showActiveOnly}
+            onCheckedChange={setShowActiveOnly}
+            className="mr-2"
+          />
+          <label htmlFor="active-only">Show Active Only</label>
+        </div>
       </div>
 
       {loading ? (
@@ -276,34 +257,27 @@ export default function LocationPage() {
         </div>
       ) : (
         <div className="overflow-x-auto pb-40">
-          <table className="w-full">
-            <thead className="bg-zinc-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Location</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Added By</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Updated By</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Created At</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Updated At</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Country</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filteredLocations.length > 0 ? (
                 filteredLocations.map(location => (
-                  <tr key={location.id} className="hover:bg-zinc-50">
-                    <td 
-                      className="px-4 py-4 text-sm text-zinc-600"
-                      onDoubleClick={() => handleDoubleClick(location)}
-                    >
+                  <TableRow key={location.id}>
+                    <TableCell>{location.__country__?.CountryName || ""}</TableCell>
+                    <TableCell>
                       {editingLocation === location.id ? (
                         <div className="flex items-center gap-2">
-                          <input
+                          <Input
                             type="text"
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => handleKeyPress(e, location.id)}
-                            onBlur={() => handleUpdateLocation(location.id)}
-                            className="border border-zinc-300 rounded px-2 py-1 w-full"
+                            className="w-full"
                             autoFocus
                           />
                           {updatingName.includes(location.id) && (
@@ -318,31 +292,25 @@ export default function LocationPage() {
                           )}
                         </div>
                       )}
-                    </td>
-                    <td className="px-4 py-4 text-sm text-zinc-600">{location.addedBy}</td>
-                    <td className="px-4 py-4 text-sm text-zinc-600">{location.updatedBy}</td>
-                    <td className="px-4 py-4 text-sm text-zinc-600">{formatDate(location.createdAt)}</td>
-                    <td className="px-4 py-4 text-sm text-zinc-600">{formatDate(location.updateAt)}</td>
-                    <td className="px-4 py-4 text-sm text-zinc-600">
-                      <div className="flex items-center justify-between gap-2">
-                        <LoadingSwitch
-                          checked={!location.isDelete}
-                          onChange={() => handleStatusToggle(location)}
-                          loading={updatingLocations.includes(location.id)}
-                        />
-                      </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell>
+                      <LoadingSwitch
+                        checked={!location.isDelete}
+                        onChange={() => handleStatusToggle(location)}
+                        loading={updatingLocations.includes(location.id)}
+                      />
+                    </TableCell>
+                  </TableRow>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={6} className="text-center py-4">
-                    No data found
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center">
+                    No locations found
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

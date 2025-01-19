@@ -1,21 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { User, MapPin, Phone, Briefcase, Mail, Lock, Loader2 } from 'lucide-react';
-import axios from 'axios';
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, MoreVertical, Edit2, FileInput } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -23,58 +18,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import api from '@/app/lib/api';
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Check } from 'lucide-react';
 
-const cityData = [
-  {
-    country: "USA",
-    state: "NY",
-    cities: ["New York", "Buffalo", "Albany", "Rochester"]
-  },
-  {
-    country: "USA",
-    state: "CA",
-    cities: ["Los Angeles", "San Francisco", "San Diego", "San Jose"]
-  },
-  {
-    country: "USA",
-    state: "TX",
-    cities: ["Houston", "Austin", "Dallas", "San Antonio"]
-  }
-];
 
-interface Student {
-  id: number;
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  zipCode: string;
-  phone: string;
-  companyName: string;
-  profession: string;
-  referredBy?: string;
-  email: string;
-}
-
-interface StudentResponse {
-  message: string;
-  error: string;
-  success: boolean;
-  data: StudentData[];
+interface SuccessModalProps {
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 interface StudentData {
@@ -98,66 +70,63 @@ interface StudentData {
   lastLogin: string;
 }
 
-const Students = () => {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [students, setStudents] = useState<Student[]>([]);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [studentsLoading, setStudentsLoading] = useState(true);
-  const [editFormData, setEditFormData] = useState({
-    name: "",
-    address: "",
-    city: "",
-    state: "",
-    country: "",
-    zipCode: "",
-    phone: "",
-    companyName: "",
-    profession: "",
-    referredBy: "",
-    email: "",
-  });
+interface StudentResponse {
+  message: string;
+  error: string;
+  success: boolean;
+  data: StudentData[];
+}
 
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    city: "",
-    state: "",
-    country: "",
-    zipCode: "",
-    phone: "",
-    companyName: "",
-    profession: "",
-    referredBy: "",
-    email: "",
-    password: "",
-  });
+interface EditStudentModalProps {
+  student: StudentData | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (studentId: number, data: Partial<StudentData>) => Promise<void>;
+}
+
+const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose }) => {
+  return (
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+              <Check className="h-6 w-6 text-green-600" />
+            </div>
+            <AlertDialogTitle>Success!</AlertDialogTitle>
+          </div>
+          <AlertDialogDescription>
+            Student information has been successfully updated.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <Button onClick={onClose} className="bg-green-600 hover:bg-green-700">
+            Continue
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
+const EditStudentModal: React.FC<EditStudentModalProps> = ({
+  student,
+  isOpen,
+  onClose,
+  onSave,
+}) => {
+  const [formData, setFormData] = useState<Partial<StudentData>>({});
+  const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [countries, setCountries] = useState<{ id: number; CountryName: string }[]>([]);
+  const [states, setStates] = useState<{ id: number; name: string }[]>([]);
+  const [cities, setCities] = useState([]);
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedState, setSelectedState] = useState("");
 
   useEffect(() => {
-    fetchStudents();
-  }, []);
-
-  const fetchStudents = async () => {
-    try {
-      const response = await api.get(`students`);
-      if (response.data.success) {
-        setStudents(response.data.data);
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch students",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleStudentSelect = (studentId: string) => {
-    const student = students.find(s => s.id === parseInt(studentId));
     if (student) {
-      setSelectedStudent(student);
-      setEditFormData({
+      setFormData({
         name: student.name,
         address: student.address,
         city: student.city,
@@ -165,830 +134,499 @@ const Students = () => {
         country: student.country,
         zipCode: student.zipCode,
         phone: student.phone,
+        email: student.email,
         companyName: student.companyName,
         profession: student.profession,
-        referredBy: student.referredBy || "",
-        email: student.email,
       });
-      setErrors({});
+      setSelectedCountry(student.country);
+      setSelectedState(student.state);
     }
-  };
+  }, [student]);
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) {
-      toast({
-        title: "Error",
-        description: "Please check the form for errors",
-        variant: "destructive",
-      });
-      return;
+  useEffect(() => {
+    fetchCountries();
+  }, []);
+
+  useEffect(() => {
+    if (selectedCountry) {
+      fetchStates(selectedCountry);
     }
+  }, [selectedCountry]);
 
-    setLoading(true);
+  useEffect(() => {
+    if (selectedState) {
+      fetchCities(selectedState);
+    }
+  }, [selectedState]);
+
+  const fetchCountries = async () => {
     try {
-      const response = await api.patch(`https://api.4pmti.com/students/${selectedStudent?.id}`, {
-        ...editFormData,
-        updatedBy: 'admin',
-      });
-
-      if (response.status === 200) {
-        toast({
-          title: "Success",
-          description: "Student information updated successfully",
-          variant: "default",
-        });
-        await fetchStudents(); // Refresh the list
-        setSelectedStudent(null);
-        setEditFormData({
-          name: "",
-          address: "",
-          city: "",
-          state: "",
-          country: "",
-          zipCode: "",
-          phone: "",
-          companyName: "",
-          profession: "",
-          referredBy: "",
-          email: "",
-        });
-      }
-    } catch (error: any) {
-      console.error('Error updating student:', error);
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to update student information",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      const response = await fetch(`https://api.4pmti.com/country`);
+      const data = await response.json();
+      setCountries(data.data);
+    } catch (error) {
+      console.error('Error fetching countries:', error);
     }
   };
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (formData.name.length < 2) {
-      newErrors.name = "Name must be at least 2 characters";
-    }
-    if (formData.address.length < 5) {
-      newErrors.address = "Address must be at least 5 characters";
-    }
-    if (!formData.city) {
-      newErrors.city = "City is required";
-    }
-    if (!formData.state) {
-      newErrors.state = "State is required";
-    }
-    if (!formData.country) {
-      newErrors.country = "Country is required";
-    }
-    if (!/^\d{5}(-\d{4})?$/.test(formData.zipCode)) {
-      newErrors.zipCode = "Invalid zip code";
-    }
-    if (!/^\d{3}-\d{3}-\d{4}$/.test(formData.phone)) {
-      newErrors.phone = "Invalid phone number format (XXX-XXX-XXXX)";
-    }
-    if (!formData.companyName) {
-      newErrors.companyName = "Company name is required";
-    }
-    if (!formData.profession) {
-      newErrors.profession = "Profession is required";
-    }
-    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
-      newErrors.email = "Invalid email address";
-    }
-    if (formData.password.length < 8 || !/^(?=.*[A-Za-z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = "Password must be at least 8 characters and contain both letters and numbers";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ""
-      }));
+  const fetchStates = async (countryId: string) => {
+    try {
+      const response = await fetch(`https://api.4pmti.com/state/?countryId=${countryId}`);
+      const data = await response.json();
+      setStates(data.data);
+    } catch (error) {
+      console.error('Error fetching states:', error);
     }
   };
 
-  const handleCitySelect = (city: string) => {
-    const locationData = cityData.find((item) => 
-      item.cities.includes(city)
-    );
-    
-    if (locationData) {
-      setFormData(prev => ({
-        ...prev,
-        city,
-        state: locationData.state,
-        country: locationData.country
-      }));
+  const fetchCities = async (stateId: string) => {
+    try {
+      const response = await fetch(`https://api.4pmti.com/location?stateId=${stateId}`);
+      const data = await response.json();
+      setCities(data.data);
+    } catch (error) {
+      console.error('Error fetching cities:', error);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!student) return;
     
-    if (!validateForm()) {
-      toast({
-        title: "Error",
-        description: "Please check the form for errors",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      const response = await axios.post(`https://api.4pmti.com/auth/signup/student`, {
-        ...formData,
-        signupDate: new Date().toISOString(),
-        downloadedInfoPac: true,
-        addedBy: 'admin',
-        updatedBy: 'admin',
-        isDelete: false,
-        active: true,
-        lastLogin: new Date().toISOString(),
-      });
-
-      if (response.status === 201 || response.status === 200) {
-        toast({
-          title: "Success",
-          description: "Check your email for a booking confirmation. We'll see you soon!",
-          variant: "default",
-        });
-        // Reset form
-        setFormData({
-          name: "",
-          address: "",
-          city: "",
-          state: "",
-          country: "",
-          zipCode: "",
-          phone: "",
-          companyName: "",
-          profession: "",
-          referredBy: "",
-          email: "",
-          password: "",
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.response?.status === 500 && error.response?.data?.error === 'This Email Already Exists'
-          ? 'This email is already registered. Please try another email address.'
-          : 'Something went wrong. Please try again.',
-        variant: "destructive",
-      });
+      await onSave(student.id, formData);
+      setShowSuccess(true);
+      onClose();
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const studentSchema = z.object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
-    address: z.string().min(5, "Address must be at least 5 characters"),
-    city: z.string().min(1, "City is required"),
-    state: z.string().min(1, "State is required"),
-    country: z.string().min(1, "Country is required"),
-    zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid zip code"),
-    phone: z.string().regex(/^\d{3}-\d{3}-\d{4}$/, "Invalid phone number format (XXX-XXX-XXXX)"),
-    companyName: z.string().min(1, "Company name is required"),
-    profession: z.string().min(1, "Profession is required"),
-    referredBy: z.string().optional(),
-  });
-
-  type StudentFormValues = z.infer<typeof studentSchema>;
-
-  const EditStudentForm = ({ student, onCancel, onSuccess }: { 
-    student: Student; 
-    onCancel: () => void;
-    onSuccess: () => void;
-  }) => {
-    const { toast } = useToast();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const form = useForm<StudentFormValues>({
-      resolver: zodResolver(studentSchema),
-      defaultValues: {
-        name: student.name,
-        email: student.email,
-        address: student.address,
-        city: student.city,
-        state: student.state,
-        country: student.country,
-        zipCode: student.zipCode,
-        phone: student.phone,
-        companyName: student.companyName,
-        profession: student.profession,
-        referredBy: student.referredBy || "",
-      },
-    });
-
-    const onSubmit = async (data: StudentFormValues) => {
-      setIsSubmitting(true);
-      try {
-        const response = await fetch(`https://api.4pmti.com/students/${student.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-          body: JSON.stringify({
-            ...data,
-            updatedBy: 'admin',
-          }),
-        });
-
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to update student');
-        }
-
-        toast({
-          title: "Success",
-          description: "Student information updated successfully",
-        });
-        onSuccess();
-      } catch (error) {
-        console.error('Error updating student:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error instanceof Error ? error.message : "Failed to update student",
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-
-    return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                      <Input {...field} className="pl-10" placeholder="Full Name" />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                      <Input {...field} type="email" className="pl-10" placeholder="Email" />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                      <Input {...field} className="pl-10" placeholder="Address" />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="city"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>City</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select City" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cityData.flatMap(item =>
-                        item.cities.map(city => (
-                          <SelectItem key={city} value={city}>
-                            {city}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="state"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>State</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                      <Input {...field} className="pl-10 bg-gray-50" readOnly placeholder="State" />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Country</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                      <Input {...field} className="pl-10 bg-gray-50" readOnly placeholder="Country" />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="zipCode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Zip Code</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                      <Input {...field} className="pl-10" placeholder="Zip Code (e.g., 12345 or 12345-6789)" />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                      <Input {...field} className="pl-10" placeholder="Phone (XXX-XXX-XXXX)" />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="companyName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Company Name</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                      <Input {...field} className="pl-10" placeholder="Company Name" />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="profession"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Profession</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                      <Input {...field} className="pl-10" placeholder="Profession" />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="referredBy"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Referred By</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                      <Input {...field} className="pl-10" placeholder="Referred By (Optional)" />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="flex justify-end space-x-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                'Update Student'
-              )}
-            </Button>
-          </div>
-        </form>
-      </Form>
-    );
-  };
-
-  const StudentsTable = () => {
-    const [students, setStudents] = useState<StudentData[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-      fetchStudents();
-    }, []);
-
-    const fetchStudents = async () => {
-      try {
-        const response = await fetch(`https://api.4pmti.com/students`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        });
-        const data: StudentResponse = await response.json();
-        if (data.success) {
-          setStudents(data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching students:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (isLoading) {
-      return (
-        <div className="w-full mt-8">
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="bg-gray-50 p-4 rounded-lg animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">All Students</h2>
-        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">UID</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Email</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Company</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Location</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Phone</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Last Login</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {students.map((student) => (
-                  <tr key={student.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-900">{student.uid}</td>
-                    <td className="px-4 py-3 text-gray-900">{student.name}</td>
-                    <td className="px-4 py-3 text-gray-500">{student.email}</td>
-                    <td className="px-4 py-3 text-gray-500">{student.companyName}</td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {`${student.city}, ${student.state}`}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{student.phone}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        student.active 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {student.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {new Date(student.lastLogin).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    );
+  const handleInputChange = (field: keyof StudentData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   return (
-    <Card className="w-full max-w-full mx-auto">
-      <CardHeader>
-        <CardTitle>Student Registration</CardTitle>
-        <CardDescription>Register a new student account</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="add" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="add">Add Student</TabsTrigger>
-            <TabsTrigger value="edit">Edit Student</TabsTrigger>
-          </TabsList>
-          <TabsContent value="add">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      className="pl-9 h-9"
-                      placeholder="Full Name"
-                    />
-                  </div>
-                  {errors.name && (
-                    <p className="text-xs text-red-500">{errors.name}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="pl-9 h-9"
-                      placeholder="Email"
-                    />
-                  </div>
-                  {errors.email && (
-                    <p className="text-xs text-red-500">{errors.email}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      className="pl-9 h-9"
-                      placeholder="Password"
-                    />
-                  </div>
-                  {errors.password && (
-                    <p className="text-xs text-red-500">{errors.password}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      id="address"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleChange}
-                      className="pl-9 h-9"
-                      placeholder="Address"
-                    />
-                  </div>
-                  {errors.address && (
-                    <p className="text-xs text-red-500">{errors.address}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Select
-                    value={formData.city}
-                    onValueChange={(value) => handleCitySelect(value)}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Select City" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cityData.flatMap(item => 
-                        item.cities.map(city => (
-                          <SelectItem key={city} value={city}>
-                            {city}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {errors.city && (
-                    <p className="text-xs text-red-500">{errors.city}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="zipCode">Zip Code</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      id="zipCode"
-                      name="zipCode"
-                      value={formData.zipCode}
-                      onChange={handleChange}
-                      className="pl-9 h-9"
-                      placeholder="Zip Code"
-                    />
-                  </div>
-                  {errors.zipCode && (
-                    <p className="text-xs text-red-500">{errors.zipCode}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="pl-9 h-9"
-                      placeholder="XXX-XXX-XXXX"
-                    />
-                  </div>
-                  {errors.phone && (
-                    <p className="text-xs text-red-500">{errors.phone}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="companyName">Company</Label>
-                  <div className="relative">
-                    <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      id="companyName"
-                      name="companyName"
-                      value={formData.companyName}
-                      onChange={handleChange}
-                      className="pl-9 h-9"
-                      placeholder="Company Name"
-                    />
-                  </div>
-                  {errors.companyName && (
-                    <p className="text-xs text-red-500">{errors.companyName}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="profession">Profession</Label>
-                  <div className="relative">
-                    <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      id="profession"
-                      name="profession"
-                      value={formData.profession}
-                      onChange={handleChange}
-                      className="pl-9 h-9"
-                      placeholder="Profession"
-                    />
-                  </div>
-                  {errors.profession && (
-                    <p className="text-xs text-red-500">{errors.profession}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4">
-                <Button type="submit" disabled={loading} className="w-auto px-8">
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    "Add Student"
-                  )}
-                </Button>
-              </div>
-            </form>
-          </TabsContent>
-          <TabsContent value="edit" className="space-y-6">
-            {!selectedStudent ? (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Select Student to Edit</Label>
-                  <Select onValueChange={handleStudentSelect}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a student" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {students.map((student) => (
-                        <SelectItem key={student.id} value={student.id.toString()}>
-                          {student.name} ({student.email})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            ) : (
-              <EditStudentForm
-                student={selectedStudent}
-                onCancel={() => {
-                  setSelectedStudent(null);
-                }}
-                onSuccess={() => {
-                  setSelectedStudent(null);
-                  fetchStudents();
-                }}
-              />
-            )}
-          </TabsContent>
-        </Tabs>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[900px]">
+        <DialogHeader>
+          <DialogTitle>Edit Student</DialogTitle>
+        </DialogHeader>
         
-        <StudentsTable />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={formData.name || ''}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email || ''}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                value={formData.address || ''}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                value={formData.city || ''}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
+              <Select
+                value={selectedState}
+                onValueChange={(value) => {
+                  setSelectedState(value);
+                  handleInputChange('state', value);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select State" />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.map((state) => (
+                    <SelectItem key={state.id} value={state.id.toString()}>
+                      {state.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Select
+                value={selectedCountry}
+                onValueChange={(value) => {
+                  setSelectedCountry(value);
+                  handleInputChange('country', value);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((country) => (
+                    <SelectItem key={country.id} value={country.id.toString()}>
+                      {country.CountryName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="zipCode">Zip Code</Label>
+              <Input
+                id="zipCode"
+                value={formData.zipCode || ''}
+                onChange={(e) => handleInputChange('zipCode', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                value={formData.phone || ''}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Company Name</Label>
+              <Input
+                id="companyName"
+                value={formData.companyName || ''}
+                onChange={(e) => handleInputChange('companyName', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profession">Profession</Label>
+              <Input
+                id="profession"
+                value={formData.profession || ''}
+                onChange={(e) => handleInputChange('profession', e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+      <SuccessModal 
+        isOpen={showSuccess} 
+        onClose={() => setShowSuccess(false)} 
+      />
+    </Dialog>
+  );
+};
+
+const Students = () => {
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const router = useRouter();
+  const { toast } = useToast();
+  const [students, setStudents] = useState<StudentData[]>([]);
+  const [filteredStudents, setFilteredStudents] = useState<StudentData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [stateFilter, setStateFilter] = useState("all");
+  const [professionFilter, setProfessionFilter] = useState("all");
+  const [editingStudent, setEditingStudent] = useState<StudentData | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const uniqueStates = Array.from(new Set(students.map(student => student.state))).sort();
+  const uniqueProfessions = Array.from(new Set(students.map(student => student.profession))).sort();
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  useEffect(() => {
+    filterStudents();
+  }, [searchTerm, statusFilter, stateFilter, professionFilter, students]);
+
+  const fetchStudents = async () => {
+    try {
+      const response = await fetch(`https://api.4pmti.com/students`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+      const data: StudentResponse = await response.json();
+      if (data.success) {
+        setStudents(data.data);
+        setFilteredStudents(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch students",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filterStudents = () => {
+    let filtered = [...students];
+
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(student =>
+        student.name.toLowerCase().includes(searchLower) ||
+        student.email.toLowerCase().includes(searchLower) ||
+        student.companyName.toLowerCase().includes(searchLower) ||
+        student.uid.toLowerCase().includes(searchLower)
+      );
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(student => 
+        statusFilter === "active" ? student.active : !student.active
+      );
+    }
+
+    if (stateFilter !== "all") {
+      filtered = filtered.filter(student => student.state === stateFilter);
+    }
+
+    if (professionFilter !== "all") {
+      filtered = filtered.filter(student => student.profession === professionFilter);
+    }
+
+    setFilteredStudents(filtered);
+  };
+
+  const handleEditStudent = async (studentId: number, updatedData: Partial<StudentData>) => {
+    try {
+      const response = await fetch(`https://api.4pmti.com/students/${studentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify(updatedData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update student');
+      }
+
+      // Update local state
+      setStudents(prevStudents =>
+        prevStudents.map(student =>
+          student.id === studentId ? { ...student, ...updatedData } : student
+        )
+      );
+
+      setShowSuccess(true);
+    } catch (error) {
+      console.error('Error updating student:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update student",
+        variant: "destructive",
+      });
+    }
+  };
+
+
+  const handleAddStudent = () => {
+    router.push('/students/add');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="w-full space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="bg-gray-50 p-4 rounded-lg animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <Card className="w-full max-w-full mx-auto">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+        <CardTitle>Students Management</CardTitle>
+        <Button onClick={handleAddStudent} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Add Student
+        </Button>
+      </CardHeader>
+
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search by name, email, company, or UID..."
+                className="pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={stateFilter} onValueChange={setStateFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="State" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All States</SelectItem>
+                  {uniqueStates.map(state => (
+                    <SelectItem key={state} value={state}>{state}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={professionFilter} onValueChange={setProfessionFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Profession" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Professions</SelectItem>
+                  {uniqueProfessions.map(profession => (
+                    <SelectItem key={profession} value={profession}>{profession}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="text-sm text-gray-500">
+            Showing {filteredStudents.length} of {students.length} students
+          </div>
+
+          <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">UID</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">Email</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">Company</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">Location</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">Phone</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">Last Login</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredStudents.map((student) => (
+                    <tr key={student.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-gray-900">{student.uid}</td>
+                      <td className="px-4 py-3 text-gray-900">{student.name}</td>
+                      <td className="px-4 py-3 text-gray-500">{student.email}</td>
+                      <td className="px-4 py-3 text-gray-500">{student.companyName}</td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {`${student.city}, ${student.state}`}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">{student.phone}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          student.active 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {student.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {new Date(student.lastLogin).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingStudent(student);
+                                setIsEditModalOpen(true);
+                              }}
+                            >
+                              <Edit2 className="mr-2 h-4 w-4" />
+                              Edit Student
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                             router.push(`students/enrollment/${student.id}`);
+                              }}
+                            >
+                              <FileInput className="mr-2 h-4 w-4" />
+                          Enrollment
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </CardContent>
+
+      {/* Edit Student Modal */}
+      <EditStudentModal
+        student={editingStudent}
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingStudent(null);
+        }}
+        onSave={handleEditStudent}
+      />
+  <SuccessModal 
+        isOpen={showSuccess} 
+        onClose={() => setShowSuccess(false)} 
+      />
     </Card>
   );
 };

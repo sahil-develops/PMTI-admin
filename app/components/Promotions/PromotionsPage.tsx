@@ -552,16 +552,16 @@ export default function PromotionsPage() {
                     className="hover:bg-zinc-50 transition-colors"
                   >
                     <TableCell className="whitespace-nowrap">
-                      {promotion.promotionId}
+                      {promotion.promotionId || "N/A"}
                     </TableCell>
                     <TableCell className="font-medium text-zinc-900 max-w-[200px] truncate">
-                      {promotion.title}
+                      {promotion.title || "N/A"}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      ${promotion.amount}
+                      ${promotion.amount || "N/A"}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {promotion.country.CountryName}
+                      {promotion.country.CountryName || "N/A"}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {format(new Date(promotion.startDate), 'MMM dd, yyyy')}
@@ -579,10 +579,10 @@ export default function PromotionsPage() {
                       </span>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {promotion.category.name}
+                      {promotion.category.name || "N/A"}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {promotion.classType.name}
+                      {promotion.classType.name || "N/A"}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       <ActionDropdown 

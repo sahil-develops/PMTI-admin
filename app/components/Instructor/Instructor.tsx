@@ -30,7 +30,9 @@ const Instructor = () => {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [filteredInstructors, setFilteredInstructors] = useState<Instructor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [nameSearch, setNameSearch] = useState('');
+  const [emailSearch, setEmailSearch] = useState('');
 
   useEffect(() => {
     fetchInstructors();
@@ -38,7 +40,7 @@ const Instructor = () => {
 
   useEffect(() => {
     filterInstructors();
-  }, [searchTerm, instructors]);
+  }, [globalSearch, nameSearch, emailSearch, instructors]);
 
   const fetchInstructors = async () => {
     try {
@@ -57,14 +59,25 @@ const Instructor = () => {
 
   const filterInstructors = () => {
     const filtered = instructors.filter(instructor => {
-      const searchStr = searchTerm.toLowerCase();
-      return (
-        instructor.name?.toLowerCase().includes(searchStr) ||
-        instructor.emailID?.toLowerCase().includes(searchStr) ||
-        instructor.mobile?.toLowerCase().includes(searchStr) ||
-        instructor.uid?.toLowerCase().includes(searchStr)
-      );
+      // Global search check
+      const globalMatch = !globalSearch || 
+        instructor.name?.toLowerCase().includes(globalSearch.toLowerCase()) ||
+        instructor.emailID?.toLowerCase().includes(globalSearch.toLowerCase()) ||
+        instructor.mobile?.toLowerCase().includes(globalSearch.toLowerCase()) ||
+        instructor.uid?.toLowerCase().includes(globalSearch.toLowerCase());
+
+      // Name-specific search check
+      const nameMatch = !nameSearch || 
+        (instructor.name?.toLowerCase().includes(nameSearch.toLowerCase()));
+
+      // Email-specific search check
+      const emailMatch = !emailSearch || 
+        (instructor.emailID?.toLowerCase().includes(emailSearch.toLowerCase()));
+
+      // Return true only if all active filters match
+      return globalMatch && nameMatch && emailMatch;
     });
+
     setFilteredInstructors(filtered);
   };
 
@@ -103,7 +116,7 @@ const Instructor = () => {
               className="fixed inset-0" 
               onClick={() => setIsOpen(false)} 
             />
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md  py-1 z-10">
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
               <button
                 onClick={() => handleAction('view')}
                 className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 gap-2"
@@ -141,30 +154,46 @@ const Instructor = () => {
         </Button>
       </div>
 
-      <div className="flex justify-end">
-        <div className="relative w-72">
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
           <Input
-            placeholder="Search instructors..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search globally..."
+            value={globalSearch}
+            onChange={(e) => setGlobalSearch(e.target.value)}
             className="pl-8"
+          />
+        </div>
+
+        <div className="relative flex-1">
+          <Input
+            placeholder="Search by name..."
+            value={nameSearch}
+            onChange={(e) => setNameSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="relative flex-1">
+          <Input
+            placeholder="Search by email..."
+            value={emailSearch}
+            onChange={(e) => setEmailSearch(e.target.value)}
           />
         </div>
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table className='py-40'>
-            <TableHeader>
-              <TableRow className="bg-gray-50">
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
                 <TableHead className="text-gray-500">UID</TableHead>
                 <TableHead className="text-gray-500">Name</TableHead>
                 <TableHead className="text-gray-500">Email</TableHead>
                 <TableHead className="text-gray-500">Mobile</TableHead>
                 <TableHead className="text-gray-500">Telephone</TableHead>
                 <TableHead className="text-gray-500">Status</TableHead>
-                {/* <TableHead className="text-gray-500 w-12">Actions</TableHead> */}
+                <TableHead className="text-gray-500 w-12">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -183,11 +212,11 @@ const Instructor = () => {
               ) : (
                 filteredInstructors.map((instructor) => (
                   <TableRow key={instructor.id} className="hover:bg-gray-50">
-                    <TableCell className="text-gray-900">{instructor.uid}</TableCell>
-                    <TableCell className="text-gray-900 font-medium">{instructor.name}</TableCell>
-                    <TableCell className="text-gray-900">{instructor.emailID}</TableCell>
-                    <TableCell className="text-gray-900">{instructor.mobile}</TableCell>
-                    <TableCell className="text-gray-900">{instructor.telNo}</TableCell>
+                    <TableCell className="text-gray-900">{instructor.uid || "N/A"}</TableCell>
+                    <TableCell className="text-gray-900 font-medium">{instructor.name || "N/A"}</TableCell>
+                    <TableCell className="text-gray-900">{instructor.emailID || "N/A"}</TableCell>
+                    <TableCell className="text-gray-900">{instructor.mobile || "N/A"}</TableCell>
+                    <TableCell className="text-gray-900">{instructor.telNo || "N/A"}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 text-sm rounded-full ${
                         instructor.active 

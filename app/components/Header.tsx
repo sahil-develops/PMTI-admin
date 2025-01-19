@@ -1,19 +1,26 @@
 'use client'
-import { Bell, User, LogOut, Home, Users, BookOpen,FileUser, Menu, X,BadgePercent, ChevronDown, MapPin } from 'lucide-react';
+import { Bell, LogOut, Home, Users, BookOpen, FileUser, Menu, X, BadgePercent, ChevronDown, MapPin, User2Icon } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePathname,useRouter } from 'next/navigation';
-// import {  } from 'next/router';
+import { usePathname } from 'next/navigation';
 
 export default function Header() {
   const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userName, setUserName] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
-const router = useRouter();
   const [isUsersDropdownOpen, setIsUsersDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const email = localStorage.getItem('userEmail') || '';
+    const name = email.split('@')[0];
+    // Capitalize first letter of the name
+    setUserName(name.charAt(0).toUpperCase() + name.slice(1));
+  }, []);
+
   const menuItems = [
     { name: 'Dashboard', icon: Home, href: '/' },
     {
@@ -26,11 +33,10 @@ const router = useRouter();
       ]
     },
     { name: 'Instructors', icon: Users, href: '/instructors' },
-    // { name: 'Classes', icon: Calendar, href: '/classes' },
     { name: 'Courses', icon: BookOpen, href: '/courses' },
     { name: 'Locations', icon: MapPin, href: '/location' },
     { name: 'Promotions', icon: BadgePercent, href: '/promotions' },
-    { name: 'Enrollment', icon: FileUser, href: '/enrollment' },
+    // { name: 'Enrollment', icon: FileUser, href: '/enrollment' },
   ];
 
   useEffect(() => {
@@ -51,48 +57,6 @@ const router = useRouter();
     window.location.pathname = '/login';
   };
 
-  const sidebarVariants = {
-    open: {
-      x: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 30
-      }
-    },
-    closed: {
-      x: "100%",
-      opacity: 0,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 30
-      }
-    }
-  };
-
-  const menuItemVariants = {
-    open: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 30
-      }
-    },
-    closed: {
-      y: 20,
-      opacity: 0,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 30
-      }
-    }
-  };
-
   const isActive = (path: string) => {
     if (path === '/') {
       return pathname === path;
@@ -101,8 +65,8 @@ const router = useRouter();
   };
 
   return (
-    <header className="bg-white relative">
-      <div className="max-w-full mx-auto p-4 ">
+    <header className="bg-white shadow-sm relative">
+      <div className="max-w-full mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
           <svg className="w-24" viewBox="0 0 160 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -121,20 +85,20 @@ const router = useRouter();
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-4">
+          <nav className="hidden md:flex space-x-2">
             {menuItems.map((item) => (
-              <div key={typeof item === 'object' && item?.name ? item.name : ''} className="relative">
-                {typeof item === 'object' && item?.hasDropdown ? (
+              <div key={item.name} className="relative">
+                {item.hasDropdown ? (
                   <div className="relative">
                     <button
                       onClick={() => setIsUsersDropdownOpen(!isUsersDropdownOpen)}
-                      className={`flex items-center md:px-0 lg:px-1 py-2 text-sm font-medium rounded-md 
+                      className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out
                         ${isActive('/students') || isActive('/admin')
-                          ? 'text-zinc-900 bg-zinc-100'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        } relative group`}
+                          ? 'text-green-600 bg-green-50'
+                          : 'text-gray-700 hover:bg-gray-50 hover:text-green-600'
+                        }`}
                     >
-                      <item.icon className="mr-2 h-5 w-5 text-gray-500" />
+                      <item.icon className="mr-2 h-5 w-5" />
                       {item.name}
                       <ChevronDown className="ml-1 h-4 w-4" />
                     </button>
@@ -145,13 +109,13 @@ const router = useRouter();
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+                          className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
                         >
                           {item.dropdownItems.map((dropdownItem) => (
                             <Link
                               key={dropdownItem.name}
                               href={dropdownItem.href}
-                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 rounded-lg transition-colors duration-150"
                               onClick={() => setIsUsersDropdownOpen(false)}
                             >
                               {dropdownItem.name}
@@ -163,28 +127,17 @@ const router = useRouter();
                   </div>
                 ) : (
                   <Link
-                    href={typeof item === 'object' && item?.href ? item.href : ''}
-                    className={`flex items-center md:px-0 lg:px-1 py-2 text-sm font-medium rounded-md 
-                      ${typeof item === 'object' && item?.href && isActive(item.href)
-                        ? 'text-zinc-900 bg-zinc-100'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      } relative group`}
+                    href={item.href || ""}
+                    className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out
+                      ${isActive(item.href || "")
+                        ? 'text-green-600 bg-green-50'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-green-600'
+                      }`}
                   >
-                    {typeof item === 'object' && item?.icon && (
-                      <item.icon className={`mr-2 h-5 w-5 ${
-                        isActive(item?.href || '') ? 'text-zinc-900' : 'text-gray-500'
-                      }`} />
-                    )}
-                    {typeof item === 'object' && item?.name && (
-                      <span>{item.name}</span>
-                    )}
-                    {typeof item === 'object' && item?.href && isActive(item.href) && (
-                      <motion.div
-                        layoutId="activeTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900"
-                        initial={false}
-                      />
-                    )}
+                    <item.icon className={`mr-2 h-5 w-5 ${
+                      isActive(item.href || "") ? 'text-green-600' : 'text-gray-500'
+                    }`} />
+                    <span>{item.name}</span>
                   </Link>
                 )}
               </div>
@@ -192,28 +145,22 @@ const router = useRouter();
           </nav>
 
           <div className="flex items-center space-x-4">
-            {/* Mobile Menu Button */}
-            <motion.button
-              className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              whileTap={{ scale: 0.95 }}
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </motion.button>
+            {/* Notification Bell */}
+            {/* <button className="p-2 text-gray-500 hover:text-green-600 transition-colors duration-150">
+              <Bell className="h-5 w-5" />
+            </button> */}
 
-            {/* User Dropdown */}
+            {/* User Greeting & Profile */}
             <div className="relative" ref={dropdownRef}>
-              <motion.button
-                className="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                whileTap={{ scale: 0.95 }}
+              <Link href={`/profile`}>
+              <button
+                // onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50 transition-colors duration-150"
               >
-                <User className="h-6 w-6" />
-              </motion.button>
+                <span className="text-sm font-medium text-gray-700">Hey, {userName}</span>
+                <User2Icon className="h-4 w-4 text-gray-500" />
+              </button>
+                </Link>
               
               <AnimatePresence>
                 {isDropdownOpen && (
@@ -222,13 +169,13 @@ const router = useRouter();
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5"
+                    className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5"
                   >
                     <div className="py-1">
                       <motion.button
-                        whileHover={{ backgroundColor: "#F3F4F6" }}
+                        whileHover={{ backgroundColor: "#f3f4f6" }}
                         onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:text-green-600 transition-colors duration-150"
                       >
                         <LogOut className="h-4 w-4 mr-2" />
                         Logout
@@ -238,6 +185,19 @@ const router = useRouter();
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Mobile Menu Button */}
+            <motion.button
+              className="md:hidden p-2 rounded-lg text-gray-500 hover:text-green-600 hover:bg-gray-50 transition-colors duration-150"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </motion.button>
           </div>
         </div>
 
@@ -247,28 +207,24 @@ const router = useRouter();
             <motion.div
               ref={mobileMenuRef}
               className="md:hidden fixed inset-y-0 right-0 w-64 bg-white shadow-lg z-50"
-              initial="closed"
-              animate="open"
-              exit="closed"
-              variants={sidebarVariants}
-              style={{ top: '73px' }}
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              style={{ top: '64px' }}
             >
               <nav className="px-4 py-2">
                 {menuItems.map((item, index) => (
                   <motion.div
-                    key={typeof item === 'object' && item?.name ? item.name : ''}
-                    variants={menuItemVariants}
-                    initial="closed"
-                    animate="open"
-                    exit="closed"
-                    custom={index}
+                    key={item.name}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    {typeof item === 'object' && item?.hasDropdown ? (
+                    {item.hasDropdown ? (
                       <>
-                        <div
-                          className="flex items-center px-3 py-3 text-sm font-medium rounded-md text-gray-600"
-                        >
+                        <div className="flex items-center px-3 py-3 text-sm font-medium text-gray-700">
                           <item.icon className="mr-3 h-5 w-5 text-gray-500" />
                           {item.name}
                         </div>
@@ -277,10 +233,10 @@ const router = useRouter();
                             <Link
                               key={dropdownItem.name}
                               href={dropdownItem.href}
-                              className={`flex items-center px-3 py-3 text-sm font-medium rounded-md
+                              className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150
                                 ${isActive(dropdownItem.href)
-                                  ? 'text-zinc-900 bg-zinc-100'
-                                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                  ? 'text-green-600 bg-green-50'
+                                  : 'text-gray-700 hover:bg-gray-50 hover:text-green-600'
                                 }`}
                               onClick={() => setIsMobileMenuOpen(false)}
                             >
@@ -291,21 +247,18 @@ const router = useRouter();
                       </>
                     ) : (
                       <Link
-                        href={typeof item === 'object' && item?.href ? item.href : ''}
-                        // @ts-ignore
-                        className={`flex items-center px-3 py-3 text-sm font-medium rounded-md                          ${isActive(item.href)
-                            ? 'text-zinc-900 bg-zinc-100'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        href={item.href || ""}
+                        className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150
+                          ${isActive(item.href || "")
+                            ? 'text-green-600 bg-green-50'
+                            : 'text-gray-700 hover:bg-gray-50 hover:text-green-600'
                           }`}
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        {typeof item === 'object' && item.icon && (
-                          <item.icon className={`mr-3 h-5 w-5 ${
-                            // @ts-ignore
-                            isActive(item?.href) ? 'text-zinc-900' : 'text-gray-500'
-                          }`} />
-                        )}
-                        {typeof item === 'object' ? item.name : ''}
+                        <item.icon className={`mr-3 h-5 w-5 ${
+                          isActive(item.href || "") ? 'text-green-600' : 'text-gray-500'
+                        }`} />
+                        {item.name}
                       </Link>
                     )}
                   </motion.div>

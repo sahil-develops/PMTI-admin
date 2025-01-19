@@ -2,12 +2,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from 'lucide-react';
+import { Loader2, Upload, X } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -26,17 +25,6 @@ interface ClassType {
   name: string;
 }
 
-interface Instructor {
-  id: number;
-  name: string;
-  emailID: string;
-}
-
-interface Location {
-  id: number;
-  location: string;
-}
-
 interface FormData {
   countryId: string;
   categoryId: string;
@@ -49,24 +37,6 @@ interface FormData {
   description: string;
   active: boolean;
   promotionType: string;
-  address: string;
-  maxStudent: string;
-  minStudent: string;
-  price: string;
-  status: string;
-  onlineAvailable: boolean;
-  isCancel: boolean;
-  classTime: string;
-  onlineCourseId: string;
-  isCorpClass: boolean;
-  hotel: string;
-  hotelEmailId: string;
-  hotelContactNo: string;
-  flightConfirmation: string;
-  carConfirmation: string;
-  hotelConfirmation: string;
-  instructorId: string;
-  locationId: string;
 }
 
 export default function AddPromotionForm() {
@@ -76,8 +46,8 @@ export default function AddPromotionForm() {
   const [countries, setCountries] = useState<Country[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [classTypes, setClassTypes] = useState<ClassType[]>([]);
-  const [instructors, setInstructors] = useState<Instructor[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     countryId: '',
@@ -90,25 +60,7 @@ export default function AddPromotionForm() {
     title: '',
     description: '',
     active: true,
-    promotionType: '2',
-    address: '',
-    maxStudent: '',
-    minStudent: '',
-    price: '',
-    status: '1',
-    onlineAvailable: false,
-    isCancel: false,
-    classTime: '',
-    onlineCourseId: '',
-    isCorpClass: false,
-    hotel: '',
-    hotelEmailId: '',
-    hotelContactNo: '',
-    flightConfirmation: '',
-    carConfirmation: '',
-    hotelConfirmation: '',
-    instructorId: '',
-    locationId: '',
+    promotionType: '2'
   });
 
   useEffect(() => {
@@ -118,27 +70,21 @@ export default function AddPromotionForm() {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         };
 
-        const [countriesRes, categoriesRes, classTypesRes, instructorsRes, locationsRes] = await Promise.all([
+        const [countriesRes, categoriesRes, classTypesRes] = await Promise.all([
           fetch(`https://api.4pmti.com/country`, { headers }),
           fetch(`https://api.4pmti.com/category`, { headers }),
-          fetch(`https://api.4pmti.com/classtype`, { headers }),
-          fetch(`https://api.4pmti.com/instructor`, { headers }),
-          fetch(`https://api.4pmti.com/location`, { headers })
+          fetch(`https://api.4pmti.com/classtype`, { headers })
         ]);
 
-        const [countriesData, categoriesData, classTypesData, instructorsData, locationsData] = await Promise.all([
+        const [countriesData, categoriesData, classTypesData] = await Promise.all([
           countriesRes.json(),
           categoriesRes.json(),
-          classTypesRes.json(),
-          instructorsRes.json(),
-          locationsRes.json()
+          classTypesRes.json()
         ]);
 
         setCountries(countriesData.data);
         setCategories(categoriesData.data);
         setClassTypes(classTypesData.data);
-        setInstructors(instructorsData.data);
-        setLocations(locationsData.data);
       } catch (error) {
         toast({
           title: "Error",
@@ -151,11 +97,53 @@ export default function AddPromotionForm() {
     fetchData();
   }, []);
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (file && (file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif')) {
+      setAttachedFile(file);
+    } else {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a JPG, PNG, or GIF image",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && (file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif')) {
+      setAttachedFile(file);
+    } else {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a JPG, PNG, or GIF image",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Create form data for multipart/form-data submission
+      const formDataSubmit = new FormData();
+      
       const payload = {
         ...formData,
         countryId: parseInt(formData.countryId),
@@ -163,19 +151,27 @@ export default function AddPromotionForm() {
         classTypeId: parseInt(formData.classTypeId),
         amount: parseFloat(formData.amount),
         promotionType: parseInt(formData.promotionType),
-        attachedFilePath: "promotionfiles/filenotfound.gif",
         isDelete: false,
-        addedBy: 46,
-        updatedBy: 7,
+        addedBy: localStorage.getItem('userEmail'),
+        updatedBy: localStorage.getItem('userEmail'),
       };
+
+      // Append payload data
+      Object.entries(payload).forEach(([key, value]) => {
+        formDataSubmit.append(key, String(value));
+      });
+
+      // Append file if exists
+      if (attachedFile) {
+        formDataSubmit.append('attachedFile', attachedFile);
+      }
 
       const response = await fetch(`https://api.4pmti.com/promotions`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
-        body: JSON.stringify(payload),
+        body: formDataSubmit,
       });
 
       const data = await response.json();
@@ -209,6 +205,7 @@ export default function AddPromotionForm() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Previous form fields remain the same */}
           <div className="space-y-2">
             <Label htmlFor="promotionId">Promotion ID</Label>
             <Input
@@ -304,6 +301,23 @@ export default function AddPromotionForm() {
           </div>
 
           <div className="space-y-2">
+            <Label>Promotion Type</Label>
+            <Select
+              required
+              value={formData.promotionType}
+              onValueChange={(value) => setFormData({ ...formData, promotionType: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select promotion type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">General</SelectItem>
+                <SelectItem value="2">Special</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="startDate">Start Date</Label>
             <Input
               id="startDate"
@@ -326,179 +340,75 @@ export default function AddPromotionForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="maxStudent">Maximum Students</Label>
-            <Input
-              id="maxStudent"
-              type="number"
-              value={formData.maxStudent}
-              onChange={(e) => setFormData({ ...formData, maxStudent: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="minStudent">Minimum Students</Label>
-            <Input
-              id="minStudent"
-              type="number"
-              value={formData.minStudent}
-              onChange={(e) => setFormData({ ...formData, minStudent: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="price">Price</Label>
-            <Input
-              id="price"
-              type="number"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="classTime">Class Time</Label>
-            <Input
-              id="classTime"
-              type="time"
-              value={formData.classTime}
-              onChange={(e) => setFormData({ ...formData, classTime: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="onlineCourseId">Online Course ID</Label>
-            <Input
-              id="onlineCourseId"
-              value={formData.onlineCourseId}
-              onChange={(e) => setFormData({ ...formData, onlineCourseId: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Instructor</Label>
-            <Select
-              value={formData.instructorId}
-              onValueChange={(value) => setFormData({ ...formData, instructorId: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select instructor" />
-              </SelectTrigger>
-              <SelectContent>
-                {instructors.map((instructor) => (
-                  <SelectItem key={instructor.id} value={instructor.id.toString()}>
-                    {instructor.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Location</Label>
-            <Select
-              value={formData.locationId}
-              onValueChange={(value) => setFormData({ ...formData, locationId: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select location" />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((location) => (
-                  <SelectItem key={location.id} value={location.id.toString()}>
-                    {location.location}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="hotel">Hotel</Label>
-            <Input
-              id="hotel"
-              value={formData.hotel}
-              onChange={(e) => setFormData({ ...formData, hotel: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="hotelEmailId">Hotel Email</Label>
-            <Input
-              id="hotelEmailId"
-              type="email"
-              value={formData.hotelEmailId}
-              onChange={(e) => setFormData({ ...formData, hotelEmailId: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="hotelContactNo">Hotel Contact</Label>
-            <Input
-              id="hotelContactNo"
-              value={formData.hotelContactNo}
-              onChange={(e) => setFormData({ ...formData, hotelContactNo: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="flightConfirmation">Flight Confirmation</Label>
-            <Input
-              id="flightConfirmation"
-              value={formData.flightConfirmation}
-              onChange={(e) => setFormData({ ...formData, flightConfirmation: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="carConfirmation">Car Confirmation</Label>
-            <Input
-              id="carConfirmation"
-              value={formData.carConfirmation}
-              onChange={(e) => setFormData({ ...formData, carConfirmation: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="hotelConfirmation">Hotel Confirmation</Label>
-            <Input
-              id="hotelConfirmation"
-              value={formData.hotelConfirmation}
-              onChange={(e) => setFormData({ ...formData, hotelConfirmation: e.target.value })}
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="Enter promotion description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="onlineAvailable"
-              checked={formData.onlineAvailable}
-              onCheckedChange={(checked) => 
-                setFormData({ ...formData, onlineAvailable: checked as boolean })
-              }
+        {/* File Upload Section */}
+        <div className="space-y-2">
+          <Label>Promotion Image</Label>
+          <div
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+              isDragging 
+                ? 'border-zinc-400 bg-zinc-50' 
+                : 'border-zinc-200 hover:border-zinc-300'
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById('file-upload')?.click()}
+          >
+            <input
+              id="file-upload"
+              type="file"
+              className="hidden"
+              accept="image/jpeg,image/png,image/gif"
+              onChange={handleFileChange}
             />
-            <Label htmlFor="onlineAvailable">Online Available</Label>
+            
+            {attachedFile ? (
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-sm text-zinc-600">{attachedFile.name}</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAttachedFile(null);
+                  }}
+                  className="p-1 hover:bg-zinc-100 rounded-full"
+                >
+                  <X size={16} className="text-zinc-500" />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Upload className="mx-auto h-8 w-8 text-zinc-400" />
+                <div className="text-sm text-zinc-600">
+                  <span className="font-medium">Click to upload</span> or drag and drop
+                </div>
+                <p className="text-xs text-zinc-500">
+                  JPG, PNG or GIF (max. 800x400px)
+                </p>
+              </div>
+            )}
           </div>
+        </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="isCorpClass"
-              checked={formData.isCorpClass}
-              onCheckedChange={(checked) => 
-                setFormData({ ...formData, isCorpClass: checked as boolean })
-              }
-            />
-            <Label htmlFor="isCorpClass">Corporate Class</Label>
-          </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="active"
+            checked={formData.active}
+            onCheckedChange={(checked) => 
+              setFormData({ ...formData, active: checked as boolean })
+            }
+          />
+          <Label htmlFor="active">Active</Label>
         </div>
 
         <div className="flex gap-4">
@@ -522,4 +432,4 @@ export default function AddPromotionForm() {
       </form>
     </div>
   );
-} 
+}

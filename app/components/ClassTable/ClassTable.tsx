@@ -1,8 +1,7 @@
 "use client";
-import React, { useState, useEffect, ReactNode } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Calendar,
   Search,
   Plus,
   MoreVertical,
@@ -24,15 +23,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import { useToast } from "@/hooks/use-toast";
-import SearchSelect from '../DropDown/SearchSelect';
 import ClassTypeDropdown1 from "@/app/components/DropDown/ClassTypeDropdown1";
-import { ClassSearchForm } from './ClassSearchForm';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 
+
+
+interface Metadata {
+  currentPage: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
 
 interface ClassType {
   id: number;
@@ -56,7 +61,25 @@ interface Location {
   updateAt: string;
 }
 
+// Add new state interface
+interface State {
+  id: number;
+  name: string;
+  locations: Location[];
+  country: {
+    id: number;
+    CountryName: string;
+    currency: string;
+    isActive: boolean;
+    addedBy: number;
+    updatedBy: number | null;
+  };
+}
+
 interface ClassData {
+  minStudent: number;
+  maxStudent: number;
+  enrolledStudents: number;
   category: any;
   id: number;
   title: string;
@@ -65,31 +88,7 @@ interface ClassData {
   endDate: string;
   location: Location;
   instructor: string | null;
-  status: string;
-  maxStudent: number;
-  minStudent: number;
-  enrolledStudents?: number;
-  description: string;
-  onlineAvailable: boolean;
-  isCancel: boolean;
-  isDelete: boolean;
-  price: string;
-  address: string;
-}
-
-interface Metadata {
-  total: number;
-  totalPages: number;
-  currentPage: string;
-  hasNext: boolean;
-  hasPrevious: boolean;
-  limit: string;
-}
-
-interface SearchParams {
-  startFrom: string;
-  dateTo: string;
-  countryId: string;
+  status: string;  // Add this line
   locationId: string;
   instructorId: string;
   courseCategoryId: string;
@@ -101,6 +100,21 @@ interface SearchParams {
 interface SortConfig {
   key: string;
   direction: 'asc' | 'desc';
+}
+
+
+// Update SearchParams interface to include stateId
+interface SearchParams {
+  startFrom: string;
+  dateTo: string;
+  countryId: string;
+  stateId: string;  // Add this line
+  locationId: string;
+  instructorId: string;
+  courseCategoryId: string;
+  classTypeId: string;
+  showClass: string;
+  globalSearch: string;
 }
 
 // Custom Alert Component
@@ -351,6 +365,8 @@ export function ClassTable() {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -388,12 +404,15 @@ export function ClassTable() {
   const [countries, setCountries] = useState<Country[]>([]);
 
   const [selectedCountry, setSelectedCountry] = useState<string>("52"); // Default to US
+  const [selectedState, setSelectedState] = useState<string>(""); // Add this line
   const [cities, setCities] = useState<Location[]>([]);
+  const [states, setStates] = useState<State[]>([]);
   
   const [searchParams, setSearchParams] = useState<SearchParams>({
     startFrom: "",
     dateTo: "",
    countryId: "52",
+    stateId: "",    // Add this line
     locationId: "",
     instructorId: "",
     courseCategoryId: "",
@@ -472,6 +491,7 @@ useEffect(() => {
 
   useEffect(() => {
     fetchDropdownData();
+fetchStates("52"); // Fetch US states
   }, []);
 
   const [globalSearch, setGlobalSearch] = useState("");
@@ -524,7 +544,7 @@ useEffect(() => {
       // Remove global search from API call
       if (searchParams.startFrom) queryParams.append('startFrom', searchParams.startFrom);
       if (searchParams.dateTo) queryParams.append('dateTo', searchParams.dateTo);
-      if (searchParams.countryId) queryParams.append('countryId', "1");
+      if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId);
       if (searchParams.locationId) queryParams.append('locationId', searchParams.locationId);
       if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
       if (searchParams.courseCategoryId) queryParams.append('courseCategory', searchParams.courseCategoryId);
@@ -573,6 +593,7 @@ useEffect(() => {
       startFrom: "",
       dateTo: "",
       countryId: "",
+      stateId: "",    // Add this line
       locationId: "",
       instructorId: "",
       courseCategoryId: "",
@@ -586,36 +607,90 @@ useEffect(() => {
   };
 
 // Country change handler
-const handleCountryChange = (countryId: string) => {
+const handleCountryChange = async (countryId: string) => {
   setSelectedCountry(countryId);
-  setSearchParams((prev) => ({ ...prev, countryId, locationId: '' }));
+  setSearchParams(prev => ({ 
+    ...prev, 
+    countryId, 
+    stateId: '', 
+    locationId: '' 
+  }));
+  
+  // Reset states and cities
+  setStates([]);
+  setCities([]);
+  
+  // Fetch states for selected country
+  fetchStates(countryId);
+};
 
-  const selectedCountryData = countries.find(
-    (country) => country.id.toString() === countryId
-  );
-  if (selectedCountryData && selectedCountryData.__locations__) {
-    const sortedLocations = [...selectedCountryData.__locations__].sort((a, b) => 
+const handleCityChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  const locationId = event.target.value;
+  setSearchParams((prev) => ({ ...prev, locationId }));
+};
+
+// Add function to fetch states
+const fetchStates = async (countryId: string) => {
+  try {
+    const response = await fetch(
+      `https://api.4pmti.com/state/?countryId=${countryId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch states');
+    }
+
+    const data = await response.json();
+    setStates(data.data);
+  } catch (error) {
+    console.error('Error fetching states:', error);
+  }
+};
+
+// Add handleStateChange function
+const handleStateChange = async (stateId: string) => {
+  setSelectedState(stateId);
+  setSearchParams(prev => ({ ...prev, stateId, locationId: '' }));
+
+  try {
+    // Fetch locations for selected state
+    const response = await fetch(
+      `https://api.4pmti.com/location?countryId=${searchParams.countryId}&stateId=${stateId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch locations');
+    }
+
+    const data = await response.json();
+    const sortedLocations = [...data.data].sort((a, b) => 
       a.location.localeCompare(b.location)
     );
     setCities(sortedLocations);
-  } else {
+  } catch (error) {
+    console.error('Error fetching locations:', error);
     setCities([]);
   }
 };
 
-  const handleCityChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const locationId = event.target.value;
-    setSearchParams((prev) => ({ ...prev, locationId }));
-  };
-
-  // Loading shimmer component
-  const TableShimmer = () => (
-    <div className="animate-pulse space-y-2">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="border-b border-zinc-200 h-16 bg-zinc-50" />
-      ))}
-    </div>
-  );
+// Loading shimmer component
+const TableShimmer = () => (
+  <div className="animate-pulse space-y-2">
+    {Array.from({ length: 5 }).map((_, i) => (
+      <div key={i} className="border-b border-zinc-200 h-16 bg-zinc-50" />
+    ))}
+  </div>
+);
 
   const deleteClassLocally = (classId: number) => {
     setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
@@ -909,6 +984,39 @@ const handleCountryChange = (countryId: string) => {
   )}
 </div>
 
+{/* State Dropdown */}
+<div className="flex flex-col gap-2">
+  <Label>State</Label>
+  {isLoadingDropdowns ? (
+    <Loader />
+  ) : (
+    <Select
+      value={searchParams.stateId}
+      onValueChange={handleStateChange}
+      disabled={!searchParams.countryId}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder={searchParams.countryId ? "Select State" : "Select Country First"} />
+      </SelectTrigger>
+      <SelectContent>
+        {states.length > 0 ? (
+          states.map((state) => (
+            <SelectItem 
+              key={state.id} 
+              value={state.id.toString()}
+            >
+              {state.name}
+            </SelectItem>
+          ))
+        ) : (
+          <SelectItem value="no-states" disabled>
+            No states available
+          </SelectItem>
+        )}
+      </SelectContent>
+    </Select>
+  )}
+</div>
 
        {/* Location Dropdown */}
 <div className="flex flex-col gap-2">
@@ -921,9 +1029,16 @@ const handleCountryChange = (countryId: string) => {
       onValueChange={(value) => {
         setSearchParams(prev => ({ ...prev, locationId: value }));
       }}
+      disabled={!searchParams.stateId}
     >
       <SelectTrigger>
-        <SelectValue placeholder="Select Location" />
+        <SelectValue placeholder={
+          !searchParams.countryId 
+            ? "Select Country First" 
+            : !searchParams.stateId 
+              ? "Select State First"
+              : "Select Location"
+        } />
       </SelectTrigger>
       <SelectContent>
         {cities && cities.length > 0 ? (
