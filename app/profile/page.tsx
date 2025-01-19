@@ -12,6 +12,11 @@ interface UserData {
   // Add other fields as necessary
 }
 
+
+interface ProfileProps {
+  userData: UserData | null;
+}
+
 const ProfilePage = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +71,7 @@ const ProfilePage = () => {
     <div className="container mx-auto p-6">
       <div className="flex flex-col gap-6">
         {/* Pass userData to both components */}
-        <Profile userData={userData} />
+        <Profile />
         {/* <UserDataDisplay userData={userData} /> */}
       </div>
     </div>
