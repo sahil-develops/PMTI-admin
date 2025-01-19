@@ -1,5 +1,5 @@
 'use client'
-import { Bell, LogOut, Home, Users, BookOpen, FileUser, Menu, X, BadgePercent, ChevronDown, MapPin, User2Icon } from 'lucide-react';
+import { Bell, LogOut, Home, Users, BookOpen, FileUser, Menu, X, BadgePercent, ChevronDown, MapPin, User2Icon, ArrowRightLeft } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -36,6 +36,7 @@ export default function Header() {
     { name: 'Courses', icon: BookOpen, href: '/courses' },
     { name: 'Locations', icon: MapPin, href: '/location' },
     { name: 'Promotions', icon: BadgePercent, href: '/promotions' },
+    { name: 'Transaction', icon: ArrowRightLeft, href: '/transaction' },
     // { name: 'Enrollment', icon: FileUser, href: '/enrollment' },
   ];
 
