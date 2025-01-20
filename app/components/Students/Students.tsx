@@ -541,7 +541,7 @@ const Students = () => {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">UID</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">ID</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Email</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Company</th>
@@ -555,7 +555,7 @@ const Students = () => {
                 <tbody className="divide-y divide-gray-200">
                   {filteredStudents.map((student) => (
                     <tr key={student.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-900">{student.uid}</td>
+                      <td className="px-4 py-3 text-gray-900">{student.id}</td>
                       <td className="px-4 py-3 text-gray-900">{student.name}</td>
                       <td className="px-4 py-3 text-gray-500">{student.email}</td>
                       <td className="px-4 py-3 text-gray-500">{student.companyName}</td>
@@ -595,11 +595,19 @@ const Students = () => {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
-                             router.push(`students/enrollment/${student.id}`);
+                             router.push(`students/classEnrollment/${student.id}`);
                               }}
                             >
                               <FileInput className="mr-2 h-4 w-4" />
-                          Enrollment
+                        Class  Enrollment
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                             router.push(`students/courseEnrolllment/${student.id}`);
+                              }}
+                            >
+                              <FileInput className="mr-2 h-4 w-4" />
+                        Course  Enrollment
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

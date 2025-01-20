@@ -87,6 +87,8 @@ const CreateClassTypeForm: React.FC<CreateClassTypeFormProps> = ({ onCancel, onS
           disabled={isLoading || isSuccess}
           className="flex-1 bg-zinc-800 text-white rounded-md py-1 px-3 text-sm flex items-center justify-center"
         >
+
+        
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : isSuccess ? (
@@ -135,6 +137,7 @@ const EmptyState: React.FC<{ onClick: () => void }> = ({ onClick }) => (
 const ClassTypeDropdown: React.FC<ClassTypeDropdownProps> = ({ searchParams, setSearchParams, classTypes, refreshClassTypes }) => {
   const [isCreating, setIsCreating] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(false);
   const handleSuccess = () => {
     setIsCreating(false);
   };
@@ -150,11 +153,24 @@ const ClassTypeDropdown: React.FC<ClassTypeDropdownProps> = ({ searchParams, set
           <SelectValue placeholder="Select Class Type" />
         </SelectTrigger>
         <SelectContent>
-          {classTypes.map((type) => (
-            <SelectItem key={type.id} value={type.id.toString()}>
-              {type.name}
-            </SelectItem>
-          ))}
+        {isLoading ? (
+  <SelectItem value="loading" disabled>
+    <div className="flex items-center gap-2">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Loading class types...
+    </div>
+  </SelectItem>
+) : classTypes && classTypes.length > 0 ? (
+  classTypes.map((type) => (
+    <SelectItem key={type.id} value={type.id.toString()}>
+      {type.name}
+    </SelectItem>
+  ))
+) : (
+  <SelectItem value="none" disabled>
+    No class types found
+  </SelectItem>
+)}
           {isCreating ? (
             <CreateClassTypeForm 
               onCancel={() => setIsCreating(false)}

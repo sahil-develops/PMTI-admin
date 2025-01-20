@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -28,9 +28,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+interface State {
+  id: number;
+  name: string;
+  locations: Location[];
+  country: {
+    id: number;
+    CountryName: string;
+    currency: string;
+    isActive: boolean;
+    addedBy: number;
+    updatedBy: number | null;
+  };
+}
 
-interface EnrollmentFormData {
-  classId: number;
+interface Location {
+  id: number;
+  location: string;
+  addedBy: string;
+  updatedBy: string;
+  isDelete: boolean;
+  createdAt: string;
+  updateAt: string;
+}
+
+// First, let's define our interfaces
+interface BaseEnrollmentFormData {
   studentId: number;
   Comments: string;
   BillingName: string;
@@ -42,6 +65,7 @@ interface EnrollmentFormData {
   BillingState: string;
   BillCountry: string;
   BillPhone: string;
+  phone: string;
   BillMail: string;
   BillDate: string;
   PMPPass: boolean;
@@ -49,11 +73,35 @@ interface EnrollmentFormData {
   CCNo: string;
   CCExpiry: string;
   pmbok: boolean;
-  CreditCardHolder: string;
+  name: string;
   CVV: string;
   zipCode: string;
   Promotion?: string;
+  companyName: string;
+  profession: string;
+  email: string;
+  downloadedInfoPac: boolean;
+  CreditCardHolder: string;
+  city: string;
+  state: string;
+  address: string;
+  country: string;
 }
+
+interface ClassEnrollmentFormData extends BaseEnrollmentFormData {
+  classId: number;
+  courseId?: never;
+}
+
+interface CourseEnrollmentFormData extends BaseEnrollmentFormData {
+  courseId: number;
+  classId?: never;
+}
+
+type EnrollmentFormData = ClassEnrollmentFormData | CourseEnrollmentFormData;
+
+
+
 
 interface StudentInfo {
   id: number;
@@ -73,23 +121,271 @@ interface StudentInfo {
   active: boolean;
 }
 
+interface ClassData {
+  id: number;
+  title: string;
+  startDate: string;
+  endDate: string;
+  price: string;
+  // Add other fields as needed
+}
+
+// Type for items (courses or classes)
+interface ItemData {
+  id: number;
+  title?: string;      // for classes
+  courseName?: string; // for courses
+  price: string;
+}
+
 const Enrollment = ({ params }: { params: { id: string } }) => {
   const router = useRouter();
+  const pathname = usePathname();
+  const isCourseEnrollment = pathname?.includes('courseEnrolllment');
   const { toast } = useToast();
   const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [sameAsStudent, setSameAsStudent] = useState(false);
-  
+  const [classes, setClasses] = useState<ClassData[]>([]);
     const [countries, setCountries] = useState<Array<{ id: number; CountryName: string }>>([]);
   const [locations, setLocations] = useState<Array<{ id: number; location: string }>>([]);
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
 
+  const [items, setItems] = useState<ItemData[]>([])
 
-  const [formData, setFormData] = useState<EnrollmentFormData>({
-    classId: 1,
+ const [selectedCountry1, setSelectedCountry1] = useState<string>("52"); // Default to US
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [cities, setCities] = useState<Location[]>([]);
+  const [states, setStates] = useState<State[]>([]);
+
+
+
+  const enrollmentType = isCourseEnrollment ? 'Course' : 'Class';
+  const typeNameChecker =  isCourseEnrollment ? 'courseId' : 'classId';
+
+
+  const [selectedItem, setSelectedItem] = useState("");
+
+  // Form data structure updated to handle both types
+ 
+
+  const fetchStates = async (countryId: string) => {
+    try {
+      const response = await fetch(
+        `https://api.4pmti.com/state/?countryId=${countryId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch states');
+      }
+
+      const data = await response.json();
+      setStates(data.data);
+    } catch (error) {
+      console.error('Error fetching states:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch states",
+        variant: "destructive",
+      });
+    }
+  };
+
+   // Add handler for country change with updated naming
+   const handleCountryChange1 = async (countryId: string) => {
+    setSelectedCountry1(countryId);
+    setFormData(prev => ({
+      ...prev,
+      country: countryId, // Set the country ID
+      state: '',
+      city: ''
+    }));
+    
+    // Reset states and cities
+    setStates([]);
+    setCities([]);
+    
+    // Fetch states for selected country
+    fetchStates(countryId);
+
+    // Log to verify the update
+    console.log('Updated formData with country:', countryId);
+  };
+
+
+  // Add handler for state change
+  const handleStateChange = async (stateId: string) => {
+    setSelectedState(stateId);
+    setFormData(prev => ({
+      ...prev,
+      state: stateId,
+      city: ''
+    }));
+
+    try {
+      const response = await fetch(
+        `https://api.4pmti.com/location?countryId=${selectedCountry1}&stateId=${stateId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch cities');
+      }
+
+      const data = await response.json();
+      const sortedCities = [...data.data]
+        .filter((city: Location) => !city.isDelete)
+        .sort((a, b) => a.location.localeCompare(b.location));
+      setCities(sortedCities);
+    } catch (error) {
+      console.error('Error fetching cities:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch cities",
+        variant: "destructive",
+      });
+      setCities([]);
+    }
+  };
+
+
+  const [errors, setErrors] = useState({
+    CCNo: '',
+    CCExpiry: '',
+    CVV: '',
+  });
+
+    // Credit card validation functions
+    const validateCreditCard = (number: string) => {
+      // Basic Luhn algorithm for credit card validation
+      const digits = number.replace(/\D/g, '');
+      if (digits.length < 13 || digits.length > 19) return false;
+      
+      let sum = 0;
+      let isEven = false;
+      
+      for (let i = digits.length - 1; i >= 0; i--) {
+        let digit = parseInt(digits[i]);
+        
+        if (isEven) {
+          digit *= 2;
+          if (digit > 9) digit -= 9;
+        }
+        
+        sum += digit;
+        isEven = !isEven;
+      }
+      
+      return sum % 10 === 0;
+    };
+  
+    const validateExpiryDate = (expiry: string) => {
+      const [month, year] = expiry.split('/').map(num => parseInt(num.trim()));
+      if (!month || !year) return false;
+      
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear() % 100;
+      const currentMonth = currentDate.getMonth() + 1;
+      
+      if (year < currentYear) return false;
+      if (year === currentYear && month < currentMonth) return false;
+      if (month < 1 || month > 12) return false;
+      
+      return true;
+    };
+  
+    const validateCVV = (cvv: string) => {
+      const cvvRegex = /^\d{3,4}$/;
+      return cvvRegex.test(cvv);
+    };
+  
+    // Format credit card number with spaces
+    const formatCreditCard = (value: string) => {
+      const digits = value.replace(/\D/g, '');
+      const groups = digits.match(/.{1,4}/g) || [];
+      return groups.join(' ');
+    };
+    
+    
+  
+    // Format expiry date
+    const formatExpiry = (value: string) => {
+      const digits = value.replace(/\D/g, '');
+      if (digits.length >= 2) {
+        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}`;
+      }
+      return digits;
+    };
+  
+    const handleCreditCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const inputValue = e.target.value;
+      // Remove all non-digit characters and store raw number
+      const rawValue = inputValue.replace(/\D/g, '');
+      
+      // Update form data with raw value (no spaces)
+      setFormData(prev => ({ ...prev, CCNo: rawValue }));
+      
+      // Validate the raw value
+      setErrors(prev => ({
+        ...prev,
+        CCNo: validateCreditCard(rawValue) ? '' : 'Invalid credit card number'
+      }));
+    };
+  
+    const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const formattedValue = formatExpiry(e.target.value);
+      setFormData(prev => ({ ...prev, CCExpiry: formattedValue }));
+      setErrors(prev => ({
+        ...prev,
+        CCExpiry: validateExpiryDate(formattedValue) ? '' : 'Invalid expiry date'
+      }));
+    };
+  
+    const handleCVVChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value.replace(/\D/g, '').substr(0, 4);
+      setFormData(prev => ({ ...prev, CVV: value }));
+      setErrors(prev => ({
+        ...prev,
+        CVV: validateCVV(value) ? '' : 'Invalid CVV'
+      }));
+    };
+  
+    // Modify your existing handleSubmit to include validation
+    const handleSubmit11 = async (e: React.FormEvent) => {
+      e.preventDefault();
+      
+      // Validate all credit card fields
+      const newErrors = {
+        CCNo: validateCreditCard(formData.CCNo) ? '' : 'Invalid credit card number',
+        CCExpiry: validateExpiryDate(formData.CCExpiry) ? '' : 'Invalid expiry date',
+        CVV: validateCVV(formData.CVV) ? '' : 'Invalid CVV',
+      };
+      
+      setErrors(newErrors);
+      
+      // Check if there are any validation errors
+      if (Object.values(newErrors).some(error => error !== '')) {
+        return;
+      }
+  
+      setLoading(true);
+      // ... rest of your submit logic
+    };
+
+   // Initialize with properly typed form data
+   const [formData, setFormData] = useState<EnrollmentFormData>({
     studentId: parseInt(params.id),
     Comments: "",
     BillingName: "",
@@ -108,21 +404,65 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     CCNo: "",
     CCExpiry: "",
     pmbok: false,
-    CreditCardHolder: "",
     CVV: "",
-    Promotion: "",
-    zipCode: ""
+    zipCode: "",
+    companyName: "",
+    profession: "",
+    email: "",
+    downloadedInfoPac: true,
+    CreditCardHolder: "",
+    name: "",
+    phone: "",
+    city: "",
+    state: "",
+    address: "",
+    country: "",
+    ...(isCourseEnrollment ? { courseId: 1 } : { classId: 1 }),
   });
 
   useEffect(() => {
     fetchCountries();
+    fetchClasses();
+    fetchStates("52"); // Fetch US states by default
   }, []);
 
+  
   useEffect(() => {
     if (selectedCountry) {
       fetchLocations(selectedCountry);
     }
   }, [selectedCountry]);
+
+
+  const fetchItems = async () => {
+    try {
+      const endpoint = isCourseEnrollment ? 'course' : 'class';
+      const response = await fetch(`https://api.4pmti.com/${endpoint}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        setItems(result.data.data);
+      }
+    } catch (error) {
+      console.error(`Error fetching ${enrollmentType.toLowerCase()}es:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to fetch ${enrollmentType.toLowerCase()}es`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, [isCourseEnrollment]);
+
+  
+
 
   const fetchCountries = async () => {
     try {
@@ -142,6 +482,22 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         description: "Failed to fetch countries",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleItemSelect = (value: string) => {
+    const selectedId = parseInt(value);
+    const selected = items.find(item => item.id === selectedId);
+
+    if (selected) {
+      setFormData(prev => ({
+              ...prev,
+              ...(isCourseEnrollment 
+                ? { courseId: selectedId, classId: undefined }
+                : { classId: selectedId, courseId: undefined }
+              ),
+              amount: parseFloat(selected.price) || 0,
+            }));
     }
   };
 
@@ -207,6 +563,32 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     }
   };
 
+  
+
+   // Add class fetching function
+   const fetchClasses = async () => {
+    try {
+      const response = await fetch('https://api.4pmti.com/class', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success && result.data.data) {
+        setClasses(result.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch classes",
+        variant: "destructive",
+      });
+    }
+  };
+
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -233,6 +615,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     }
   };
 
+  
   return (
     <div className="max-w-full mx-auto p-6">
       {studentInfo && (
@@ -291,8 +674,71 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       <Card>
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4  pt-4">
+      <h3 className="text-lg font-semibold">Credit Card Information</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Card Number</Label>
+          <Input
+            type="text"
+            value={formData.CCNo ? formatCreditCard(formData.CCNo) : ''}
+            onChange={handleCreditCardChange}
+            placeholder="1234 5678 9012 3456"
+            maxLength={19}
+            className={errors.CCNo ? 'border-red-500' : ''}
+            required
+          />
+          {errors.CCNo && (
+            <p className="text-sm text-red-500 mt-1">{errors.CCNo}</p>
+          )}
+        </div>
+        <div>
+      <Label>Credit Card Holder</Label>
+      <Input
+        value={formData.CreditCardHolder}
+        onChange={(e) => setFormData(prev => ({ ...prev, CreditCardHolder: e.target.value }))}
+        placeholder="Enter credit card holder name"
+      />
+    </div>
+       
+          <div>
+            <Label>Expiry Date</Label>
+            <Input
+              type="text"
+              value={formData.CCExpiry}
+              onChange={handleExpiryChange}
+              placeholder="MM/YY"
+              maxLength={5}
+              className={errors.CCExpiry ? 'border-red-500' : ''}
+              required
+            />
+            {errors.CCExpiry && (
+              <p className="text-sm text-red-500 mt-1">{errors.CCExpiry}</p>
+            )}
+          </div>
+          
+          <div>
+            <Label>CVV</Label>
+            <Input
+              type="text"
+              value={formData.CVV}
+              onChange={handleCVVChange}
+              placeholder="123"
+              maxLength={4}
+              className={errors.CVV ? 'border-red-500' : ''}
+              required
+            />
+            {errors.CVV && (
+              <p className="text-sm text-red-500 mt-1">{errors.CVV}</p>
+            )}
+          </div>
+        </div>
+
+
+    
+           </div>
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Select Class</h3>
+              <h3 className="text-lg font-semibold">Select {enrollmentType}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Select Country</Label>
@@ -303,6 +749,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                       setSelectedLocation("");
                       setLocations([]);
                     }}
+                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Country" />
@@ -348,13 +795,24 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   </Select>
                 </div>
                 <div>
-                  <Label>Class</Label>
-                  <Select>
+                  <Label>Select {enrollmentType}</Label>
+                  <Select
+                    value={(isCourseEnrollment ? formData.courseId : formData.classId)?.toString() || ""}
+                    onValueChange={handleItemSelect}
+                    required
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Class" />
+                      <SelectValue placeholder={`Select ${enrollmentType}`} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pmp">PMP Certification</SelectItem>
+                      {items.map((item) => (
+                        <SelectItem 
+                          key={item.id} 
+                          value={item.id.toString()}
+                        >
+                          {isCourseEnrollment ? item.courseName : item.title}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -365,11 +823,11 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Start Date</Label>
-                  <Input type="date" />
+                  <Input type="date" required />
                 </div>
                 <div>
                   <Label>End Date</Label>
-                  <Input type="date" />
+                  <Input type="date" required />
                 </div>
               </div>
             </div>
@@ -382,7 +840,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Input
                     value={formData.purchaseOrderId}
                     onChange={(e) => setFormData(prev => ({ ...prev, purchaseOrderId: e.target.value }))}
-                  />
+                 required
+                 />
                 </div>
                 <div>
                   <Label>Amount</Label>
@@ -390,16 +849,17 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     type="number"
                     value={formData.amount}
                     onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) }))}
+                    required
                   />
                 </div>
                 <div>
                   <Label>Payment Mode</Label>
-                  <Select value="other">
+                  <Select required value="other">
                     <SelectTrigger>
                       <SelectValue placeholder="Select Payment Mode" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem  value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -410,11 +870,12 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Enrollment Date</Label>
-                  <Input type="date" />
+                  <Input type="date" required />
                 </div>
                 <div>
                   <Label>Comments</Label>
                   <Textarea
+                  required
                     value={formData.Comments}
                     onChange={(e) => setFormData(prev => ({ ...prev, Comments: e.target.value }))}
                   />
@@ -429,6 +890,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Select
                     value={formData.MealType}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, MealType: value }))}
+                  required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Meal Type" />
@@ -444,6 +906,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Input
                     value={formData.Promotion}
                     onChange={(e) => setFormData(prev => ({ ...prev, Promotion: e.target.value }))}
+                  
                   />
                 </div>
               </div>
@@ -466,14 +929,16 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Input
                     value={formData.BillingName}
                     onChange={(e) => setFormData(prev => ({ ...prev, BillingName: e.target.value }))}
-                  />
+                 required
+                 />
                 </div>
                 <div>
                   <Label>Billing Address</Label>
                   <Textarea
                     value={formData.BillingAddress}
                     onChange={(e) => setFormData(prev => ({ ...prev, BillingAddress: e.target.value }))}
-                  />
+                 required
+                 />
                 </div>
                 <div>
                   <Label>Select Country</Label>
@@ -485,7 +950,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                         BillCountry: value
                       }));
                     }}
-                  >
+                 required
+                 >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Country" />
                     </SelectTrigger>
@@ -506,6 +972,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Input
                     value={formData.zipCode}
                     onChange={(e) => setFormData(prev => ({ ...prev, zipCode: e.target.value }))}
+                  required
                   />
                 </div>
                 <div>
@@ -513,6 +980,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Input
                     value={formData.BillPhone}
                     onChange={(e) => setFormData(prev => ({ ...prev, BillPhone: e.target.value }))}
+                  required
                   />
                 </div>
                 <div>
@@ -521,10 +989,184 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     type="email"
                     value={formData.BillMail}
                     onChange={(e) => setFormData(prev => ({ ...prev, BillMail: e.target.value }))}
+                  required
                   />
                 </div>
               </div>
             </div>
+
+            <div className="space-y-4 border-t pt-4">
+  <h3 className="text-lg font-semibold">Additional Information</h3>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <Label>Name</Label>
+      <Input
+        value={formData.name}
+        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+        placeholder="Enter name"
+        required
+        />
+    </div>
+    
+    <div>
+      <Label>Company Name</Label>
+      <Input
+        value={formData.companyName}
+        onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+        placeholder="Enter company name"
+    required
+    />
+    </div>
+    <div>
+      <Label>Profession</Label>
+      <Input
+        value={formData.profession}
+        onChange={(e) => setFormData(prev => ({ ...prev, profession: e.target.value }))}
+        placeholder="Enter profession"
+   required
+   />
+    </div>
+    <div>
+      <Label>Email</Label>
+      <Input
+        type="email"
+        value={formData.email}
+        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+        placeholder="Enter email address"
+    required
+    />
+    </div>
+    
+   <div>
+      <Label>Phone</Label>
+      <Input
+        value={formData.phone}
+        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+        placeholder="Enter phone number"
+    required
+    />
+ 
+   </div>
+
+ 
+
+   <div>
+            <Label>Country</Label>
+            <Select
+              value={selectedCountry1}
+              onValueChange={handleCountryChange1}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Country" />
+              </SelectTrigger>
+              <SelectContent>
+                {countries.map((country) => (
+                  <SelectItem 
+                    key={country.id} 
+                    value={country.id.toString()}
+                  >
+                    {country.CountryName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>State</Label>
+            <Select
+              value={selectedState}
+              onValueChange={handleStateChange}
+              disabled={!selectedCountry1}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={selectedCountry1 ? "Select State" : "Select Country First"} />
+              </SelectTrigger>
+              <SelectContent>
+                {states.length > 0 ? (
+                  states.map((state) => (
+                    <SelectItem 
+                      key={state.id} 
+                      value={state.id.toString()}
+                    >
+                      {state.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-states" disabled>
+                    No states available
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>City</Label>
+            <Select
+              value={formData.city}
+              onValueChange={(value) => {
+                setFormData(prev => ({ ...prev, city: value }));
+              }}
+              disabled={!selectedState}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={
+                  !selectedCountry1 
+                    ? "Select Country First" 
+                    : !selectedState 
+                      ? "Select State First"
+                      : "Select City"
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                {cities && cities.length > 0 ? (
+                  cities.map((city) => (
+                    <SelectItem 
+                      key={city.id} 
+                      value={city.id.toString()}
+                    >
+                      {city.location}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-cities" disabled>
+                    No cities available
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Address</Label>
+            <Input
+              value={formData.address}
+              onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+              placeholder="Enter address"
+            />
+          </div>
+        </div>
+      
+
+    <div className="col-span-2">
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="downloadedInfoPac"
+          checked={formData.downloadedInfoPac}
+          onCheckedChange={(checked) => 
+            setFormData(prev => ({ 
+              ...prev, 
+              downloadedInfoPac: checked as boolean 
+            }))
+          }
+        />
+        <label htmlFor="downloadedInfoPac">
+          I have downloaded and read the information package
+        </label>
+      </div>
+    </div>
+  </div>
+
 
             <div className="flex justify-end space-x-4 pt-4">
               <Button variant="outline" type="button" onClick={() => router.back()}>
@@ -615,10 +1257,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Footer */}
-      <div className="mt-6 text-center text-sm text-gray-500">
-        © 2019 www.4PMTI.com, All rights reserved.
-      </div>
+
     </div>
   );
 };

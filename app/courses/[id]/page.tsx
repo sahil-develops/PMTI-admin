@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -72,16 +72,15 @@ const SkeletonCard = () => (
         <Skeleton className="h-3 w-16" />
         <Skeleton className="h-4 w-full" />
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2"></div>
         <Skeleton className="h-3 w-16" />
         <Skeleton className="h-4 w-full" />
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2"></div>
         <Skeleton className="h-3 w-16" />
         <Skeleton className="h-4 w-full" />
       </div>
-    </div>
-  </div>
+ 
 );
 
 const LoadingSkeleton = () => (
@@ -141,7 +140,6 @@ const LoadingSkeleton = () => (
 );
 
 export default function CourseDetails({ params }: PageProps) {
-  const resolvedParams = use(params);
   const router = useRouter();
   const { toast } = useToast();
   const [course, setCourse] = useState<Course | null>(null);
@@ -150,7 +148,8 @@ export default function CourseDetails({ params }: PageProps) {
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const response = await fetch(`https://api.4pmti.com/course/${resolvedParams.id}`, {
+        const { id } = await params;
+        const response = await fetch(`https://api.4pmti.com/course/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -171,20 +170,21 @@ export default function CourseDetails({ params }: PageProps) {
           });
         }
       } catch (error) {
-        console.error('Error fetching course:', error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load course details. Please try again later.",
+// @ts-ignore
+
+          description: error.message,
         });
-        router.push('/courses');
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchCourse();
-  }, [resolvedParams.id, toast, router]);
+// @ts-ignore
+  }, [params.id, toast]);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -266,7 +266,7 @@ export default function CourseDetails({ params }: PageProps) {
               </div>
               <DetailRow label="Category" value={course.category.name} />
               <DetailRow label="Category Description" value={course.category.description} />
-              <DetailRow label="Class Type" value={course.classType.name} />
+              <DetailRow label="Class Type" value={course && course?.classType?.name} />
             </div>
 
             {/* Description - Full Width */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import ClassTypeDropdown from "../DropDown/ClassTypeDropdown1";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Add this interface with your other interfaces
+interface Category {
+  id: number;
+  name: string;
+  description: string;
+  isDelete: boolean;
+  active: boolean;
+}
+
+
+
+interface ClassType {
+  id: number;
+  name: string;
+}
 
 interface CourseFormData {
   courseName: string;
@@ -39,6 +63,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [classTypes, setClassTypes] = useState<ClassType[]>([]);
   const [formData, setFormData] = useState<CourseFormData>({
     courseName: "",
     shortName: "",
@@ -53,6 +78,50 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
     extPrice: 299.99,
     categoryId: 3
   });
+   // Add this state with your other states
+   const [categories, setCategories] = useState<Category[]>([]);
+  
+
+     // Add this function with your other fetch functions
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('https://api.4pmti.com/category', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const data = await response.json();
+      setCategories(data.data || []); // Set categories from the data property
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setCategories([]); // Set empty array on error
+    }
+  };
+
+  // Function to fetch class types
+  const fetchClassTypes = async () => {
+    try {
+      const response = await fetch('https://api.4pmti.com/classtype', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch class types');
+      const data = await response.json();
+      // Update this line to access the data property
+      setClassTypes(data.data || []); // Add fallback to empty array
+    } catch (error) {
+      console.error('Error fetching class types:', error);
+      setClassTypes([]); // Set empty array on error
+    }
+  };
+
+  // Add fetchCategories to your useEffect
+  useEffect(() => {
+    fetchClassTypes();
+    fetchCategories(); // Add this line
+  }, []);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -68,6 +137,13 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
     setFormData((prev) => ({
       ...prev,
       [name]: !prev[name as keyof CourseFormData],
+    }));
+  };
+
+  const handleClassTypeChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      classType: Number(value)
     }));
   };
 
@@ -148,16 +224,17 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="classType" className="text-sm">Class Type</Label>
-              <Input
-                id="classType"
-                name="classType"
-                type="number"
-                value={formData.classType}
-                onChange={handleInputChange}
-                required
-                className="h-8"
-              />
+            <ClassTypeDropdown
+    searchParams={{ classTypeId: formData.classType.toString() }}
+    setSearchParams={(params) => {
+      setFormData(prev => ({
+        ...prev,
+        classType: Number(params.classTypeId)
+      }));
+    }}
+    classTypes={classTypes}
+    refreshClassTypes={fetchClassTypes}
+  />
             </div>
 
             <div className="space-y-1">
@@ -188,18 +265,33 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
               />
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="categoryId" className="text-sm">Category ID</Label>
-              <Input
-                id="categoryId"
-                name="categoryId"
-                type="number"
-                value={formData.categoryId}
-                onChange={handleInputChange}
-                required
-                className="h-8"
-              />
-            </div>
+            {/* // Replace the categoryId Input component with this Select component */}
+  <div className="space-y-1">
+    <Label>Category</Label>
+    <Select
+      value={formData.categoryId.toString()}
+      onValueChange={(value) => {
+        setFormData(prev => ({
+          ...prev,
+          categoryId: Number(value)
+        }));
+      }}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder="Select Category" />
+      </SelectTrigger>
+      <SelectContent>
+        {categories.map((category) => (
+          <SelectItem 
+            key={category.id} 
+            value={category.id.toString()}
+          >
+            {category.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </div>
 
             <div className="flex items-center space-x-2">
               <Label htmlFor="isGuestAccess" className="text-sm">Guest Access</Label>

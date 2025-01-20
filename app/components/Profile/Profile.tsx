@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogOut, User, Phone, Mail, Calendar, Shield } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useRouter } from 'next/navigation';
+
 
 interface UserData {
   name: string;
@@ -16,6 +29,7 @@ interface UserData {
 }
 
 const UserProfile = () => {
+  const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +40,7 @@ const UserProfile = () => {
         const response = await fetch('https://api.4pmti.com/auth/user', {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization':"Bearer " + localStorage.getItem('accessToken')
+            'Authorization': "Bearer " + localStorage.getItem('accessToken')
           }
         });
         
@@ -36,7 +50,7 @@ const UserProfile = () => {
 
         const data = await response.json();
         setUserData(data.data);
-      } catch (err:any) {
+      } catch (err: any) {
         setError(err.message);
       } finally {
         setLoading(false);
@@ -47,8 +61,8 @@ const UserProfile = () => {
   }, []);
 
   const handleLogout = () => {
-    // Add logout logic here
-    console.log('Logging out...');
+    localStorage.clear(); // Clear all localStorage items
+    router.push('/'); // Redirect to home page
   };
 
   if (loading) {
@@ -81,13 +95,30 @@ const UserProfile = () => {
             <h2 className="text-xl font-semibold">{userData?.name}</h2>
             <p className="text-gray-500">{userData?.admin?.designation}</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
-          >
-            <LogOut size={18} />
-            Logout
-          </button>
+          
+          {/* Logout Button with Alert Dialog */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">
+                <LogOut size={18} />
+                Logout
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to logout?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You will be redirected to the login page.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLogout}>
+                  Yes, Logout
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
@@ -140,7 +171,6 @@ const UserProfile = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  {/* <Calendar className="text-gray-400" /> */}
                   <div>
                     <p className="text-sm text-gray-500">Account Created</p>
                     <p className="font-medium">
