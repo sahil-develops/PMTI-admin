@@ -63,7 +63,7 @@ interface PageProps {
 }
 
 export default function EditCourse({ params }: PageProps) {
-  const resolvedParams = use(params);
+  const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   const [course, setCourse] = useState<Course | null>(null);
@@ -71,6 +71,12 @@ export default function EditCourse({ params }: PageProps) {
   const [isFetching, setIsFetching] = useState(true);
 
   useEffect(() => {
+    setResolvedParams(params);
+  }, [params]);
+
+  useEffect(() => {
+    if (!resolvedParams) return;
+
     const fetchCourse = async () => {
       setIsFetching(true);
       try {
@@ -108,7 +114,11 @@ export default function EditCourse({ params }: PageProps) {
     };
 
     fetchCourse();
-  }, [resolvedParams.id, toast, router]);
+  }, [resolvedParams, toast, router]);
+
+  if (!resolvedParams) {
+    return <div>Loading...</div>;
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -306,4 +316,4 @@ export default function EditCourse({ params }: PageProps) {
       </div>
     </div>
   );
-} 
+}

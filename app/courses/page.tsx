@@ -5,7 +5,7 @@ import CourseList from '../components/CourseForm/CourseList'
 const page = () => {
   return (
     <div>
-        <CourseForm/>
+        {/* <CourseForm/> */}
         <CourseList/>
     </div>
   )

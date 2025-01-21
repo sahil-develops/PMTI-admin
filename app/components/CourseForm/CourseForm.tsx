@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
 
 // Add this interface with your other interfaces
 interface Category {
@@ -59,6 +60,7 @@ interface CourseFormProps {
 }
 
 const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -167,6 +169,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
       }
 
       setShowSuccess(true);
+      router.push('/courses');
       if (onSuccess) {
         onSuccess();
       }
