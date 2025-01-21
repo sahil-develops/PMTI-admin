@@ -95,7 +95,7 @@ interface ClassData {
   classTypeId: string;
   showClass: string;
   globalSearch: string;
-  enrolled:string
+  enrollmentCount:string
 }
 
 interface SortConfig {
@@ -1326,7 +1326,7 @@ const TableShimmer = () => (
                           : "Inactive"}
                       </span>
                     </TableCell>
-                    <TableCell>{classItem.enrolled || "N/A"}</TableCell>
+                    <TableCell>{classItem.enrollmentCount || "N/A"}</TableCell>
                     <TableCell>{calculateAvailableSpots(classItem)}</TableCell>
                     <TableCell>
                       <ActionDropdown

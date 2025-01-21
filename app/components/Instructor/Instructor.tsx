@@ -87,7 +87,7 @@ const Instructor = () => {
     const handleAction = (action: string) => {
       switch (action) {
         case 'view':
-          router.push(`/instructor/${instructor.id}`);
+          router.push(`/instructors/viewInstructor/${instructor.id}`);
           break;
         case 'edit':
           router.push(`/editInstructor/${instructor.id}`);
