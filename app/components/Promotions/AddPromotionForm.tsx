@@ -50,7 +50,7 @@ export default function AddPromotionForm() {
   const [isDragging, setIsDragging] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
-    countryId: '',
+    countryId: '52', 
     categoryId: '',
     classTypeId: '',
     promotionId: '',
@@ -245,6 +245,7 @@ export default function AddPromotionForm() {
             <Select
               required
               value={formData.countryId}
+                defaultValue="52"
               onValueChange={(value) => setFormData({ ...formData, countryId: value })}
             >
               <SelectTrigger>

@@ -496,7 +496,7 @@ const onSubmit = async (data: ClassFormData) => {
   );
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
+    <div className="max-w-full bg-white mx-auto p-4">
       {/* Breadcrumb */}
       <nav className="flex mb-2" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 text-sm">
