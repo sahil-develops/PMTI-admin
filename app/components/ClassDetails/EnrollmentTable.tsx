@@ -207,7 +207,7 @@ export const EnrollmentTable = ({ enrollments }: EnrollmentTableProps) => {
         <TableFooter>
           <TableRow className="bg-zinc-50 font-medium">
             <TableCell colSpan={11} className="text-right pr-4">
-            Grand Total: 
+  Grand Total: 
             </TableCell>
             <TableCell className="text-right">
              ${grandTotal.toFixed(2)}
