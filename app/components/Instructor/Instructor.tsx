@@ -5,6 +5,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -12,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MoreVertical, Search, Plus, Edit2, Trash2, Eye } from "lucide-react";
+import { MoreVertical, Search, Plus, Edit2, Trash2, Eye, Loader2 } from "lucide-react";
 import api from '@/app/lib/api';
 
 interface Instructor {
@@ -30,9 +40,12 @@ const Instructor = () => {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [filteredInstructors, setFilteredInstructors] = useState<Instructor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [globalSearch, setGlobalSearch] = useState('');
   const [nameSearch, setNameSearch] = useState('');
   const [emailSearch, setEmailSearch] = useState('');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
 
   useEffect(() => {
     fetchInstructors();
@@ -57,24 +70,42 @@ const Instructor = () => {
     }
   };
 
+  const handleDeleteInstructor = async () => {
+    if (!selectedInstructor) return;
+    
+    setDeleteLoading(selectedInstructor.id);
+    try {
+      const response = await api.delete(`instructor/${selectedInstructor.id}`);
+      if (response.data.success) {
+        const updatedInstructors = instructors.filter(
+          instructor => instructor.id !== selectedInstructor.id
+        );
+        setInstructors(updatedInstructors);
+        setFilteredInstructors(updatedInstructors);
+      }
+    } catch (error) {
+      console.error('Error deleting instructor:', error);
+    } finally {
+      setDeleteLoading(null);
+      setShowDeleteDialog(false);
+      setSelectedInstructor(null);
+    }
+  };
+
   const filterInstructors = () => {
     const filtered = instructors.filter(instructor => {
-      // Global search check
       const globalMatch = !globalSearch || 
         instructor.name?.toLowerCase().includes(globalSearch.toLowerCase()) ||
         instructor.emailID?.toLowerCase().includes(globalSearch.toLowerCase()) ||
         instructor.mobile?.toLowerCase().includes(globalSearch.toLowerCase()) ||
         instructor.uid?.toLowerCase().includes(globalSearch.toLowerCase());
 
-      // Name-specific search check
       const nameMatch = !nameSearch || 
         (instructor.name?.toLowerCase().includes(nameSearch.toLowerCase()));
 
-      // Email-specific search check
       const emailMatch = !emailSearch || 
         (instructor.emailID?.toLowerCase().includes(emailSearch.toLowerCase()));
 
-      // Return true only if all active filters match
       return globalMatch && nameMatch && emailMatch;
     });
 
@@ -93,7 +124,8 @@ const Instructor = () => {
           router.push(`/editInstructor/${instructor.id}`);
           break;
         case 'delete':
-          // Handle delete
+          setSelectedInstructor(instructor);
+          setShowDeleteDialog(true);
           break;
       }
       setIsOpen(false);
@@ -132,8 +164,14 @@ const Instructor = () => {
               <button
                 onClick={() => handleAction('delete')}
                 className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 gap-2"
+                disabled={deleteLoading === instructor.id}
               >
-                <Trash2 className="h-4 w-4" /> Delete instructor
+                {deleteLoading === instructor.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Delete instructor
               </button>
             </div>
           </>
@@ -242,6 +280,35 @@ const Instructor = () => {
           Showing {filteredInstructors.length} of {instructors.length} instructors
         </span>
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the instructor
+              {selectedInstructor && ` "${selectedInstructor.name}"`} from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteInstructor}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={!!deleteLoading}
+            >
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
