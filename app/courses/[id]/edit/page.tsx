@@ -71,7 +71,7 @@ export default function EditCourse({ params }: PageProps) {
   const [isFetching, setIsFetching] = useState(true);
 
   useEffect(() => {
-    setResolvedParams(params);
+    params.then(resolved => setResolvedParams(resolved));
   }, [params]);
 
   useEffect(() => {
