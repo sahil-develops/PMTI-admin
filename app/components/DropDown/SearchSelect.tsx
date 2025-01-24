@@ -42,7 +42,7 @@ const SearchSelect = ({
       setLoading(true);
       setFetchError("");
       try {
-        const response = await fetch(`https://api.4pmti.com/${apiUrl}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${apiUrl}`, {
           headers: {
             "Authorization": `Bearer ${localStorage.getItem("accessToken")}`
           }
@@ -108,22 +108,12 @@ const SearchSelect = ({
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0">
-          {/* @ts-ignore */}
-          <Command {...(CommandProps as any)}>
-          {/* @ts-ignore */}
-            
-            <CommandInput placeholder={`Search ${label.toLowerCase()}...`.toString} />
-          {/* @ts-ignore */}
-           
-            <CommandEmpty>{`No ${label.toLowerCase()} found.`}</CommandEmpty>
-          {/* @ts-ignore */}
-           
+          <Command>
+            <CommandInput placeholder={`Search ${label.toLowerCase()}...`} />
+            <CommandEmpty>No {label.toLowerCase()} found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-y-auto">
-          {/* @ts-ignore */}
-           
               {options.map((option) => (
-          // @ts-ignore  
-           <CommandItem
+                <CommandItem
                   key={option.id}
                   value={option.label}
                   onSelect={() => {
@@ -131,15 +121,13 @@ const SearchSelect = ({
                     setOpen(false);
                   }}
                 >
-                  <>
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === option.id ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {option.label}
-                  </>
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === option.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {option.label}
                 </CommandItem>
               ))}
             </CommandGroup>

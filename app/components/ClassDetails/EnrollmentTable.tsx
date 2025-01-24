@@ -1,10 +1,41 @@
-import React from 'react';
+import React , {useState} from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
+import { useParams } from 'next/navigation';
 
-// Updated styling components
+interface Enrollment {
+  id: string;
+  student: {
+    id: any;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  EnrollmentDate: string;
+  PaymentMode: string;
+  PMPPass: boolean;
+  pmbok: boolean;
+  MealType?: string;
+  Price: number;
+  Comments: string;
+  status: boolean;
+}
+
+interface EnrollmentTableProps {
+  enrollments: Enrollment[];
+  onUpdate?: () => void;
+}
+
+interface UpdatePayload {
+  MealType?: string;
+  enrollmentProgress?: string;
+  status?: boolean;
+  pmbok?: boolean;
+}
+
+
 const StyledTableHeader = ({ children, sortable = false, onClick }: { 
   children: React.ReactNode; 
   sortable?: boolean;
@@ -26,12 +57,13 @@ const StyledTableCell = ({ children, className = "" }: {
   </td>
 );
 
-const CompactSelect = ({ value, onChange, options }: {
+const CompactSelect = ({ value, onChange, options, loading = false }: {
   value: string;
   onChange: (value: string) => void;
   options: { value: string; label: string; }[];
+  loading?: boolean;
 }) => (
-  <Select value={value} onValueChange={onChange}>
+  <Select value={value} onValueChange={onChange} disabled={loading}>
     <SelectTrigger className="h-8 min-h-8 text-xs px-2 py-0">
       <SelectValue />
     </SelectTrigger>
@@ -45,53 +77,69 @@ const CompactSelect = ({ value, onChange, options }: {
   </Select>
 );
 
-const StatusBadge = ({ status }: { status: string }) => {
-  const getStatusStyles = (status: string) => {
-    switch (status) {
-      case "1":
-        return "bg-green-100 text-green-800";
-      case "2":
-        return "bg-yellow-100 text-yellow-800";
-      default:
-        return "bg-red-100 text-red-800";
+const updateEnrollment = async (studentId: number, payload: UpdatePayload) => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.4pmti.com';
+  
+  try {
+    const response = await fetch(`${baseUrl}/enrollment/${studentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Update failed');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating enrollment:', error);
+    throw error;
+  }
+};
+
+export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: EnrollmentTableProps) => {
+  const [enrollments, setEnrollments] = useState(initialEnrollments);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [loading, setLoading] = useState<{[key: string]: boolean}>({});
+  const [error, setError] = useState<string | null>(null);
+
+
+
+
+  const handleUpdate = async (studentId: number, payload: UpdatePayload) => {
+    const loadingKey = `${studentId}-${Object.keys(payload)[0]}`;
+    setLoading(prev => ({ ...prev, [loadingKey]: true }));
+    setError(null);
+  
+    try {
+      const response = await updateEnrollment(studentId, payload);
+      if (response.success) {
+        setEnrollments(prev => prev.map(enrollment => {
+          if (enrollment.student.id === studentId) {
+            return {
+              ...enrollment,
+              PMPPass: payload.enrollmentProgress ? payload.enrollmentProgress === 'pass' : enrollment.PMPPass,
+              pmbok: payload.pmbok !== undefined ? payload.pmbok : enrollment.pmbok,
+              status: payload.status !== undefined ? payload.status : enrollment.status,
+              MealType: payload.MealType || enrollment.MealType
+            };
+          }
+          return enrollment;
+        }));
+        if (onUpdate) onUpdate();
+      }
+    } catch (error) {
+      setError('Failed to update enrollment');
+      console.error('Update failed:', error);
+    } finally {
+      setLoading(prev => ({ ...prev, [loadingKey]: false }));
     }
   };
 
-  return (
-    <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getStatusStyles(status)}`}>
-      {status === "1" ? "Active" : status === "2" ? "Pending" : "Inactive"}
-    </span>
-  );
-};
-
-const RescheduleBadge = () => (
-  <Link href="#" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">
-    Reschedule
-  </Link>
-);
-
-interface Enrollment {
-  id: string;
-  student: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  EnrollmentDate: string;
-  PaymentMode: string;
-  PMPPass: boolean;
-  pmbok: boolean;
-  MealType?: string;
-  Price: number;
-  Comments: string;
-}
-
-interface EnrollmentTableProps {
-  enrollments: Enrollment[];
-}
-
-export const EnrollmentTable = ({ enrollments }: EnrollmentTableProps) => {
-  const [selectedItems, setSelectedItems] = React.useState<string[]>([]);
 
   // Calculate summary data
   const grandTotal = enrollments.reduce((sum, enrollment) => sum + Number(enrollment.Price), 0);
@@ -108,11 +156,7 @@ export const EnrollmentTable = ({ enrollments }: EnrollmentTableProps) => {
                 className="bg-white data-[state=checked]:bg-white" 
                 checked={selectedItems.length === enrollments.length}
                 onCheckedChange={(checked) => {
-                  if (checked) {
-                    setSelectedItems(enrollments.map(e => e.id));
-                  } else {
-                    setSelectedItems([]);
-                  }
+                  setSelectedItems(checked ? enrollments.map(e => e.id) : []);
                 }}
               />
             </StyledTableHeader>
@@ -120,29 +164,26 @@ export const EnrollmentTable = ({ enrollments }: EnrollmentTableProps) => {
             <StyledTableHeader>Email</StyledTableHeader>
             <StyledTableHeader>Enrollment on</StyledTableHeader>
             <StyledTableHeader>Mode</StyledTableHeader>
-            <StyledTableHeader>PMP Pass</StyledTableHeader>
-            <StyledTableHeader>Change</StyledTableHeader>
+            <StyledTableHeader>Progress</StyledTableHeader>
             <StyledTableHeader>PMBOK</StyledTableHeader>
             <StyledTableHeader>Status</StyledTableHeader>
-            <StyledTableHeader>Change Meal</StyledTableHeader>
+            <StyledTableHeader>Meal Type</StyledTableHeader>
             <StyledTableHeader>Phone</StyledTableHeader>
             <StyledTableHeader>Price</StyledTableHeader>
-            <StyledTableHeader>Com</StyledTableHeader>
-            <StyledTableHeader>Reschedule</StyledTableHeader>
+            <StyledTableHeader>Comments</StyledTableHeader>
           </TableRow>
         </TableHeader>
         <TableBody>
           {enrollments.map((enrollment, index) => (
-            <TableRow key={index} className="hover:bg-zinc-50">
+            <TableRow key={enrollment.id} className="hover:bg-zinc-50">
               <StyledTableCell>
                 <Checkbox
                   checked={selectedItems.includes(enrollment.id)}
                   onCheckedChange={(checked) => {
-                    if (checked) {
-                      setSelectedItems([...selectedItems, enrollment.id]);
-                    } else {
-                      setSelectedItems(selectedItems.filter(id => id !== enrollment.id));
-                    }
+                    setSelectedItems(checked ? 
+                      [...selectedItems, enrollment.id] : 
+                      selectedItems.filter(id => id !== enrollment.id)
+                    );
                   }}
                 />
               </StyledTableCell>
@@ -153,66 +194,76 @@ export const EnrollmentTable = ({ enrollments }: EnrollmentTableProps) => {
               </StyledTableCell>
               <StyledTableCell>{enrollment.PaymentMode}</StyledTableCell>
               <StyledTableCell>
-                {enrollment.PMPPass ? "Passed" : "In progress"}
+         {/* Progress Select */}
+<CompactSelect
+  value={enrollment.PMPPass ? "pass" : "fail"}
+  onChange={(value) => handleUpdate(enrollment.student.id, {
+    enrollmentProgress: value
+  })}
+  loading={loading[`${enrollment.student.id}-enrollmentProgress`]}
+  options={[
+    { value: "pass", label: "Pass" },
+    { value: "fail", label: "Fail" }
+  ]}
+/>
               </StyledTableCell>
               <StyledTableCell>
-                <CompactSelect
-                  value="progress"
-                  onChange={() => {}}
-                  options={[
-                    { value: "progress", label: "Progress" },
-                    { value: "complete", label: "Complete" }
-                  ]}
-                />
+              {/* PMBOK Select */}
+<CompactSelect
+  value={enrollment.pmbok ? "yes" : "no"}
+  onChange={(value) => handleUpdate(enrollment.student.id, {
+    pmbok: value === "yes"
+  })}
+  loading={loading[`${enrollment.student.id}-pmbok`]}
+  options={[
+    { value: "yes", label: "Yes" },
+    { value: "no", label: "No" }
+  ]}
+/>
+
               </StyledTableCell>
               <StyledTableCell>
-                <CompactSelect
-                  value={enrollment.pmbok ? "yes" : "no"}
-                  onChange={() => {}}
-                  options={[
-                    { value: "yes", label: "Yes" },
-                    { value: "no", label: "No" }
-                  ]}
-                />
+             {/* Status Select */}
+<CompactSelect
+  value={enrollment.status ? "active" : "inactive"}
+  onChange={(value) => handleUpdate(enrollment.student.id, {
+    status: value === "active"
+  })}
+  loading={loading[`${enrollment.student.id}-status`]}
+  options={[
+    { value: "active", label: "Active" },
+    { value: "inactive", label: "Inactive" }
+  ]}
+/>
+
               </StyledTableCell>
               <StyledTableCell>
-                <CompactSelect
-                  value="active"
-                  onChange={() => {}}
-                  options={[
-                    { value: "active", label: "Active" },
-                    { value: "inactive", label: "Inactive" }
-                  ]}
-                />
-              </StyledTableCell>
-              <StyledTableCell>
-                <CompactSelect
-                  value={enrollment.MealType || "non-vegetarian"}
-                  onChange={() => {}}
-                  options={[
-                    { value: "vegetarian", label: "Vegetarian" },
-                    { value: "non-vegetarian", label: "Non-Vegetarian" }
-                  ]}
-                />
+              {/* Meal Type Select */}
+<CompactSelect
+  value={enrollment.MealType || "non-vegetarian"}
+  onChange={(value) => handleUpdate(enrollment.student.id, {
+    MealType: value
+  })}
+  loading={loading[`${enrollment.student.id}-MealType`]}
+  options={[
+    { value: "vegetarian", label: "Vegetarian" },
+    { value: "non-vegetarian", label: "Non-Vegetarian" }
+  ]}
+/>
               </StyledTableCell>
               <StyledTableCell>{enrollment.student.phone}</StyledTableCell>
               <StyledTableCell>${enrollment.Price}</StyledTableCell>
               <StyledTableCell>{enrollment.Comments}</StyledTableCell>
-              <StyledTableCell>
-                <RescheduleBadge />
-              </StyledTableCell>
             </TableRow>
           ))}
         </TableBody>
         <TableFooter>
           <TableRow className="bg-zinc-50 font-medium">
-            <TableCell colSpan={11} className="text-right pr-4">
-  Grand Total: 
+            <TableCell colSpan={10} className="text-right pr-4">
+              Grand Total:
             </TableCell>
+            <TableCell>${grandTotal.toFixed(2)}</TableCell>
             <TableCell className="text-right">
-             ${grandTotal.toFixed(2)}
-            </TableCell>
-            <TableCell colSpan={2} className="text-right">
               <div className="flex flex-col gap-1">
                 <span className="text-green-600">Vegetarian: {vegetarianCount}</span>
                 <span className="text-blue-600">Non-Vegetarian: {nonVegetarianCount}</span>

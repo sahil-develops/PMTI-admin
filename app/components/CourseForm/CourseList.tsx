@@ -30,6 +30,7 @@ interface Course {
   isGuestAccess: boolean;
   isVisible: boolean;
   description: string;
+  enrollmentCount:string;
   isDelete: boolean;
   email?: string; // Optional email field for filtering
 }
@@ -221,7 +222,7 @@ const CourseList = () => {
                       {!course.isDelete ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="px-6 py-4">0</td>
+                  <td className="px-6 py-4">{course.enrollmentCount}</td>
                   <td className="px-6 py-4">30</td>
                   <td className="px-6 py-4">
                     <DropdownMenu>

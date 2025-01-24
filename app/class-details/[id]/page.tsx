@@ -172,7 +172,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                 <CardTitle className="text-2xl">{classDetails.title}</CardTitle>
                 <p className="text-sm text-zinc-500 mt-1">{classDetails.description}</p>
               </div>
-              {/* // ... (previous code remains the same until the status span) */}
+          {/* // ... (previous code remains the same until the status span) */}
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                 classDetails.status === "1" ? "bg-green-100 text-green-800" :
                 classDetails.status === "2" ? "bg-yellow-100 text-yellow-800" :
