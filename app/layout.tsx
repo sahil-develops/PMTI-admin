@@ -1,11 +1,10 @@
 "use client";
-import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 import Header from "./components/Header";
-import { useParams, useRouter, usePathname } from "next/navigation";
-import { useMemo, useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 
 // Configure the Inter font
@@ -27,15 +26,38 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const accessToken = localStorage.getItem("accessToken");
-      if (!accessToken && pathname !== "/login") {
-        router.push("/login");
-      } else if (accessToken && pathname === "/login") {
-        router.push("/");
+    const checkAuth = async () => {
+      if (typeof window !== "undefined") {
+        const accessToken = localStorage.getItem("accessToken");
+        if (!accessToken && pathname !== "/login") {
+          router.push("/login");
+        } else if (accessToken && pathname === "/login") {
+          return; // Do nothing if already on the login page
+        } else if (accessToken) {
+          try {
+            const response = await fetch('https://api.4pmti.com/auth/user', {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            });
+
+            if (response.status === 200 || response.status === 201) {
+              const data = await response.json();
+              localStorage.setItem('userData', JSON.stringify(data));
+              setIsAuthenticated(true);
+            } else if (response.status === 401) {
+              localStorage.clear();
+              router.push("/login");
+            }
+          } catch (error) {
+            localStorage.clear();
+            router.push("/login");
+          }
+        }
       }
-      setIsAuthenticated(!!accessToken);
-    }
+    };
+
+    checkAuth();
   }, [pathname, router]);
 
   if (pathname === "/login" || isAuthenticated) {

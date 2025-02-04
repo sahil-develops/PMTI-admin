@@ -35,21 +35,15 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUserData = () => {
       try {
-        const response = await fetch('https://api.4pmti.com/auth/user', {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': "Bearer " + localStorage.getItem('accessToken')
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch user data');
+        const storedUserData = localStorage.getItem('userData');
+        if (!storedUserData) {
+          throw new Error('No user data found in localStorage');
         }
 
-        const data = await response.json();
-        setUserData(data.data);
+        const parsedUserData = JSON.parse(storedUserData);
+        setUserData(parsedUserData.data);
       } catch (err: any) {
         setError(err.message);
       } finally {

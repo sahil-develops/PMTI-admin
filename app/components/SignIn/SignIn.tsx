@@ -201,7 +201,7 @@ const SignIn = () => {
       // You can redirect here or handle successful login
       setTimeout(() => {
         setIsLogin(true);
-        router.push("/students")
+        router.push("/")
         // router.push("/login")
       }, 2000);
       console.log('Login successful!');
