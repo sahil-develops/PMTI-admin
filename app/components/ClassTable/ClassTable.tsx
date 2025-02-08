@@ -1299,10 +1299,10 @@ const TableShimmer = () => (
                       {classItem.location?.location || "1"}
                     </TableCell>
                     <TableCell>
-                      {new Date(classItem.startDate).toLocaleDateString()}
+                        {format(new Date(classItem.startDate), "dd/MM/yyyy")}
                     </TableCell>
                     <TableCell>
-                      {new Date(classItem.endDate).toLocaleDateString()}
+                      {format(new Date(classItem.endDate),"dd/MM/yyyy")}
                     </TableCell>
                     <TableCell>
                       {/* This line is really important */}
