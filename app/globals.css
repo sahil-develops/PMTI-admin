@@ -51,6 +51,15 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -78,6 +87,23 @@ body {
     --chart-5: 340 75% 55%;
   }
 }
+
+/* // Add these CSS styles to your global CSS file */
+.markdown-content {
+  h1, h2, h3 {
+    @apply font-bold text-gray-900;
+  }
+  h1 { @apply text-2xl mb-4; }
+  h2 { @apply text-xl mb-3; }
+  h3 { @apply text-lg mb-2; }
+  p { @apply text-gray-700 mb-4 leading-relaxed; }
+  ul { @apply list-disc pl-6 mb-4; }
+  li { @apply mb-2; }
+  strong { @apply font-semibold; }
+  em { @apply italic; }
+  img { @apply rounded-lg shadow-sm my-4; }
+}
+
 
 @layer base {
   * {
