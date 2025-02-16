@@ -26,7 +26,7 @@ const CustomImage = Image.extend({
       alignment: {
         default: 'left',
         parseHTML: element => element.style.float || element.style.textAlign,
-        renderHTML: attributes => ({
+      renderHTML: attributes => ({
           style: attributes.alignment === 'center' 
             ? 'display: block; margin: 0 auto; text-align: center;' 
             : `float: ${attributes.alignment}`,
@@ -383,17 +383,19 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
   return (
     <div className="rounded-lg border border-gray-300">
       <MenuBar editor={editor} />
-      <EditorContent editor={editor} className="p-4 min-h-[300px] prose max-w-none" />
-      <style jsx global>{`
-        @keyframes shimmer {
-          0% {
-            background-position: -700px 0;
-          }
-          100% {
-            background-position: 700px 0;
-          }
-        }
-      `}</style>
+      ...
+<EditorContent editor={editor} className="p-4 min-h-[300px] prose max-w-none" />
+<style>{`
+  @keyframes shimmer {
+    0% {
+      background-position: -700px 0;
+    }
+    100% {
+      background-position: 700px 0;
+    }
+  }
+`}</style>
+...
     </div>
   );
 };
