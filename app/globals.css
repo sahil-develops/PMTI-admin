@@ -54,11 +54,15 @@ body {
 
   @keyframes shimmer {
     0% {
-      background-position: -200% 0;
+      background-position: -700px 0;
     }
     100% {
-      background-position: 200% 0;
+      background-position: 700px 0;
     }
+  }
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+    background-size: 700px 100%;
   }
   .dark {
     --background: 222.2 84% 4.9%;

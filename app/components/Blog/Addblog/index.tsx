@@ -36,6 +36,7 @@ const CustomImage = Image.extend({
   },
 });
 
+
 const MenuBar = ({ editor }: { editor: Editor | null }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -427,6 +428,9 @@ const Index = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+const [isCoverImageUploading, setIsCoverImageUploading] = useState(false);
+const [coverImageError, setCoverImageError] = useState('');
   const [validationErrors, setValidationErrors] = useState<{
     title?: string;
     category?: string;
@@ -468,13 +472,13 @@ const Index = () => {
       .map(tag => tag.trim())
       .filter(tag => tag !== '');
 
-    const payload = {
-      title,
-      content,
-      tagNames,
-      relatedArticleIds: [101, 102, 103],
-    };
-
+      const payload = {
+        title,
+        content,
+        tagNames,
+        relatedArticleIds: [101, 102, 103],
+        coverImage: coverImageUrl, // Add this line
+      };
     setIsSubmitting(true);
     try {
       const response = await fetch('https://api.4pmti.com/blog', {
@@ -511,8 +515,47 @@ const Index = () => {
     }
   };
 
+  const handleCoverImageUpload = async (file: File) => {
+    const allowedTypes = ['png', 'jpg', 'jpeg'];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+  
+    if (!fileExtension || !allowedTypes.includes(fileExtension)) {
+      setCoverImageError('Only PNG, JPG, and JPEG files are allowed.');
+      return;
+    }
+  
+    setIsCoverImageUploading(true);
+    setCoverImageError('');
+  
+    const formData = new FormData();
+    formData.append('file', file);
+  
+    try {
+      const response = await fetch('https://api.4pmti.com/upload', {
+        method: 'POST',
+        body: formData,
+      });
+  
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      setCoverImageUrl(data.data.url);
+    } catch (error) {
+      setCoverImageError('Failed to upload cover image. Please try again.');
+    } finally {
+      setIsCoverImageUploading(false);
+    }
+  };
+
+
+  const handleDeleteCoverImage = () => {
+    setCoverImageUrl('');
+    setCoverImageError('');
+  };
+
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Create New Blog Post</h1>
       
       <div className="grid grid-cols-1 gap-8">
@@ -539,7 +582,49 @@ const Index = () => {
               <p className="mt-1 text-sm text-red-500">{validationErrors.title}</p>
             )}
           </div>
-
+          <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Cover Image
+        </label>
+        <div className="flex flex-col gap-2">
+          <input
+            type="file"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleCoverImageUpload(file);
+            }}
+            accept="image/png, image/jpeg, image/jpg"
+            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+          />
+          
+          {coverImageError && (
+            <p className="text-red-500 text-sm">{coverImageError}</p>
+          )}
+          
+          {isCoverImageUploading && (
+            <div className="mt-2 w-full h-48 bg-gray-100 rounded-lg relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-shimmer" />
+            </div>
+          )}
+          
+          {coverImageUrl && !isCoverImageUploading && (
+            <div className="mt-2 border rounded-lg overflow-hidden relative group">
+              <img
+                src={coverImageUrl}
+                alt="Cover preview"
+                className="w-full h-48 object-cover"
+              />
+              <button
+                onClick={handleDeleteCoverImage}
+                className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                title="Delete cover image"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
             <textarea
