@@ -121,6 +121,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       // Fix 2: Insert the actual image with properly formatted URL
       editor.chain().focus().setImage({ 
         src: data.data.url,
+        // @ts-ignore
         width: '50%',
         alignment: 'left'
       }).run();
@@ -169,6 +170,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         .focus()
         .setImage({ 
           src: imageNode.attrs.src,
+          // @ts-ignore
           width: size,
           alignment: imageNode.attrs.alignment
         })
@@ -185,6 +187,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         .focus()
         .setImage({ 
           src: imageNode.attrs.src,
+          // @ts-ignore
           width: imageNode.attrs.width,
           alignment: alignment
         })
