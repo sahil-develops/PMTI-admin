@@ -383,7 +383,7 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
   return (
     <div className="rounded-lg border border-gray-300">
       <MenuBar editor={editor} />
-      ...
+
 <EditorContent editor={editor} className="p-4 min-h-[300px] prose max-w-none" />
 <style>{`
   @keyframes shimmer {
@@ -395,7 +395,7 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
     }
   }
 `}</style>
-...
+
     </div>
   );
 };
