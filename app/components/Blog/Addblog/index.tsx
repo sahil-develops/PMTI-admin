@@ -382,10 +382,10 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
   });
 
   return (
-    <div className="rounded-lg border border-gray-300">
+    <div className="rounded-lg border bg-white rounded-b-lg border-gray-300">
       <MenuBar editor={editor} />
 
-<EditorContent editor={editor} className="p-4 min-h-[300px] prose max-w-none" />
+<EditorContent editor={editor} className="p-4 min-h-[300px] rounded-b-lg prose max-w-none bg-white" />
 <style>{`
   @keyframes shimmer {
     0% {
