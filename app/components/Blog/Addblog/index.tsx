@@ -6,7 +6,7 @@ import Text from '@tiptap/extension-text';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
-import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2 } from 'lucide-react';
+import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -26,7 +26,7 @@ const CustomImage = Image.extend({
       alignment: {
         default: 'left',
         parseHTML: element => element.style.float || element.style.textAlign,
-      renderHTML: attributes => ({
+        renderHTML: attributes => ({
           style: attributes.alignment === 'center' 
             ? 'display: block; margin: 0 auto; text-align: center;' 
             : `float: ${attributes.alignment}`,
@@ -36,7 +36,6 @@ const CustomImage = Image.extend({
   },
 });
 
-
 const MenuBar = ({ editor }: { editor: Editor | null }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -45,6 +44,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   if (!editor) {
     return null;
   }
+  
   const uploadImageToServer = async (editor: Editor, file: Blob) => {
     // Fix 3: Validate file type
     const fileExtension = (file as File).name.split('.').pop()?.toLowerCase();
@@ -144,8 +144,6 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
     }
   };
 
-
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files[0] && editor) {
@@ -160,7 +158,6 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   const addImage = () => {
     fileInputRef.current?.click();
   };
-
 
   const resizeImage = (size: string) => {
     const { from } = editor.state.selection;
@@ -206,6 +203,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
     const node = editor.state.doc.nodeAt(from);
     return node && node.type.name === 'image';
   };
+  
   return (
     <div className="flex flex-wrap space-x-1 space-y-1 sm:space-x-2 sm:space-y-0 border-b pb-2 mb-2 rounded-t-lg bg-gray-100 p-2 sticky top-0">
       <input
@@ -215,53 +213,76 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         accept="image/*"
         className="hidden"
       />
-      {/* Existing buttons */}
+      {/* Text formatting buttons */}
       <button
         onClick={() => editor.chain().focus().toggleBold().run()}
         className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('bold') ? 'bg-gray-200' : ''}`}
+        title="Bold"
       >
         <Bold size={16} />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleItalic().run()}
         className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('italic') ? 'bg-gray-200' : ''}`}
+        title="Italic"
       >
         <Italic size={16} />
       </button>
+      
+      {/* Heading buttons - Fixed to properly apply heading styles */}
       <button
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('heading', { level: 1 }) ? 'bg-gray-200' : ''}`}
+        title="Heading 1"
       >
         <Heading1 size={16} />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('heading', { level: 2 }) ? 'bg-gray-200' : ''}`}
+        title="Heading 2"
       >
         <Heading2 size={16} />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('heading', { level: 3 }) ? 'bg-gray-200' : ''}`}
+        title="Heading 3"
       >
         <Heading3 size={16} />
       </button>
+      
+      <div className="border-l mx-2 h-6"></div>
+      
+      {/* List buttons - Added both bullet and ordered list options */}
       <button
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('bulletList') ? 'bg-gray-200' : ''}`}
+        title="Bullet List"
       >
         <List size={16} />
       </button>
       <button
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('orderedList') ? 'bg-gray-200' : ''}`}
+        title="Numbered List"
+      >
+        <ListOrdered size={16} />
+      </button>
+      
+      <div className="border-l mx-2 h-6"></div>
+      
+      <button
         onClick={addImage}
         className="p-2 hover:bg-gray-200 rounded"
         disabled={isUploading}
+        title="Upload Image"
       >
         <Upload size={16} />
       </button>
 
       {/* Image controls - only visible when an image is selected */}
-    {isImageSelected() && (
+      {isImageSelected() && (
         <>
           <div className="border-l mx-2 h-6"></div>
           
@@ -326,7 +347,6 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         </>
       )}
 
-
       {uploadError && (
         <div className="text-red-500 text-sm ml-2">{uploadError}</div>
       )}
@@ -334,21 +354,24 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       <div className="border-l mx-2 h-6"></div>
 
       {/* Text alignment buttons */}
-    <button
+      <button
         onClick={() => editor.chain().focus().setTextAlign('left').run()}
         className={`p-2 hover:bg-gray-200 rounded ${editor.isActive({ textAlign: 'left' }) ? 'bg-gray-200' : ''}`}
+        title="Align Text Left"
       >
         <AlignLeft size={16} />
       </button>
       <button
         onClick={() => editor.chain().focus().setTextAlign('center').run()}
         className={`p-2 hover:bg-gray-200 rounded ${editor.isActive({ textAlign: 'center' }) ? 'bg-gray-200' : ''}`}
+        title="Align Text Center"
       >
         <AlignCenter size={16} />
       </button>
       <button
         onClick={() => editor.chain().focus().setTextAlign('right').run()}
         className={`p-2 hover:bg-gray-200 rounded ${editor.isActive({ textAlign: 'right' }) ? 'bg-gray-200' : ''}`}
+        title="Align Text Right"
       >
         <AlignRight size={16} />
       </button>
@@ -369,6 +392,17 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
       Text,
       StarterKit.configure({
         document: false,
+        heading: {
+          levels: [1, 2, 3] // Explicitly define heading levels
+        },
+        bulletList: {
+          keepMarks: true, // Keep marks when toggling lists
+          keepAttributes: false // Do not keep attributes when toggling lists
+        },
+        orderedList: {
+          keepMarks: true, // Keep marks when toggling lists
+          keepAttributes: false // Do not keep attributes when toggling lists
+        }
       }),
       CustomImage,
       TextAlign.configure({
@@ -379,24 +413,71 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    // Add specific content parsing rules
+    parseOptions: {
+      preserveWhitespace: 'full',
+    },
   });
 
   return (
     <div className="rounded-lg border bg-white rounded-b-lg border-gray-300">
       <MenuBar editor={editor} />
-
-<EditorContent editor={editor} className="p-4 min-h-[300px] rounded-b-lg prose max-w-none bg-white" />
-<style>{`
-  @keyframes shimmer {
-    0% {
-      background-position: -700px 0;
-    }
-    100% {
-      background-position: 700px 0;
-    }
-  }
-`}</style>
-
+      <EditorContent 
+        editor={editor} 
+        className="p-4 min-h-[300px] rounded-b-lg prose max-w-none bg-white" 
+      />
+      <style>{`
+        @keyframes shimmer {
+          0% {
+            background-position: -700px 0;
+          }
+          100% {
+            background-position: 700px 0;
+          }
+        }
+        
+        /* Add specific styling for headings and lists */
+        .ProseMirror h1 {
+          font-size: 2rem;
+          font-weight: bold;
+          margin-top: 1.5rem;
+          margin-bottom: 1rem;
+        }
+        
+        .ProseMirror h2 {
+          font-size: 1.5rem;
+          font-weight: bold;
+          margin-top: 1.25rem;
+          margin-bottom: 0.75rem;
+        }
+        
+        .ProseMirror h3 {
+          font-size: 1.25rem;
+          font-weight: bold;
+          margin-top: 1rem;
+          margin-bottom: 0.5rem;
+        }
+        
+        .ProseMirror ul {
+          list-style-type: disc;
+          padding-left: 1.5rem;
+          margin: 1rem 0;
+        }
+        
+        .ProseMirror ol {
+          list-style-type: decimal;
+          padding-left: 1.5rem;
+          margin: 1rem 0;
+        }
+        
+        .ProseMirror li {
+          margin-bottom: 0.25rem;
+        }
+        
+        .ProseMirror li p {
+          margin: 0;
+        }
+      `}</style>
     </div>
   );
 };
@@ -429,8 +510,8 @@ const Index = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
-const [isCoverImageUploading, setIsCoverImageUploading] = useState(false);
-const [coverImageError, setCoverImageError] = useState('');
+  const [isCoverImageUploading, setIsCoverImageUploading] = useState(false);
+  const [coverImageError, setCoverImageError] = useState('');
   const [validationErrors, setValidationErrors] = useState<{
     title?: string;
     category?: string;
@@ -477,7 +558,7 @@ const [coverImageError, setCoverImageError] = useState('');
         content,
         tagNames,
         relatedArticleIds: [101, 102, 103],
-        coverImage: coverImageUrl, // Add this line
+        coverImage: coverImageUrl,
       };
     setIsSubmitting(true);
     try {
@@ -547,12 +628,10 @@ const [coverImageError, setCoverImageError] = useState('');
     }
   };
 
-
   const handleDeleteCoverImage = () => {
     setCoverImageUrl('');
     setCoverImageError('');
   };
-
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
@@ -583,48 +662,48 @@ const [coverImageError, setCoverImageError] = useState('');
             )}
           </div>
           <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Cover Image
-        </label>
-        <div className="flex flex-col gap-2">
-          <input
-            type="file"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleCoverImageUpload(file);
-            }}
-            accept="image/png, image/jpeg, image/jpg"
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          />
-          
-          {coverImageError && (
-            <p className="text-red-500 text-sm">{coverImageError}</p>
-          )}
-          
-          {isCoverImageUploading && (
-            <div className="mt-2 w-full h-48 bg-gray-100 rounded-lg relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-shimmer" />
-            </div>
-          )}
-          
-          {coverImageUrl && !isCoverImageUploading && (
-            <div className="mt-2 border rounded-lg overflow-hidden relative group">
-              <img
-                src={coverImageUrl}
-                alt="Cover preview"
-                className="w-full h-48 object-cover"
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Cover Image
+            </label>
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleCoverImageUpload(file);
+                }}
+                accept="image/png, image/jpeg, image/jpg"
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
-              <button
-                onClick={handleDeleteCoverImage}
-                className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
-                title="Delete cover image"
-              >
-                <Trash2 size={16} />
-              </button>
+              
+              {coverImageError && (
+                <p className="text-red-500 text-sm">{coverImageError}</p>
+              )}
+              
+              {isCoverImageUploading && (
+                <div className="mt-2 w-full h-48 bg-gray-100 rounded-lg relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-shimmer" />
+                </div>
+              )}
+              
+              {coverImageUrl && !isCoverImageUploading && (
+                <div className="mt-2 border rounded-lg overflow-hidden relative group">
+                  <img
+                    src={coverImageUrl}
+                    alt="Cover preview"
+                    className="w-full h-48 object-cover"
+                  />
+                  <button
+                    onClick={handleDeleteCoverImage}
+                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                    title="Delete cover image"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
             <textarea
