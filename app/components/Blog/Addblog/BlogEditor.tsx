@@ -540,7 +540,7 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
         <MenuBar editor={editor} onCoverImageUpload={handleCoverImageUpload} />
         <EditorContent 
           editor={editor} 
-          className="p-4 min-h-[300px] rounded-b-lg prose max-w-none bg-white"
+          className="p-4 min-h-[600px] h-full rounded-b-lg prose max-w-none bg-white"
         />
         <style>{`
           @keyframes shimmer {

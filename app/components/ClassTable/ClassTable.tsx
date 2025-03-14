@@ -370,6 +370,7 @@ export function ClassTable() {
 
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
 
   interface Instructor {
@@ -534,7 +535,14 @@ fetchStates("52"); // Fetch US states
     fetchInitialClasses();
   }, []); // Empty dependency array for initial load only
 
-  // Modified handleSearch function
+  // Add this function to handle pagination
+  const paginateData = (data: ClassData[]) => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return data.slice(startIndex, endIndex);
+  };
+
+  // Modify the handleSearch function to include pagination parameters
   const handleSearch = async () => {
     try {
       setLoading(true);
@@ -542,7 +550,11 @@ fetchStates("52"); // Fetch US states
       // Build query parameters
       const queryParams = new URLSearchParams();
       
-      // Remove global search from API call
+      // Add pagination parameters
+      queryParams.append('page', currentPage.toString());
+      queryParams.append('limit', itemsPerPage.toString());
+      
+      // Add other search parameters
       if (searchParams.startFrom) queryParams.append('startFrom', searchParams.startFrom);
       if (searchParams.dateTo) queryParams.append('dateTo', searchParams.dateTo);
       if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId);
@@ -551,10 +563,6 @@ fetchStates("52"); // Fetch US states
       if (searchParams.courseCategoryId) queryParams.append('courseCategory', searchParams.courseCategoryId);
       if (searchParams.classTypeId) queryParams.append('classType', searchParams.classTypeId);
       if (searchParams.showClass) queryParams.append('showClass', searchParams.showClass);
-      
-      // Add pagination
-      queryParams.append('page', currentPage.toString());
-      queryParams.append('limit', '10');
 
       const response = await fetch(
         `https://api.4pmti.com/class?${queryParams.toString()}`,
@@ -570,16 +578,9 @@ fetchStates("52"); // Fetch US states
       }
 
       const data = await response.json();
-      
-      // If there's an active search term, filter the new data
-      if (searchParams.globalSearch) {
-        const filteredClasses = filterClasses(data.data.data, searchParams.globalSearch);
-        setClasses(filteredClasses);
-      } else {
-        setClasses(data.data.data);
-      }
-      
+      setClasses(data.data.data);
       setMetadata(data.data.metadata);
+
     } catch (error) {
       console.error('Error fetching classes:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
@@ -588,110 +589,109 @@ fetchStates("52"); // Fetch US states
     }
   };
 
-  // Modified handleReset function
-  const handleReset = async () => {
-    setSearchParams({
-      startFrom: "",
-      dateTo: "",
-      countryId: "",
-      stateId: "",    // Add this line
-      locationId: "",
-      instructorId: "",
-      courseCategoryId: "",
-      classTypeId: "",
-      showClass: "",
-      globalSearch: "",
-    });
-    setCities([]);
-    setCurrentPage(1);
-    await handleSearch();
+  // Update the pagination handlers
+  const handlePreviousPage = () => {
+    if (metadata && metadata.hasPrevious) {
+      setCurrentPage(prev => prev - 1);
+    }
   };
 
-// Country change handler
-const handleCountryChange = async (countryId: string) => {
-  setSelectedCountry(countryId);
-  setSearchParams(prev => ({ 
-    ...prev, 
-    countryId, 
-    stateId: '', 
-    locationId: '' 
-  }));
-  
-  // Reset states and cities
-  setStates([]);
-  setCities([]);
-  
-  // Fetch states for selected country
-  fetchStates(countryId);
-};
-
-const handleCityChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-  const locationId = event.target.value;
-  setSearchParams((prev) => ({ ...prev, locationId }));
-};
-
-// Add function to fetch states
-const fetchStates = async (countryId: string) => {
-  try {
-    const response = await fetch(
-      `https://api.4pmti.com/state/?countryId=${countryId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch states');
+  const handleNextPage = () => {
+    if (metadata && metadata.hasNext) {
+      setCurrentPage(prev => prev + 1);
     }
+  };
 
-    const data = await response.json();
-    setStates(data.data);
-  } catch (error) {
-    console.error('Error fetching states:', error);
-  }
-};
+  // Add useEffect to trigger search when page changes
+  useEffect(() => {
+    handleSearch();
+  }, [currentPage]); // Add currentPage as dependency
 
-// Add handleStateChange function
-const handleStateChange = async (stateId: string) => {
-  setSelectedState(stateId);
-  setSearchParams(prev => ({ ...prev, stateId, locationId: '' }));
-
-  try {
-    // Fetch locations for selected state
-    const response = await fetch(
-      `https://api.4pmti.com/location?countryId=${searchParams.countryId}&stateId=${stateId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch locations');
-    }
-
-    const data = await response.json();
-    const sortedLocations = [...data.data].sort((a, b) => 
-      a.location.localeCompare(b.location)
-    );
-    setCities(sortedLocations);
-  } catch (error) {
-    console.error('Error fetching locations:', error);
+  // Country change handler
+  const handleCountryChange = async (countryId: string) => {
+    setSelectedCountry(countryId);
+    setSearchParams(prev => ({ 
+      ...prev, 
+      countryId, 
+      stateId: '', 
+      locationId: '' 
+    }));
+    
+    // Reset states and cities
+    setStates([]);
     setCities([]);
-  }
-};
+    
+    // Fetch states for selected country
+    fetchStates(countryId);
+  };
 
-// Loading shimmer component
-const TableShimmer = () => (
-  <div className="animate-pulse space-y-2">
-    {Array.from({ length: 5 }).map((_, i) => (
-      <div key={i} className="border-b border-zinc-200 h-16 bg-zinc-50" />
-    ))}
-  </div>
-);
+  const handleCityChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const locationId = event.target.value;
+    setSearchParams((prev) => ({ ...prev, locationId }));
+  };
+
+  // Add function to fetch states
+  const fetchStates = async (countryId: string) => {
+    try {
+      const response = await fetch(
+        `https://api.4pmti.com/state/?countryId=${countryId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch states');
+      }
+
+      const data = await response.json();
+      setStates(data.data);
+    } catch (error) {
+      console.error('Error fetching states:', error);
+    }
+  };
+
+  // Add handleStateChange function
+  const handleStateChange = async (stateId: string) => {
+    setSelectedState(stateId);
+    setSearchParams(prev => ({ ...prev, stateId, locationId: '' }));
+
+    try {
+      // Fetch locations for selected state
+      const response = await fetch(
+        `https://api.4pmti.com/location?countryId=${searchParams.countryId}&stateId=${stateId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch locations');
+      }
+
+      const data = await response.json();
+      const sortedLocations = [...data.data].sort((a, b) => 
+        a.location.localeCompare(b.location)
+      );
+      setCities(sortedLocations);
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      setCities([]);
+    }
+  };
+
+  // Loading shimmer component
+  const TableShimmer = () => (
+    <div className="animate-pulse space-y-2">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="border-b border-zinc-200 h-16 bg-zinc-50" />
+      ))}
+    </div>
+  );
 
   const deleteClassLocally = (classId: number) => {
     setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
@@ -854,6 +854,10 @@ const TableShimmer = () => (
       );
     });
   };
+
+  function handleReset(event: React.MouseEvent<HTMLButtonElement>): void {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <div className="p-6 bg-white rounded-lg shadow">
@@ -1358,14 +1362,14 @@ const TableShimmer = () => (
           </span>
           <div className="flex gap-2">
             <button
-              onClick={() => setCurrentPage((prev) => prev - 1)}
+              onClick={handlePreviousPage}
               disabled={!metadata.hasPrevious}
               className="px-4 py-2 border border-zinc-300 rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 hover:bg-zinc-50"
             >
               Previous
             </button>
             <button
-              onClick={() => setCurrentPage((prev) => prev + 1)}
+              onClick={handleNextPage}
               disabled={!metadata.hasNext}
               className="px-4 py-2 border border-zinc-300 rounded disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 hover:bg-zinc-200"
             >

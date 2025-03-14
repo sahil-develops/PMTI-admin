@@ -82,6 +82,11 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
   });
    // Add this state with your other states
    const [categories, setCategories] = useState<Category[]>([]);
+   const [coverImage, setCoverImage] = useState<File | null>(null);
+   const [isCoverImageUploading, setIsCoverImageUploading] = useState(false);
+   const [coverImageError, setCoverImageError] = useState<string>('');
+   const [coverImageUrl, setCoverImageUrl] = useState<string>('');
+   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   
 
      // Add this function with your other fetch functions
@@ -149,18 +154,67 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
     }));
   };
 
+  const handleCoverImageUpload = async (file: File) => {
+    const allowedTypes = ['png', 'jpg', 'jpeg'];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    
+    if (!fileExtension || !allowedTypes.includes(fileExtension)) {
+      setCoverImageError('Only PNG, JPG, and JPEG files are allowed.');
+      return;
+    }
+
+    setIsCoverImageUploading(true);
+    setCoverImageError('');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('https://api.4pmti.com/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const data = await response.json();
+      setCoverImageUrl(data.data.url);
+      setIsPreviewVisible(true);
+    } catch (error) {
+      setCoverImageError('Failed to upload cover image. Please try again.');
+    } finally {
+      setIsCoverImageUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Validate cover image
+      if (!coverImageUrl) {
+        setErrorMessage("Cover image is required");
+        setShowError(true);
+        setLoading(false);
+        return;
+      }
+
+      // Convert the form data to match API expectations
+      const apiFormData = {
+        ...formData,
+        price: formData.price.toFixed(2),      // Convert to string with 2 decimal places
+        extPrice: formData.extPrice.toFixed(2), // Convert to string with 2 decimal places
+        coverImage: coverImageUrl              // Add the cover image URL
+      };
+
       const response = await fetch(`https://api.4pmti.com/course`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(apiFormData),
       });
 
       if (!response.ok) {
@@ -325,6 +379,53 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
               required
               className="h-20 resize-none"
             />
+          </div>
+
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700">
+              Cover Image <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="file"
+              accept="image/png, image/jpeg"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setCoverImage(e.target.files[0]);
+                  handleCoverImageUpload(e.target.files[0]);
+                }
+              }}
+              className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
+                coverImageError ? 'border-red-500' : 'border-gray-300'
+              } focus:border-blue-500 focus:ring-blue-500`}
+            />
+            {coverImageError && (
+              <p className="mt-1 text-sm text-red-500">{coverImageError}</p>
+            )}
+            {isCoverImageUploading && (
+              <p className="mt-1 text-sm text-gray-500">Uploading cover image...</p>
+            )}
+
+            {isPreviewVisible && coverImageUrl && (
+              <div className="mt-4">
+                <h3 className="text-sm font-medium text-gray-700">Image Preview:</h3>
+                <img
+                  src={coverImageUrl}
+                  alt="Cover Preview"
+                  className="mt-2 w-1/3 h-auto rounded-md border border-gray-300"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoverImage(null);
+                    setCoverImageUrl('');
+                    setIsPreviewVisible(false);
+                  }}
+                  className="mt-2 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  Delete Image
+                </button>
+              </div>
+            )}
           </div>
 
           <Button

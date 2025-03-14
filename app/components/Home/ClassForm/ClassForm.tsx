@@ -465,7 +465,6 @@ const onSubmit = async (data: ClassFormData) => {
       categoryId: Number(data.categoryId),
       classTypeId: Number(data.classTypeId),
       countryId: "1",
-      // countryId: Number(data.countryId) || "1",
       locationId: Number(data.locationId) || "1",
       maxStudent: Number(data.maxStudent),
       minStudent: Number(data.minStudent),
@@ -488,7 +487,9 @@ const onSubmit = async (data: ClassFormData) => {
       onlineAvailable: data.onlineAvailable,
       isCancel: data.isCancel,
       isDelete: data.isDelete,
-      isCorpClass: data.isCorpClass
+      isCorpClass: data.isCorpClass,
+      // Add cover image URL
+      coverImage: coverImageUrl // Pass the image URL here
     };
 
     const response = await fetch(`https://api.4pmti.com/class`, {
@@ -546,6 +547,45 @@ const onSubmit = async (data: ClassFormData) => {
     </div>
   );
 
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [isCoverImageUploading, setIsCoverImageUploading] = useState(false);
+  const [coverImageError, setCoverImageError] = useState<string>('');
+  const [coverImageUrl, setCoverImageUrl] = useState<string>('');
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+
+  const handleCoverImageUpload = async (file: File) => {
+    const allowedTypes = ['png', 'jpg', 'jpeg'];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    
+    if (!fileExtension || !allowedTypes.includes(fileExtension)) {
+      setCoverImageError('Only PNG, JPG, and JPEG files are allowed.');
+      return;
+    }
+
+    setIsCoverImageUploading(true);
+    setCoverImageError('');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('https://api.4pmti.com/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const data = await response.json();
+      setCoverImageUrl(data.data.url); // Assuming the API returns the image URL in this format
+      setIsPreviewVisible(true); // Automatically show the preview
+    } catch (error) {
+      setCoverImageError('Failed to upload cover image. Please try again.');
+    } finally {
+      setIsCoverImageUploading(false);
+    }
+  };
+
   return (
     <div className="max-w-full bg-white mx-auto p-4">
       {/* Breadcrumb */}
@@ -566,6 +606,52 @@ const onSubmit = async (data: ClassFormData) => {
       <h1 className="text-2xl font-bold tracking-tight mb-4">Add Class</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-4">
+  <label className="block text-sm font-medium text-gray-700">
+    Cover Image <span className="text-red-500">*</span>
+  </label>
+  <input
+    type="file"
+    accept="image/png, image/jpeg"
+    onChange={(e) => {
+      if (e.target.files && e.target.files[0]) {
+        setCoverImage(e.target.files[0]);
+        handleCoverImageUpload(e.target.files[0]);
+      }
+    }}
+    className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
+      coverImageError ? 'border-red-500' : 'border-gray-300'
+    } focus:border-blue-500 focus:ring-blue-500`}
+  />
+  {coverImageError && (
+    <p className="mt-1 text-sm text-red-500">{coverImageError}</p>
+  )}
+  {isCoverImageUploading && (
+    <p className="mt-1 text-sm text-gray-500">Uploading cover image...</p>
+  )}
+
+  {isPreviewVisible && coverImageUrl && (
+    <div className="mt-4">
+      <h3 className="text-sm font-medium text-gray-700">Image Preview:</h3>
+      <img
+        src={coverImageUrl}
+        alt="Cover Preview"
+        className="mt-2 w-1/3 h-auto rounded-md border border-gray-300"
+      />
+      <button
+        type="button"
+        onClick={() => {
+          setCoverImage(null);
+          setCoverImageUrl('');
+          setIsPreviewVisible(false);
+        }}
+        className="mt-2 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+      >
+        Delete Image
+      </button>
+    </div>
+  )}
+</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           {/* Basic Information Section */}
           <div className="md:col-span-2">
