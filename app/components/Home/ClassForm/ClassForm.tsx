@@ -464,7 +464,7 @@ const onSubmit = async (data: ClassFormData) => {
       // Convert IDs to numbers
       categoryId: Number(data.categoryId),
       classTypeId: Number(data.classTypeId),
-      countryId: "1",
+      countryId: Number(data.countryId),
       locationId: Number(data.locationId) || "1",
       maxStudent: Number(data.maxStudent),
       minStudent: Number(data.minStudent),

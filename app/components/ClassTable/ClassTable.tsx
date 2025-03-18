@@ -361,6 +361,20 @@ const LoaderSpinner = () => (
   </div>
 );
 
+// Add this helper function near the top of your component
+const formatDateFromAPI = (dateString: string) => {
+  if (!dateString) return "N/A";
+  try {
+    // Parse the date string and format it
+    const date = new Date(dateString);
+    return format(date, "MM/dd/yyyy");  // US format
+    // Or use "dd/MM/yyyy" for UK/European format
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return dateString; // Return original string if parsing fails
+  }
+};
+
 export function ClassTable() {
   const { toast } = useToast();
   const [classes, setClasses] = useState<ClassData[]>([]);
@@ -1303,10 +1317,10 @@ fetchStates("52"); // Fetch US states
                       {classItem.location?.location || "1"}
                     </TableCell>
                     <TableCell>
-                        {format(new Date(classItem.startDate), "dd/MM/yyyy")}
+                      {formatDateFromAPI(classItem.startDate)}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(classItem.endDate),"dd/MM/yyyy")}
+                      {formatDateFromAPI(classItem.endDate)}
                     </TableCell>
                     <TableCell>
                       {/* This line is really important */}
