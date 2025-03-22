@@ -121,7 +121,7 @@ const Instructor = () => {
           router.push(`/instructors/viewInstructor/${instructor.id}`);
           break;
         case 'edit':
-          router.push(`/editInstructor/${instructor.id}`);
+          router.push(`/instructors/editInstructor/${instructor.id}`);
           break;
         case 'delete':
           setSelectedInstructor(instructor);
