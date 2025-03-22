@@ -59,11 +59,11 @@ interface ApiResponse {
 }
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 export default function EditCourse({ params }: PageProps) {
-  const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null);
+  const [resolvedParams, setResolvedParams] = useState<{ id: string }>(params);
   const router = useRouter();
   const { toast } = useToast();
   const [course, setCourse] = useState<Course | null>(null);
@@ -71,12 +71,6 @@ export default function EditCourse({ params }: PageProps) {
   const [isFetching, setIsFetching] = useState(true);
 
   useEffect(() => {
-    params.then(resolved => setResolvedParams(resolved));
-  }, [params]);
-
-  useEffect(() => {
-    if (!resolvedParams) return;
-
     const fetchCourse = async () => {
       setIsFetching(true);
       try {
