@@ -9,6 +9,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 
 import { Editor } from '@tiptap/react';
 
@@ -203,7 +204,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
     const node = editor.state.doc.nodeAt(from);
     return node && node.type.name === 'image';
   };
-  
+
   return (
     <div className="flex flex-wrap space-x-1 space-y-1 sm:space-x-2 sm:space-y-0 border-b pb-2 mb-2 rounded-t-lg bg-gray-100 p-2 sticky top-0">
       <input
@@ -385,6 +386,29 @@ interface BlogEditorProps {
 }
 
 const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e: React.DragEvent, editor: Editor) => {
+    e.preventDefault();
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length > 0) {
+      for (const file of imageFiles) {
+        await uploadImageToServer(editor, file);
+      }
+    } else {
+      // Handle text drag and drop
+      const text = e.dataTransfer.getData('text');
+      if (text) {
+        editor.commands.insertContent(text);
+      }
+    }
+  };
+
   const editor = useEditor({
     extensions: [
       Document,
@@ -393,15 +417,15 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
       StarterKit.configure({
         document: false,
         heading: {
-          levels: [1, 2, 3] // Explicitly define heading levels
+          levels: [1, 2, 3]
         },
         bulletList: {
-          keepMarks: true, // Keep marks when toggling lists
-          keepAttributes: false // Do not keep attributes when toggling lists
+          keepMarks: true,
+          keepAttributes: false
         },
         orderedList: {
-          keepMarks: true, // Keep marks when toggling lists
-          keepAttributes: false // Do not keep attributes when toggling lists
+          keepMarks: true,
+          keepAttributes: false
         }
       }),
       CustomImage,
@@ -413,69 +437,150 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
-    // Add specific content parsing rules
     parseOptions: {
       preserveWhitespace: 'full',
     },
   });
 
   return (
-    <div className="rounded-lg border bg-white rounded-b-lg border-gray-300">
+    <div className="rounded-lg border bg-white">
       <MenuBar editor={editor} />
-      <EditorContent 
-        editor={editor} 
-        className="p-4 min-h-[300px] rounded-b-lg prose max-w-none bg-white" 
-      />
+      <div 
+        onDragOver={handleDragOver}
+        onDrop={(e) => editor && handleDrop(e, editor)}
+        className="relative"
+      >
+        <div className="absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-move opacity-30 hover:opacity-100 transition-opacity">
+          <DragHandleDots2Icon className="h-5 w-5 text-gray-500" />
+        </div>
+        <EditorContent 
+          editor={editor} 
+          className="p-4 pl-8 min-h-[300px] prose max-w-none"
+        />
+      </div>
       <style>{`
-        @keyframes shimmer {
-          0% {
-            background-position: -700px 0;
-          }
-          100% {
-            background-position: 700px 0;
-          }
+        /* Base editor styles */
+        .ProseMirror {
+          position: relative;
+          cursor: text;
+          outline: none;
         }
-        
-        /* Add specific styling for headings and lists */
+
+        /* Heading styles with visual indicators */
         .ProseMirror h1 {
-          font-size: 2rem;
+          font-size: 2em;
           font-weight: bold;
-          margin-top: 1.5rem;
-          margin-bottom: 1rem;
+          line-height: 1.2;
+          margin: 1em 0 0.5em;
+          position: relative;
         }
-        
+
         .ProseMirror h2 {
-          font-size: 1.5rem;
+          font-size: 1.5em;
           font-weight: bold;
-          margin-top: 1.25rem;
-          margin-bottom: 0.75rem;
+          line-height: 1.3;
+          margin: 0.83em 0;
+          position: relative;
         }
-        
+
         .ProseMirror h3 {
-          font-size: 1.25rem;
+          font-size: 1.17em;
           font-weight: bold;
-          margin-top: 1rem;
-          margin-bottom: 0.5rem;
+          line-height: 1.4;
+          margin: 1em 0;
+          position: relative;
         }
-        
+
+        /* Responsive image handling */
+        .ProseMirror img {
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 1rem auto;
+          cursor: pointer;
+          border-radius: 4px;
+          transition: all 0.2s ease;
+        }
+
+        .ProseMirror img.is-selected {
+          outline: 2px solid #2563eb;
+          outline-offset: 2px;
+        }
+
+        .ProseMirror img[data-alignment="left"] {
+          margin-left: 0;
+          margin-right: auto;
+        }
+
+        .ProseMirror img[data-alignment="center"] {
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .ProseMirror img[data-alignment="right"] {
+          margin-left: auto;
+          margin-right: 0;
+        }
+
+        /* List styles */
         .ProseMirror ul {
           list-style-type: disc;
-          padding-left: 1.5rem;
-          margin: 1rem 0;
+          padding-left: 1.5em;
+          margin: 1em 0;
         }
-        
+
         .ProseMirror ol {
           list-style-type: decimal;
-          padding-left: 1.5rem;
-          margin: 1rem 0;
+          padding-left: 1.5em;
+          margin: 1em 0;
         }
-        
+
         .ProseMirror li {
-          margin-bottom: 0.25rem;
+          margin-bottom: 0.5em;
         }
-        
-        .ProseMirror li p {
-          margin: 0;
+
+        /* Text formatting */
+        .ProseMirror strong {
+          font-weight: bold;
+          background-color: rgba(37, 99, 235, 0.1);
+        }
+
+        .ProseMirror em {
+          font-style: italic;
+          background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        /* Drag and drop zone */
+        .ProseMirror-focused {
+          outline: none;
+        }
+
+        .ProseMirror[data-drag-over="true"] {
+          background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 640px) {
+          .ProseMirror {
+            padding: 1rem;
+          }
+
+          .ProseMirror img {
+            width: 100% !important;
+            height: auto !important;
+          }
+        }
+
+        /* Image upload animation */
+        @keyframes shimmer {
+          0% { background-position: -468px 0 }
+          100% { background-position: 468px 0 }
+        }
+
+        .image-upload-loading {
+          animation: shimmer 1s linear infinite;
+          background: linear-gradient(to right, #f6f7f8 8%, #edeef1 18%, #f6f7f8 33%);
+          background-size: 800px 104px;
         }
       `}</style>
     </div>
@@ -634,7 +739,7 @@ const Index = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <div className="max-w-7xl mx-auto px-0 sm:px-2 lg:px-8 py-5">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Create New Blog Post</h1>
       
       <div className="grid grid-cols-1 gap-8">
@@ -840,3 +945,7 @@ const Index = () => {
 };
 
 export default Index;
+
+function uploadImageToServer(editor: Editor, file: File) {
+  throw new Error('Function not implemented.');
+}

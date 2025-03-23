@@ -72,7 +72,7 @@ const EditInstructor = () => {
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instructor/${id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`

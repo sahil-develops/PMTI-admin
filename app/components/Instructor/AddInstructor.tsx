@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/app/lib/api';
+import { Check } from 'lucide-react';
 
 const Confetti = () => {
   const confettiCount = 50;
@@ -72,42 +73,47 @@ const AddInstructor = () => {
   const [success, setSuccess] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [mobileError, setMobileError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setMobileError('');
 
     const formData = new FormData(e.target as HTMLFormElement);
+    const mobile = formData.get('mobile')?.toString() || '';
+
+    // Validate mobile number length
+    if (mobile.length !== 10) {
+      setMobileError('Mobile number must be exactly 10 digits');
+      setLoading(false);
+      return;
+    }
+
     const data = {
-      name: formData.get('name'),
-      emailID: formData.get('emailID'),
-      mobile: formData.get('mobile'),
-      telNo: formData.get('telNo'),
-      password: formData.get('password'),
-      billingAddress: formData.get('billingAddress'),
-      contactAddress: formData.get('contactAddress'),
-      profile: formData.get('profile'),
+      name: formData.get('name')?.toString() || '',
+      emailID: formData.get('emailID')?.toString() || '',
+      mobile,
+      telNo: formData.get('telNo')?.toString() || '',
+      password: formData.get('password')?.toString() || '',
+      billingAddress: formData.get('billingAddress')?.toString() || '',
+      contactAddress: formData.get('contactAddress')?.toString() || '',
+      profile: formData.get('profile')?.toString() || '',
       isDelete: false,
       active: formData.get('active') === 'true'
     };
 
     try {
-      const response = await api.post(`https://api.4pmti.com/auth/signup/instructor`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      window.location.href = '/instructors'
-
-      if (response.status !== 200) {
-        const errorData = response.data;
-        throw new Error(errorData.message || 'Signup failed');
+      const response = await api.post('/auth/signup/instructor', data);
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Signup failed');
       }
+      
       setSuccess(true);
       setShowSuccessModal(true);
+      window.location.href = '/instructors';
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Something went wrong';
       setError(errorMessage);
@@ -142,8 +148,22 @@ const AddInstructor = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="mobile">Mobile Number</Label>
-                    <Input id="mobile" name="mobile" type="tel" required />
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="mobile">Mobile Number</Label>
+                      <span className="text-sm text-muted-foreground">Must be 10 digits</span>
+                    </div>
+                    <Input 
+                      id="mobile" 
+                      name="mobile" 
+                      type="tel" 
+                      required 
+                      pattern="[0-9]{10}"
+                      onChange={() => setMobileError('')}
+                      placeholder="Enter 10 digit mobile number"
+                    />
+                    {mobileError && (
+                      <span className="text-sm text-red-500">{mobileError}</span>
+                    )}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="telNo">Telephone Number</Label>
@@ -174,7 +194,23 @@ const AddInstructor = () => {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Switch id="active" name="active" defaultChecked />
+                  <Switch 
+                    id="active" 
+                    name="active" 
+                    defaultChecked={false}
+                    onCheckedChange={(checked) => {
+                      const input = document.createElement('input');
+                      input.type = 'hidden';
+                      input.name = 'active';
+                      input.value = checked.toString();
+                      const form = document.querySelector('form');
+                      const existingInput = form?.querySelector('input[name="active"]');
+                      if (existingInput) {
+                        existingInput.remove();
+                      }
+                      form?.appendChild(input);
+                    }}
+                  />
                   <Label htmlFor="active">Active Account</Label>
                 </div>
               </div>
@@ -204,13 +240,21 @@ const AddInstructor = () => {
       <AlertDialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Success!</AlertDialogTitle>
-            <AlertDialogDescription>
+            <div className="flex items-center gap-2">
+              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                <Check className="h-6 w-6 text-green-600" />
+              </div>
+              <AlertDialogTitle className="text-green-600">Success!</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-green-600">
               Your instructor account has been successfully created. You can now log in to start using your account.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowSuccessModal(false)}>
+            <AlertDialogAction 
+              onClick={() => setShowSuccessModal(false)}
+              className="bg-green-600 hover:bg-green-700"
+            >
               Continue
             </AlertDialogAction>
           </AlertDialogFooter>

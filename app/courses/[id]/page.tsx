@@ -49,6 +49,7 @@ interface Course {
   createdBy: User;
   category: Category;
   classType: ClassType;
+  coverImage: string;
 }
 
 interface ApiResponse {
@@ -229,24 +230,58 @@ export default function CourseDetails({ params }: PageProps) {
 
           {/* Grid Layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Cover Image - New Section */}
+            <div className="space-y-0 border rounded-lg">
+              <div className="bg-gray-50 px-4 py-2 border-b">
+                <h2 className="font-medium">Course Image</h2>
+              </div>
+              <div className="p-4">
+                {course.coverImage ? (
+                  <img 
+                    src={course.coverImage} 
+                    alt={course.courseName}
+                    className="w-full h-auto rounded-md"
+                  />
+                ) : (
+                  <div className="bg-gray-100 h-48 rounded-md flex items-center justify-center">
+                    <span className="text-gray-400">No image available</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Basic Information */}
             <div className="space-y-0 border rounded-lg">
               <div className="bg-gray-50 px-4 py-2 border-b">
                 <h2 className="font-medium">Basic Information</h2>
               </div>
-              <DetailRow label="Course ID" value={course.id} />
+              {/* <DetailRow label="Course ID" value={course.id} /> */}
               <DetailRow label="Title" value={course.courseName} />
               <DetailRow label="Short Name" value={course.shortName} />
               <DetailRow label="Course Duration" value={`${course.courseDuration} hours`} />
             </div>
 
-            {/* Pricing Information */}
+            {/* Pricing Information - Updated */}
             <div className="space-y-0 border rounded-lg">
               <div className="bg-gray-50 px-4 py-2 border-b">
                 <h2 className="font-medium">Pricing Details</h2>
               </div>
-              <DetailRow label="Amount" value={`$${course.price}`} />
-              <DetailRow label="External Price" value={`$${course.extPrice}`} />
+              <DetailRow 
+                label="Regular Price" 
+                value={
+                  <span className="font-semibold text-green-600">
+                    ${parseFloat(course.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                } 
+              />
+              <DetailRow 
+                label="External Price" 
+                value={
+                  <span className="font-semibold text-blue-600">
+                    ${parseFloat(course.extPrice).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                } 
+              />
               <DetailRow 
                 label="Status" 
                 value={
@@ -270,7 +305,7 @@ export default function CourseDetails({ params }: PageProps) {
             </div>
 
             {/* Description - Full Width */}
-            <div className="space-y-0 border rounded-lg md:col-span-2 lg:col-span-3">
+            <div className="space-y-0 border rounded-lg md:col-span-2 lg:col-span-2">
               <div className="bg-gray-50 px-4 py-2 border-b">
                 <h2 className="font-medium">Description</h2>
               </div>

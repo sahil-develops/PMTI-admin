@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardContent,
@@ -43,7 +44,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
     startDate: '',
     endDate: '',
     countryId: 0,
-    active: true
+    active: false
   });
 
   useEffect(() => {
@@ -103,7 +104,11 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            ...formData,
+            amount: parseInt(formData.amount, 10),
+            active: formData.active ? 0 : 1
+          }),
         }
       );
 
@@ -133,13 +138,21 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | boolean,
+    isSwitch = false
   ) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-    }));
+    if (isSwitch) {
+      setFormData(prev => ({
+        ...prev,
+        active: e as boolean
+      }));
+    } else if (typeof e === 'object') {
+      const { name, value } = e.target;
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   if (loading) {
@@ -203,7 +216,9 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
               value={formData.amount}
               onChange={handleInputChange}
               required
-              />
+              min="0"
+              step="1"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -232,18 +247,13 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <Label htmlFor="active" className="flex items-center gap-2">
-              <Input
-                id="active"
-                name="active"
-                type="checkbox"
-                className="w-4 h-4"
-                checked={formData.active}
-                onChange={handleInputChange}
-                />
-              Active
-            </Label>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="active"
+              checked={formData.active}
+              onCheckedChange={(checked) => handleInputChange(checked, true)}
+            />
+            <Label htmlFor="active">Active</Label>
           </div>
 
           <div className="flex justify-end gap-4">

@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, X } from 'lucide-react';
-import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Upload, X, Trash2 } from 'lucide-react';
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { CheckCircle2 } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
 
 interface Country {
   id: number;
@@ -48,6 +50,8 @@ export default function AddPromotionForm() {
   const [classTypes, setClassTypes] = useState<ClassType[]>([]);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     countryId: '52', 
@@ -59,7 +63,7 @@ export default function AddPromotionForm() {
     endDate: '',
     title: '',
     description: '',
-    active: true,
+    active: false,
     promotionType: '2'
   });
 
@@ -107,13 +111,13 @@ export default function AddPromotionForm() {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     
     const file = e.dataTransfer.files[0];
     if (file && (file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif')) {
-      setAttachedFile(file);
+      await handleImageUpload(file);
     } else {
       toast({
         title: "Invalid file type",
@@ -123,10 +127,10 @@ export default function AddPromotionForm() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && (file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif')) {
-      setAttachedFile(file);
+      await handleImageUpload(file);
     } else {
       toast({
         title: "Invalid file type",
@@ -134,6 +138,48 @@ export default function AddPromotionForm() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setLoading(true);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('https://api.4pmti.com/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setAttachedFile(file);
+        setUploadedImageUrl(data.data.url);
+      } else {
+        throw new Error(data.error || 'Upload failed');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
+      setAttachedFile(null);
+      setUploadedImageUrl(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAttachedFile(null);
+    setUploadedImageUrl(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -141,49 +187,43 @@ export default function AddPromotionForm() {
     setLoading(true);
 
     try {
-      // Create form data for multipart/form-data submission
-      const formDataSubmit = new FormData();
-      
       const payload = {
-        ...formData,
         countryId: parseInt(formData.countryId),
         categoryId: parseInt(formData.categoryId),
         classTypeId: parseInt(formData.classTypeId),
+        promotionId: formData.promotionId,
         amount: parseFloat(formData.amount),
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+        title: formData.title,
+        description: formData.description,
+        active: formData.active ? 1 : 0,
         promotionType: parseInt(formData.promotionType),
-        isDelete: false,
-        addedBy: localStorage.getItem('userEmail'),
-        updatedBy: localStorage.getItem('userEmail'),
+        isDelete: 0,
+        addedBy: parseInt(localStorage.getItem('userId') || '0'),
+        updatedBy: parseInt(localStorage.getItem('userId') || '0'),
+        attachedFilePath: uploadedImageUrl || ''
       };
-
-      // Append payload data
-      Object.entries(payload).forEach(([key, value]) => {
-        formDataSubmit.append(key, String(value));
-      });
-
-      // Append file if exists
-      if (attachedFile) {
-        formDataSubmit.append('attachedFile', attachedFile);
-      }
 
       const response = await fetch(`https://api.4pmti.com/promotions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+          'Content-Type': 'application/json',
         },
-        body: formDataSubmit,
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        toast({
-          title: "Success",
-          description: "Promotion created successfully",
-        });
-        router.push('/promotions');
+      if (response.ok && data.success) {
+        setShowSuccessModal(true);
+        
+        setTimeout(() => {
+          router.push('/promotions');
+        }, 2000);
       } else {
-        throw new Error(data.error || 'Failed to create promotion');
+        throw new Error(Array.isArray(data.error) ? data.error.join(', ') : (data.error || data.message || 'Failed to create promotion'));
       }
     } catch (error) {
       toast({
@@ -191,6 +231,7 @@ export default function AddPromotionForm() {
         description: error instanceof Error ? error.message : "Failed to create promotion",
         variant: "destructive",
       });
+      console.error('Submission error:', error);
     } finally {
       setLoading(false);
     }
@@ -205,7 +246,6 @@ export default function AddPromotionForm() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Previous form fields remain the same */}
           <div className="space-y-2">
             <Label htmlFor="promotionId">Promotion ID</Label>
             <Input
@@ -351,7 +391,6 @@ export default function AddPromotionForm() {
           </div>
         </div>
 
-        {/* File Upload Section */}
         <div className="space-y-2">
           <Label>Promotion Image</Label>
           <div
@@ -373,19 +412,43 @@ export default function AddPromotionForm() {
               onChange={handleFileChange}
             />
             
-            {attachedFile ? (
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-sm text-zinc-600">{attachedFile.name}</span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setAttachedFile(null);
-                  }}
-                  className="p-1 hover:bg-zinc-100 rounded-full"
-                >
-                  <X size={16} className="text-zinc-500" />
-                </button>
+            {loading ? (
+              <div className="relative w-full h-48">
+                <div className="absolute inset-0 bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-100 animate-shimmer" 
+                     style={{
+                       backgroundSize: '700px 100%',
+                       animation: 'shimmer 2s infinite linear'
+                     }}
+                />
+              </div>
+            ) : attachedFile && uploadedImageUrl ? (
+              <div className="space-y-4">
+                <div className="relative group">
+                  <img 
+                    src={uploadedImageUrl}
+                    alt="Preview"
+                    className="max-h-48 mx-auto rounded-lg object-contain"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 rounded-lg flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={handleDeleteImage}
+                      className="p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-sm text-zinc-600">
+                  <span className="truncate max-w-xs">{attachedFile.name}</span>
+                  <button
+                    type="button"
+                    onClick={handleDeleteImage}
+                    className="p-1 hover:bg-zinc-100 rounded-full text-zinc-500 hover:text-red-500"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-2">
@@ -402,14 +465,16 @@ export default function AddPromotionForm() {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Checkbox
+          <Switch
             id="active"
             checked={formData.active}
             onCheckedChange={(checked) => 
-              setFormData({ ...formData, active: checked as boolean })
+              setFormData({ ...formData, active: checked })
             }
           />
-          <Label htmlFor="active">Active</Label>
+          <Label htmlFor="active" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            {formData.active ? 'Active' : 'Inactive'}
+          </Label>
         </div>
 
         <div className="flex gap-4">
@@ -431,6 +496,37 @@ export default function AddPromotionForm() {
           </Button>
         </div>
       </form>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center justify-center p-6">
+            <div className="rounded-full bg-green-100 p-3 mb-4">
+              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-semibold text-green-600 mb-2">Success!</h2>
+            <p className="text-center text-gray-600 mb-4">
+              Promotion has been created successfully
+            </p>
+            <div className="w-full bg-green-100 rounded-full h-1 mb-4">
+              <div 
+                className="bg-green-500 h-1 rounded-full transition-all duration-200"
+                style={{ width: '100%', animation: 'progress 2s linear' }}
+              />
+            </div>
+            <p className="text-sm text-gray-500">Redirecting to promotions list...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add this style for the progress bar animation */}
+      <style jsx global>{`
+        @keyframes progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
     </div>
   );
 }
+

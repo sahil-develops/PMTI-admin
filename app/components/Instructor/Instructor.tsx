@@ -225,7 +225,7 @@ const Instructor = () => {
           <Table>
             <TableHeader className="bg-gray-50">
               <TableRow>
-                <TableHead className="text-gray-500">UID</TableHead>
+                {/* <TableHead className="text-gray-500">UID</TableHead> */}
                 <TableHead className="text-gray-500">Name</TableHead>
                 <TableHead className="text-gray-500">Email</TableHead>
                 <TableHead className="text-gray-500">Mobile</TableHead>
@@ -250,7 +250,7 @@ const Instructor = () => {
               ) : (
                 filteredInstructors.map((instructor) => (
                   <TableRow key={instructor.id} className="hover:bg-gray-50">
-                    <TableCell className="text-gray-900">{instructor.uid || "N/A"}</TableCell>
+                    {/* <TableCell className="text-gray-900">{instructor.uid || "N/A"}</TableCell> */}
                     <TableCell className="text-gray-900 font-medium">{instructor.name || "N/A"}</TableCell>
                     <TableCell className="text-gray-900">{instructor.emailID || "N/A"}</TableCell>
                     <TableCell className="text-gray-900">{instructor.mobile || "N/A"}</TableCell>
