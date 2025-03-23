@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
@@ -6,12 +6,13 @@ import Text from '@tiptap/extension-text';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
-import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered } from 'lucide-react';
+import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered, ArrowDown, Link2, Link2Off } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 
 import { Editor } from '@tiptap/react';
+import Link from '@tiptap/extension-link';
 
 const CustomImage = Image.extend({
   addAttributes() {
@@ -41,6 +42,43 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      if (!editor) return;
+      
+      const { from, to } = editor.state.selection;
+      if (from !== to) {
+        // Text is selected
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+          setTooltipPosition({
+            x: rect.left + (rect.width / 2),
+            y: rect.top - 40
+          });
+          setShowTooltip(true);
+        }
+      } else {
+        setShowTooltip(false);
+      }
+    };
+
+    if (editor) {
+      editor.on('selectionUpdate', handleSelectionChange);
+    }
+
+    return () => {
+      if (editor) {
+        editor.off('selectionUpdate', handleSelectionChange);
+      }
+    };
+  }, [editor]);
 
   if (!editor) {
     return null;
@@ -205,8 +243,31 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
     return node && node.type.name === 'image';
   };
 
+  // Add new function to handle line breaks
+  const addLineBreak = () => {
+    editor.chain().focus().setHardBreak().run();
+  };
+
+  const addLink = () => {
+    if (!linkUrl || !editor) return;
+    
+    editor
+      .chain()
+      .focus()
+      .toggleLink({ href: linkUrl })
+      .run();
+
+    setLinkUrl('');
+    setShowLinkInput(false);
+  };
+
+  const removeLink = () => {
+    if (!editor) return;
+    editor.chain().focus().unsetLink().run();
+  };
+
   return (
-    <div className="flex flex-wrap space-x-1 space-y-1 sm:space-x-2 sm:space-y-0 border-b pb-2 mb-2 rounded-t-lg bg-gray-100 p-2 sticky top-0">
+    <div className="flex flex-wrap gap-1 p-2 bg-gray-100 border-b sticky top-0 overflow-x-auto">
       <input
         type="file"
         ref={fileInputRef}
@@ -282,33 +343,87 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         <Upload size={16} />
       </button>
 
+      {/* Link controls */}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => setShowLinkInput(!showLinkInput)}
+          className={`p-1.5 hover:bg-gray-200 rounded ${editor.isActive('link') ? 'bg-gray-200' : ''}`}
+          title="Add Link"
+        >
+          <Link2 size={16} />
+        </button>
+        {editor.isActive('link') && (
+          <button
+            onClick={removeLink}
+            className="p-1.5 hover:bg-gray-200 rounded"
+            title="Remove Link"
+          >
+            <Link2Off size={16} />
+          </button>
+        )}
+      </div>
+
+      {showLinkInput && (
+        <div className="flex items-center gap-1">
+          <input
+            type="url"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            placeholder="Enter URL..."
+            className="px-2 py-1 border rounded text-sm"
+          />
+          <button
+            onClick={addLink}
+            className="px-2 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+          >
+            Add
+          </button>
+        </div>
+      )}
+
       {/* Image controls - only visible when an image is selected */}
       {isImageSelected() && (
         <>
           <div className="border-l mx-2 h-6"></div>
           
           {/* Size controls */}
-          <button
-            onClick={() => resizeImage('25%')}
-            className="p-2 hover:bg-gray-200 rounded"
-            title="Small"
-          >
-            <MinusSquare size={16} />
-          </button>
-          <button
-            onClick={() => resizeImage('50%')}
-            className="p-2 hover:bg-gray-200 rounded"
-            title="Medium"
-          >
-            <Square size={16} />
-          </button>
-          <button
-            onClick={() => resizeImage('100%')}
-            className="p-2 hover:bg-gray-200 rounded"
-            title="Large"
-          >
-            <PlusSquare size={16} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => resizeImage('150px')}
+              className="p-1.5 hover:bg-gray-200 rounded"
+              title="Extra Small"
+            >
+              <MinusSquare size={12} />
+            </button>
+            <button
+              onClick={() => resizeImage('200px')}
+              className="p-1.5 hover:bg-gray-200 rounded"
+              title="Small"
+            >
+              <MinusSquare size={14} />
+            </button>
+            <button
+              onClick={() => resizeImage('300px')}
+              className="p-1.5 hover:bg-gray-200 rounded"
+              title="Medium"
+            >
+              <Square size={16} />
+            </button>
+            <button
+              onClick={() => resizeImage('400px')}
+              className="p-1.5 hover:bg-gray-200 rounded"
+              title="Large"
+            >
+              <PlusSquare size={18} />
+            </button>
+            <button
+              onClick={() => resizeImage('600px')}
+              className="p-1.5 hover:bg-gray-200 rounded"
+              title="Extra Large"
+            >
+              <PlusSquare size={20} />
+            </button>
+          </div>
 
           <div className="border-l mx-2 h-6"></div>
           
@@ -353,6 +468,15 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       )}
 
       <div className="border-l mx-2 h-6"></div>
+
+      {/* Add Line Break button */}
+      <button
+        onClick={addLineBreak}
+        className="p-1.5 hover:bg-gray-200 rounded"
+        title="Add Line Break"
+      >
+        <ArrowDown size={16} />
+      </button>
 
       {/* Text alignment buttons */}
       <button
@@ -432,18 +556,31 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-blue-600 hover:underline cursor-pointer',
+          rel: 'noopener noreferrer nofollow',
+          target: '_blank',
+        },
+      }),
     ],
     content: content || '<p></p>',
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const html = editor.getHTML()
+        .replace(/<br\s*\/?>/g, '<br />')
+        .replace(/(<\/[^>]+>)(<[^>]+>)/g, '$1\n$2')
+        .trim();
+      
+      onChange(html);
     },
     parseOptions: {
-      preserveWhitespace: 'full',
+      preserveWhitespace: true,
     },
   });
 
   return (
-    <div className="rounded-lg border bg-white">
+    <div className="rounded-lg border bg-white relative">
       <MenuBar editor={editor} />
       <div 
         onDragOver={handleDragOver}
@@ -455,7 +592,7 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
         </div>
         <EditorContent 
           editor={editor} 
-          className="p-4 pl-8 min-h-[300px] prose max-w-none"
+          className="p-4 pl-8 min-h-[400px] prose max-w-none"
         />
       </div>
       <style>{`
@@ -464,40 +601,55 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
           position: relative;
           cursor: text;
           outline: none;
+          min-height: 400px;
+          line-height: 1.6;
+          font-size: 16px;
+          padding: 1rem;
         }
 
-        /* Heading styles with visual indicators */
+        /* Heading styles */
         .ProseMirror h1 {
           font-size: 2em;
-          font-weight: bold;
-          line-height: 1.2;
+          font-weight: 700;
           margin: 1em 0 0.5em;
-          position: relative;
+          color: #111827;
         }
 
         .ProseMirror h2 {
           font-size: 1.5em;
-          font-weight: bold;
-          line-height: 1.3;
-          margin: 0.83em 0;
-          position: relative;
+          font-weight: 600;
+          margin: 1em 0 0.5em;
+          color: #111827;
         }
 
         .ProseMirror h3 {
-          font-size: 1.17em;
-          font-weight: bold;
-          line-height: 1.4;
-          margin: 1em 0;
-          position: relative;
+          font-size: 1.25em;
+          font-weight: 600;
+          margin: 1em 0 0.5em;
+          color: #111827;
         }
 
-        /* Responsive image handling */
+        /* Paragraph spacing */
+        .ProseMirror p {
+          margin: 0.75em 0;
+        }
+
+        /* List styles */
+        .ProseMirror ul,
+        .ProseMirror ol {
+          padding-left: 1.2em;
+          margin: 0.5em 0;
+        }
+
+        .ProseMirror li {
+          margin: 0.2em 0;
+        }
+
+        /* Image styles */
         .ProseMirror img {
           max-width: 100%;
           height: auto;
-          display: block;
-          margin: 1rem auto;
-          cursor: pointer;
+          margin: 1em 0;
           border-radius: 4px;
           transition: all 0.2s ease;
         }
@@ -507,80 +659,87 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
           outline-offset: 2px;
         }
 
-        .ProseMirror img[data-alignment="left"] {
-          margin-left: 0;
-          margin-right: auto;
+        /* Text selection */
+        .ProseMirror ::selection {
+          background: rgba(37, 99, 235, 0.2);
         }
 
-        .ProseMirror img[data-alignment="center"] {
-          margin-left: auto;
-          margin-right: auto;
-        }
-
-        .ProseMirror img[data-alignment="right"] {
-          margin-left: auto;
-          margin-right: 0;
-        }
-
-        /* List styles */
-        .ProseMirror ul {
-          list-style-type: disc;
-          padding-left: 1.5em;
-          margin: 1em 0;
-        }
-
-        .ProseMirror ol {
-          list-style-type: decimal;
-          padding-left: 1.5em;
-          margin: 1em 0;
-        }
-
-        .ProseMirror li {
-          margin-bottom: 0.5em;
-        }
-
-        /* Text formatting */
-        .ProseMirror strong {
-          font-weight: bold;
-          background-color: rgba(37, 99, 235, 0.1);
-        }
-
-        .ProseMirror em {
-          font-style: italic;
-          background-color: rgba(37, 99, 235, 0.05);
-        }
-
-        /* Drag and drop zone */
-        .ProseMirror-focused {
-          outline: none;
-        }
-
-        .ProseMirror[data-drag-over="true"] {
-          background-color: rgba(37, 99, 235, 0.05);
+        /* Line break styling */
+        .ProseMirror br {
+          display: block;
+          height: 0.5em;
         }
 
         /* Mobile responsiveness */
         @media (max-width: 640px) {
           .ProseMirror {
-            padding: 1rem;
+            padding: 0.75rem;
+            font-size: 15px;
           }
 
-          .ProseMirror img {
-            width: 100% !important;
-            height: auto !important;
+          .ProseMirror h1 {
+            font-size: 1.75em;
+          }
+
+          .ProseMirror h2 {
+            font-size: 1.35em;
+          }
+
+          .ProseMirror h3 {
+            font-size: 1.15em;
           }
         }
 
-        /* Image upload animation */
-        @keyframes shimmer {
-          0% { background-position: -468px 0 }
-          100% { background-position: 468px 0 }
+        /* Link styles */
+        .ProseMirror a {
+          color: #2563eb;
+          text-decoration: none;
+          cursor: pointer;
+          padding: 0 2px;
+          border-radius: 2px;
         }
 
-        .image-upload-loading {
-          animation: shimmer 1s linear infinite;
-          background: linear-gradient(to right, #f6f7f8 8%, #edeef1 18%, #f6f7f8 33%);
-          background-size: 800px 104px;
+        .ProseMirror a:hover {
+          text-decoration: underline;
+          background-color: rgba(37, 99, 235, 0.1);
+        }
+
+        /* Image alignment */
+        .ProseMirror img[data-alignment="left"] {
+          float: left;
+          margin-right: 1em;
+        }
+
+        .ProseMirror img[data-alignment="center"] {
+          display: block;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .ProseMirror img[data-alignment="right"] {
+          float: right;
+          margin-left: 1em;
+        }
+
+        /* Image size transition */
+        .ProseMirror img {
+          transition: width 0.2s ease;
+        }
+
+        /* Selection styles */
+        .ProseMirror ::selection {
+          background: rgba(37, 99, 235, 0.2);
+        }
+
+        /* Tooltip animation */
+        @keyframes tooltipFade {
+          from { opacity: 0; transform: translateY(10px) translateX(-50%); }
+          to { opacity: 1; transform: translateY(0) translateX(-50%); }
+        }
+
+        .tooltip {
+          animation: tooltipFade 0.2s ease-out;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
       `}</style>
     </div>
@@ -597,8 +756,74 @@ const BlogPreview: React.FC<BlogPreviewProps> = ({ title, content }) => (
     <h2 className="text-2xl font-bold mb-4">Preview</h2>
     <div className="prose max-w-none">
       <h1>{title}</h1>
-      <div dangerouslySetInnerHTML={{ __html: content }} />
+      <div 
+        dangerouslySetInnerHTML={{ 
+          __html: content
+        }} 
+      />
     </div>
+    <style>{`
+      .prose h1 {
+        font-size: 2em;
+        font-weight: 700;
+        margin: 1em 0 0.5em;
+        color: #111827;
+      }
+
+      .prose h2 {
+        font-size: 1.5em;
+        font-weight: 600;
+        margin: 1em 0 0.5em;
+        color: #111827;
+      }
+
+      .prose h3 {
+        font-size: 1.25em;
+        font-weight: 600;
+        margin: 1em 0 0.5em;
+        color: #111827;
+      }
+
+      .prose p {
+        margin: 0.75em 0;
+        line-height: 1.6;
+      }
+
+      .prose img {
+        max-width: 100%;
+        height: auto;
+        margin: 1em 0;
+        border-radius: 4px;
+      }
+
+      .prose ul,
+      .prose ol {
+        padding-left: 1.2em;
+        margin: 0.5em 0;
+      }
+
+      .prose li {
+        margin: 0.2em 0;
+      }
+
+      @media (max-width: 640px) {
+        .prose {
+          font-size: 15px;
+        }
+
+        .prose h1 {
+          font-size: 1.75em;
+        }
+
+        .prose h2 {
+          font-size: 1.35em;
+        }
+
+        .prose h3 {
+          font-size: 1.15em;
+        }
+      }
+    `}</style>
   </div>
 );
 
