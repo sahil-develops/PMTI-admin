@@ -67,6 +67,9 @@ export default function AddPromotionForm() {
     promotionType: '2'
   });
 
+  // Add new state for validation
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData | 'image', string>>>({});
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -182,8 +185,71 @@ export default function AddPromotionForm() {
     setUploadedImageUrl(null);
   };
 
+  const validateForm = (): boolean => {
+    const newErrors: Partial<Record<keyof FormData | 'image', string>> = {};
+
+    // Required field validation
+    if (!formData.promotionId.trim()) {
+      newErrors.promotionId = 'Promotion ID is required';
+    }
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required';
+    }
+    if (!formData.amount) {
+      newErrors.amount = 'Amount is required';
+    }
+    if (!formData.countryId) {
+      newErrors.countryId = 'Country is required';
+    }
+    if (!formData.categoryId) {
+      newErrors.categoryId = 'Category is required';
+    }
+    if (!formData.classTypeId) {
+      newErrors.classTypeId = 'Class Type is required';
+    }
+    if (!formData.promotionType) {
+      newErrors.promotionType = 'Promotion Type is required';
+    }
+    if (!formData.startDate) {
+      newErrors.startDate = 'Start Date is required';
+    }
+    if (!formData.endDate) {
+      newErrors.endDate = 'End Date is required';
+    }
+    if (!formData.description.trim()) {
+      newErrors.description = 'Description is required';
+    }
+
+    // Date validation
+    if (formData.startDate && formData.endDate) {
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+      if (end <= start) {
+        newErrors.endDate = 'End date must be after start date';
+      }
+    }
+
+    // Cover image validation
+    if (!uploadedImageUrl) {
+      newErrors.image = 'Promotion image is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields correctly",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -254,7 +320,12 @@ export default function AddPromotionForm() {
               placeholder="Enter promotion ID"
               value={formData.promotionId}
               onChange={(e) => setFormData({ ...formData, promotionId: e.target.value })}
+              className={errors.promotionId ? "border-red-500" : ""}
             />
+            {errors.promotionId && (
+              <p className="text-red-500 text-xs mt-1">{errors.promotionId}</p>
+            )}
+            <p className="text-xs text-zinc-500">Must be unique across all promotions</p>
           </div>
 
           <div className="space-y-2">
@@ -265,7 +336,11 @@ export default function AddPromotionForm() {
               placeholder="Enter promotion title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className={errors.title ? "border-red-500" : ""}
             />
+            {errors.title && (
+              <p className="text-red-500 text-xs mt-1">{errors.title}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -277,7 +352,11 @@ export default function AddPromotionForm() {
               placeholder="Enter amount"
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              className={errors.amount ? "border-red-500" : ""}
             />
+            {errors.amount && (
+              <p className="text-red-500 text-xs mt-1">{errors.amount}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -287,6 +366,7 @@ export default function AddPromotionForm() {
               value={formData.countryId}
                 defaultValue="52"
               onValueChange={(value) => setFormData({ ...formData, countryId: value })}
+              // className={errors.countryId ? "border-red-500" : ""}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select country" />
@@ -299,6 +379,9 @@ export default function AddPromotionForm() {
                 ))}
               </SelectContent>
             </Select>
+            {errors.countryId && (
+              <p className="text-red-500 text-xs mt-1">{errors.countryId}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -307,6 +390,7 @@ export default function AddPromotionForm() {
               required
               value={formData.categoryId}
               onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+           
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
@@ -319,6 +403,9 @@ export default function AddPromotionForm() {
                 ))}
               </SelectContent>
             </Select>
+            {errors.categoryId && (
+              <p className="text-red-500 text-xs mt-1">{errors.categoryId}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -327,6 +414,7 @@ export default function AddPromotionForm() {
               required
               value={formData.classTypeId}
               onValueChange={(value) => setFormData({ ...formData, classTypeId: value })}
+            
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select class type" />
@@ -339,6 +427,9 @@ export default function AddPromotionForm() {
                 ))}
               </SelectContent>
             </Select>
+            {errors.classTypeId && (
+              <p className="text-red-500 text-xs mt-1">{errors.classTypeId}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -347,6 +438,7 @@ export default function AddPromotionForm() {
               required
               value={formData.promotionType}
               onValueChange={(value) => setFormData({ ...formData, promotionType: value })}
+              // className={errors.promotionType ? "border-red-500" : ""}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select promotion type" />
@@ -356,6 +448,9 @@ export default function AddPromotionForm() {
                 <SelectItem value="2">Special</SelectItem>
               </SelectContent>
             </Select>
+            {errors.promotionType && (
+              <p className="text-red-500 text-xs mt-1">{errors.promotionType}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -366,7 +461,11 @@ export default function AddPromotionForm() {
               required
               value={formData.startDate}
               onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              className={errors.startDate ? "border-red-500" : ""}
             />
+            {errors.startDate && (
+              <p className="text-red-500 text-xs mt-1">{errors.startDate}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -377,7 +476,11 @@ export default function AddPromotionForm() {
               required
               value={formData.endDate}
               onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+              className={errors.endDate ? "border-red-500" : ""}
             />
+            {errors.endDate && (
+              <p className="text-red-500 text-xs mt-1">{errors.endDate}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -387,17 +490,23 @@ export default function AddPromotionForm() {
               placeholder="Enter promotion description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className={errors.description ? "border-red-500" : ""}
             />
+            {errors.description && (
+              <p className="text-red-500 text-xs mt-1">{errors.description}</p>
+            )}
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label>Promotion Image</Label>
+          <Label>Promotion Image <span className="text-red-500">*</span></Label>
           <div
             className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
               isDragging 
                 ? 'border-zinc-400 bg-zinc-50' 
-                : 'border-zinc-200 hover:border-zinc-300'
+                : errors.image 
+                  ? 'border-red-500'
+                  : 'border-zinc-200 hover:border-zinc-300'
             }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -462,6 +571,9 @@ export default function AddPromotionForm() {
               </div>
             )}
           </div>
+          {errors.image && (
+            <p className="text-red-500 text-xs mt-1">{errors.image}</p>
+          )}
         </div>
 
         <div className="flex items-center space-x-2">
