@@ -622,22 +622,14 @@ export default function AddPromotionForm() {
             </p>
             <div className="w-full bg-green-100 rounded-full h-1 mb-4">
               <div 
-                className="bg-green-500 h-1 rounded-full transition-all duration-200"
-                style={{ width: '100%', animation: 'progress 2s linear' }}
+                className="bg-green-500 h-1 rounded-full animate-progress"
+                style={{ width: '100%' }}
               />
             </div>
             <p className="text-sm text-gray-500">Redirecting to promotions list...</p>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Add this style for the progress bar animation */}
-      <style jsx global>{`
-        @keyframes progress {
-          from { width: 0%; }
-          to { width: 100%; }
-        }
-      `}</style>
     </div>
   );
 }
