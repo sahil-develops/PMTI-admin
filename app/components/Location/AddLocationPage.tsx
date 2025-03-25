@@ -22,9 +22,22 @@ interface Country {
   isActive: boolean
 }
 
+interface State {
+  id: number;
+  name: string;
+  locations: Location[];
+  country: {
+    id: number;
+    CountryName: string;
+    currency: string;
+    isActive: boolean;
+  };
+}
+
 interface FormData {
   location: string
   country: string
+  state: string
   addedBy: string
   updatedBy: string
   isDelete: boolean
@@ -35,11 +48,13 @@ export default function AddLocationPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [countries, setCountries] = useState<Country[]>([])
+  const [states, setStates] = useState<State[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState<FormData>({
     location: '',
     country: '',
+    state: '',
     addedBy: '',
     updatedBy: '',
     isDelete: false
@@ -49,7 +64,7 @@ export default function AddLocationPage() {
   useEffect(() => {
     const fetchCountries = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}country`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/country`)
         const data = await response.json()
         if (data.success) {
           // Filter only active countries and sort by name
@@ -77,6 +92,10 @@ export default function AddLocationPage() {
       setError('Please select a country')
       return false
     }
+    if (!formData.state.trim()) {
+      setError('State is required')
+      return false
+    }
     if (!formData.addedBy.trim()) {
       setError('Added by is required')
       return false
@@ -97,7 +116,7 @@ export default function AddLocationPage() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}location`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,6 +124,7 @@ export default function AddLocationPage() {
         },
         body: JSON.stringify({
           location: formData.location,
+          state: parseInt(formData.state),
           addedBy: formData.addedBy,
           updatedBy: formData.updatedBy,
           isDelete: formData.isDelete,
@@ -136,8 +156,36 @@ export default function AddLocationPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleCountryChange = (value: string) => {
-    setFormData(prev => ({ ...prev, country: value }))
+  const handleCountryChange = async (value: string) => {
+    setFormData(prev => ({ ...prev, country: value, state: '' }))
+    
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/state/?countryId=${value}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch states');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setStates(data.data);
+      } else {
+        setError('Failed to fetch states');
+      }
+    } catch (err) {
+      setError('Failed to fetch states');
+    }
+  }
+
+  const handleStateChange = (value: string) => {
+    setFormData(prev => ({ ...prev, state: value }));
   }
 
   return (
@@ -179,6 +227,30 @@ export default function AddLocationPage() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-sm font-medium">State</label>
+              <Select
+                value={formData.state}
+                onValueChange={handleStateChange}
+                disabled={!formData.country}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={formData.country ? "Select a state" : "Select country first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.map((state) => (
+                    <SelectItem 
+                      key={state.id} 
+                      value={state.id.toString()}
+                    >
+                      {state.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+
+            <div className="space-y-2">
               <label className="text-sm font-medium">Location Name</label>
               <Input
                 name="location"
@@ -188,6 +260,7 @@ export default function AddLocationPage() {
                 className="w-full"
               />
             </div>
+
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Added By</label>
