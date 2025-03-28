@@ -1,11 +1,14 @@
 import React , {useState} from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
+import { Table, TableBody, TableCell,  TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import Link from "next/link";
-import { useParams } from 'next/navigation';
-
+import { Input } from "@/components/ui/input";
 interface Enrollment {
+  day4Input: string | undefined;
+  day2Input: string | undefined;
+  day1Input: string | undefined;
+  day3Input: string | undefined;
+  signatureInput: string | undefined;
   id: string;
   student: {
     id: any;
@@ -33,6 +36,11 @@ interface UpdatePayload {
   enrollmentProgress?: string;
   status?: boolean;
   pmbok?: boolean;
+  day1Input?: string;
+  day2Input?: string;
+  day3Input?: string;
+  day4Input?: string;
+  signatureInput?: string;
 }
 
 
@@ -77,6 +85,26 @@ const CompactSelect = ({ value, onChange, options, loading = false }: {
   </Select>
 );
 
+const CompactInput = ({ 
+  value, 
+  onChange, 
+  loading = false, 
+  placeholder = "" 
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  loading?: boolean;
+  placeholder?: string;
+}) => (
+  <Input 
+    value={value || ""} 
+    onChange={(e) => onChange(e.target.value)}
+    disabled={loading}
+    placeholder={placeholder}
+    className="h-8 text-xs px-2 py-0"
+  />
+);
+
 const updateEnrollment = async (studentId: number, payload: UpdatePayload) => {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.4pmti.com';
   
@@ -109,7 +137,6 @@ export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: E
 
 
 
-
   const handleUpdate = async (studentId: number, payload: UpdatePayload) => {
     const loadingKey = `${studentId}-${Object.keys(payload)[0]}`;
     setLoading(prev => ({ ...prev, [loadingKey]: true }));
@@ -125,7 +152,12 @@ export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: E
               PMPPass: payload.enrollmentProgress ? payload.enrollmentProgress === 'pass' : enrollment.PMPPass,
               pmbok: payload.pmbok !== undefined ? payload.pmbok : enrollment.pmbok,
               status: payload.status !== undefined ? payload.status : enrollment.status,
-              MealType: payload.MealType || enrollment.MealType
+              MealType: payload.MealType || enrollment.MealType,
+              day1Input: payload.day1Input || enrollment.day1Input,
+              day2Input: payload.day2Input || enrollment.day2Input,
+              day3Input: payload.day3Input || enrollment.day3Input,
+              day4Input: payload.day4Input || enrollment.day4Input,
+              signatureInput: payload.signatureInput || enrollment.signatureInput
             };
           }
           return enrollment;
@@ -139,7 +171,6 @@ export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: E
       setLoading(prev => ({ ...prev, [loadingKey]: false }));
     }
   };
-
 
   // Calculate summary data
   const grandTotal = enrollments.reduce((sum, enrollment) => sum + Number(enrollment.Price), 0);
@@ -163,14 +194,20 @@ export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: E
             <StyledTableHeader>Name</StyledTableHeader>
             <StyledTableHeader>Email</StyledTableHeader>
             <StyledTableHeader>Enrollment on</StyledTableHeader>
-            <StyledTableHeader>Mode</StyledTableHeader>
+            {/* <StyledTableHeader>Mode</StyledTableHeader> */}
             <StyledTableHeader>Progress</StyledTableHeader>
             <StyledTableHeader>PMBOK</StyledTableHeader>
             <StyledTableHeader>Status</StyledTableHeader>
             <StyledTableHeader>Meal Type</StyledTableHeader>
             <StyledTableHeader>Phone</StyledTableHeader>
-            <StyledTableHeader>Price</StyledTableHeader>
-            <StyledTableHeader>Comments</StyledTableHeader>
+            {/* <StyledTableHeader>Price</StyledTableHeader> */}
+            {/* <StyledTableHeader>Comments</StyledTableHeader> */}
+            <StyledTableHeader>Day 1 10hrs</StyledTableHeader>
+            <StyledTableHeader>Day 2 10hrs</StyledTableHeader>
+            <StyledTableHeader>Day 3 10hrs</StyledTableHeader>
+            <StyledTableHeader>Day 4 10hrs</StyledTableHeader>
+            <StyledTableHeader>Test Date</StyledTableHeader>
+            <StyledTableHeader>Signature</StyledTableHeader>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -192,7 +229,7 @@ export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: E
               <StyledTableCell>
                 {new Date(enrollment.EnrollmentDate).toLocaleDateString()}
               </StyledTableCell>
-              <StyledTableCell>{enrollment.PaymentMode}</StyledTableCell>
+              {/* <StyledTableCell>{enrollment.PaymentMode}</StyledTableCell> */}
               <StyledTableCell>
          {/* Progress Select */}
 <CompactSelect
@@ -252,14 +289,75 @@ export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: E
 />
               </StyledTableCell>
               <StyledTableCell>{enrollment.student.phone}</StyledTableCell>
-              <StyledTableCell>${enrollment.Price}</StyledTableCell>
-              <StyledTableCell>{enrollment.Comments}</StyledTableCell>
+              <StyledTableCell>
+                <CompactInput 
+                  value={enrollment.day1Input || ""}
+                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                    day1Input: value
+                  })}
+                  loading={loading[`${enrollment.student.id}-day1Input`]}
+                  placeholder="Day 1 Input"
+                />
+              </StyledTableCell>
+              <StyledTableCell>
+                <CompactInput 
+                  value={enrollment.day2Input || ""}
+                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                    day2Input: value
+                  })}
+                  loading={loading[`${enrollment.student.id}-day2Input`]}
+                  placeholder="Day 2 Input"
+                />
+              </StyledTableCell>
+              <StyledTableCell>
+                <CompactInput 
+                  value={enrollment.day3Input || ""}
+                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                    day3Input: value
+                  })}
+                  loading={loading[`${enrollment.student.id}-day3Input`]}
+                  placeholder="Day 3 Input"
+                />
+              </StyledTableCell>
+              <StyledTableCell>
+                <CompactInput 
+                  value={enrollment.day4Input || ""}
+                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                    day4Input: value
+                  })}
+                  loading={loading[`${enrollment.student.id}-day4Input`]}
+                  placeholder="Day 4 Input"
+                />
+              </StyledTableCell>
+              <StyledTableCell>
+                <CompactInput 
+                  value={enrollment.day1Input || ""}
+                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                    day1Input: value
+                  })}
+                  loading={loading[`${enrollment.student.id}-EnrollmentDate`]}
+                  placeholder="Test Date"
+                />
+                {/* Test Date column remains unchanged */}
+              </StyledTableCell>
+              <StyledTableCell>
+                <CompactInput 
+                  value={enrollment.signatureInput || ""}
+                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                    signatureInput: value
+                  })}
+                  loading={loading[`${enrollment.student.id}-signatureInput`]}
+                  placeholder="Signature"
+                />
+              </StyledTableCell>
+              {/* <StyledTableCell>${enrollment.Price}</StyledTableCell> */}
+              {/* <StyledTableCell>{enrollment.Comments}</StyledTableCell> */}
             </TableRow>
           ))}
         </TableBody>
         <TableFooter>
           <TableRow className="bg-zinc-50 font-medium">
-            <TableCell colSpan={10} className="text-right pr-4">
+            <TableCell colSpan={13} className="text-right pr-4">
               Grand Total:
             </TableCell>
             <TableCell>${grandTotal.toFixed(2)}</TableCell>

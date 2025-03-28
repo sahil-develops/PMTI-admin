@@ -398,6 +398,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     BillCountry: "USA",
     BillPhone: "",
     BillMail: "",
+    // @ts-ignore
+    Enrollment: isCourseEnrollment ? "Course" : "Class",
     BillDate: new Date().toISOString(),
     PMPPass: false,
     MealType: "Vegetarian",
@@ -416,7 +418,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     city: "",
     state: "",
     address: "",
-    country: "",
+    country: "52",
     ...(isCourseEnrollment ? { courseId: 1 } : { classId: 1 }),
   });
 
@@ -448,7 +450,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         setItems(result.data.data);
       }
     } catch (error) {
-      console.error(`Error fetching ${enrollmentType.toLowerCase()}es:`, error);
+      console.error(`Error fetching ${enrollmentType.toLowerCase()}:`, error);
       toast({
         title: "Error",
         description: `Failed to fetch ${enrollmentType.toLowerCase()}es`,
@@ -593,7 +595,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch('https://api.4pmti.com/enrollment/class', {
+      const response = await fetch('https://api.4pmti.com/enrollment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -746,7 +748,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     value={selectedCountry}
                     onValueChange={(value) => {
                       setSelectedCountry(value);
-                      setSelectedLocation("");
+                      setSelectedLocation(value);
                       setLocations([]);
                     }}
                     required

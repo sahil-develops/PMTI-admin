@@ -175,18 +175,27 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
   }, [params]);
 
   const handleDownloadPDF = () => {
-    if (!componentRef.current) return;
-    
-    const opt = {
-      filename: classDetails ? `class-details-${classDetails.title.toLowerCase().replace(/\s+/g, '-')}.pdf` : 'class-details.pdf',
-      html2canvas: { scale: 2 },
+    if (!classDetails) return;
+  
+    const pdfData = {
+      instructor: classDetails.instructor.name,
+      location: `${classDetails.location.location}, ${classDetails.country.CountryName}`,
+      startDate: new Date(classDetails.startDate).toLocaleDateString(),
+      endDate: new Date(classDetails.endDate).toLocaleDateString(),
+      title: classDetails.title
     };
-
-    // @ts-ignore
-    import('html2pdf.js').then(html2pdf => {
-      html2pdf.default().from(componentRef.current).save();
+  
+    // Assuming the first enrollment is used for the PDF
+    const firstEnrollment = enrollments[0] || {
+      student: { name: '' },
+      EnrollmentDate: ''
+    };
+  
+    // Dynamic import of the PDF generator
+    import('@/app/components/ClassDetails/GeneratePDF').then(module => {
+      module.default(pdfData, firstEnrollment);
     }).catch(err => {
-      console.error('Error generating PDF:', err);
+      console.error('Error loading PDF generator:', err);
     });
   };
 
