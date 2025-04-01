@@ -1151,7 +1151,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       
 
     <div className="col-span-2">
-      <div className="flex items-center space-x-2">
+      {/* <div className="flex items-center space-x-2">
         <Checkbox
           id="downloadedInfoPac"
           checked={formData.downloadedInfoPac}
@@ -1165,7 +1165,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         <label htmlFor="downloadedInfoPac">
           I have downloaded and read the information package
         </label>
-      </div>
+      </div> */}
     </div>
   </div>
 

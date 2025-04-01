@@ -10,9 +10,22 @@ import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCente
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DragHandleDots2Icon } from "@radix-ui/react-icons";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 import { Editor } from '@tiptap/react';
 import Link from '@tiptap/extension-link';
+import Table from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableHeader from '@tiptap/extension-table-header'
+import TableCell from '@tiptap/extension-table-cell'
+import { Table as TableIcon, MoreHorizontal } from 'lucide-react'
+
+// Add this new type for image layout
+type ImageLayout = 'inline' | 'wrap' | 'block';
+
+// Add this type for editor mode
+type EditorMode = 'rich' | 'html';
 
 const CustomImage = Image.extend({
   addAttributes() {
@@ -25,14 +38,63 @@ const CustomImage = Image.extend({
           width: attributes.width,
         }),
       },
+      layout: {
+        default: 'block',
+        parseHTML: element => element.getAttribute('data-layout'),
+        renderHTML: attributes => ({
+          'data-layout': attributes.layout,
+        }),
+      },
       alignment: {
         default: 'left',
         parseHTML: element => element.style.float || element.style.textAlign,
-        renderHTML: attributes => ({
-          style: attributes.alignment === 'center' 
-            ? 'display: block; margin: 0 auto; text-align: center;' 
-            : `float: ${attributes.alignment}`,
-        }),
+        renderHTML: attributes => {
+          const layout = attributes.layout;
+          const alignment = attributes.alignment;
+          
+          if (layout === 'inline') {
+            return {
+              style: `
+                display: inline-block;
+                vertical-align: middle;
+                margin: 0 1rem;
+                width: auto;
+                max-width: 40%;
+                padding: 0.5rem;
+                border-radius: 0.5rem;
+                background-color: #fff;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              `
+            };
+          }
+          
+          if (layout === 'wrap') {
+            return {
+              style: `
+                float: ${alignment};
+                margin: ${alignment === 'left' ? '0.5rem 1.5rem 1rem 0' : '0.5rem 0 1rem 1.5rem'};
+                width: auto;
+                max-width: 45%;
+                padding: 0.5rem;
+                border-radius: 0.5rem;
+                background-color: #fff;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              `
+            };
+          }
+          
+          return {
+            style: `
+              display: block;
+              margin: 2rem auto;
+              max-width: 100%;
+              padding: 1rem;
+              border-radius: 0.5rem;
+              background-color: #fff;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            `
+          };
+        }
       }
     };
   },
@@ -251,10 +313,19 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   const addLink = () => {
     if (!linkUrl || !editor) return;
     
+    // Ensure URL has http:// or https://
+    const url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
+    
+    // If there's no selection, don't add the link
+    if (editor.state.selection.empty) {
+      alert('Please select some text first');
+      return;
+    }
+
     editor
       .chain()
       .focus()
-      .toggleLink({ href: linkUrl })
+      .setLink({ href: url })
       .run();
 
     setLinkUrl('');
@@ -264,6 +335,90 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   const removeLink = () => {
     if (!editor) return;
     editor.chain().focus().unsetLink().run();
+  };
+
+  const addTable = () => {
+    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+  }
+
+  const addColumnBefore = () => {
+    editor.chain().focus().addColumnBefore().run()
+  }
+
+  const addColumnAfter = () => {
+    editor.chain().focus().addColumnAfter().run()
+  }
+
+  const deleteColumn = () => {
+    editor.chain().focus().deleteColumn().run()
+  }
+
+  const addRowBefore = () => {
+    editor.chain().focus().addRowBefore().run()
+  }
+
+  const addRowAfter = () => {
+    editor.chain().focus().addRowAfter().run()
+  }
+
+  const deleteRow = () => {
+    editor.chain().focus().deleteRow().run()
+  }
+
+  const deleteTable = () => {
+    editor.chain().focus().deleteTable().run()
+  }
+
+  const toggleHeaderCell = () => {
+    editor.chain().focus().toggleHeaderCell().run()
+  }
+
+  const mergeOrSplit = () => {
+    if (editor.can().mergeCells()) {
+      editor.chain().focus().mergeCells().run()
+    } else if (editor.can().splitCell()) {
+      editor.chain().focus().splitCell().run()
+    }
+  }
+
+  const handleHeadingToggle = (level: 1 | 2 | 3) => {
+    if (level === 1) {
+      // Check if H1 already exists
+      let hasH1 = false;
+      editor.state.doc.descendants((node) => {
+        if (node.type.name === 'heading' && node.attrs.level === 1) {
+          hasH1 = true;
+          return false; // Stop traversing
+        }
+        return true;
+      });
+
+      if (hasH1) {
+        // Show warning message
+        alert('Only one H1 heading is allowed per blog post. Using H2 instead.');
+        editor.chain().focus().toggleHeading({ level: 2 }).run();
+        return;
+      }
+    }
+    editor.chain().focus().toggleHeading({ level }).run();
+  };
+
+  // Add these functions to the MenuBar component
+  const setImageLayout = (layout: ImageLayout) => {
+    const { from } = editor.state.selection;
+    const imageNode = editor.state.doc.nodeAt(from);
+    if (imageNode && imageNode.type.name === 'image') {
+      editor
+        .chain()
+        .focus()
+        .setImage({ 
+          src: imageNode.attrs.src,
+          width: imageNode.attrs.width,
+          alignment: imageNode.attrs.alignment,
+          layout: layout
+        })
+        .run();
+    }
   };
 
   return (
@@ -293,7 +448,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       
       {/* Heading buttons - Fixed to properly apply heading styles */}
       <button
-        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        onClick={() => handleHeadingToggle(1)}
         className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('heading', { level: 1 }) ? 'bg-gray-200' : ''}`}
         title="Heading 1"
       >
@@ -344,48 +499,100 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       </button>
 
       {/* Link controls */}
-      <div className="flex items-center gap-1">
+      <div className="relative flex items-center gap-1">
         <button
-          onClick={() => setShowLinkInput(!showLinkInput)}
-          className={`p-1.5 hover:bg-gray-200 rounded ${editor.isActive('link') ? 'bg-gray-200' : ''}`}
-          title="Add Link"
+          onClick={() => {
+            if (editor.isActive('link')) {
+              removeLink();
+            } else {
+              setShowLinkInput(!showLinkInput);
+            }
+          }}
+          className={`p-1.5 hover:bg-gray-200 rounded ${
+            editor.isActive('link') ? 'bg-gray-200' : ''
+          }`}
+          title={editor.isActive('link') ? 'Remove Link' : 'Add Link'}
         >
-          <Link2 size={16} />
-        </button>
-        {editor.isActive('link') && (
-          <button
-            onClick={removeLink}
-            className="p-1.5 hover:bg-gray-200 rounded"
-            title="Remove Link"
-          >
+          {editor.isActive('link') ? (
             <Link2Off size={16} />
-          </button>
+          ) : (
+            <Link2 size={16} />
+          )}
+        </button>
+
+        {showLinkInput && (
+          <div className="absolute top-full left-0 mt-1 flex items-center gap-1 bg-white border rounded-md shadow-lg p-2 z-50">
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="Enter URL..."
+              className="px-2 py-1 border rounded text-sm w-64"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  addLink();
+                } else if (e.key === 'Escape') {
+                  setShowLinkInput(false);
+                  setLinkUrl('');
+                }
+              }}
+              autoFocus
+            />
+            <button
+              onClick={addLink}
+              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+            >
+              Add
+            </button>
+            <button
+              onClick={() => {
+                setShowLinkInput(false);
+                setLinkUrl('');
+              }}
+              className="px-3 py-1 border rounded text-sm hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+          </div>
         )}
       </div>
-
-      {showLinkInput && (
-        <div className="flex items-center gap-1">
-          <input
-            type="url"
-            value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-            placeholder="Enter URL..."
-            className="px-2 py-1 border rounded text-sm"
-          />
-          <button
-            onClick={addLink}
-            className="px-2 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-          >
-            Add
-          </button>
-        </div>
-      )}
 
       {/* Image controls - only visible when an image is selected */}
       {isImageSelected() && (
         <>
           <div className="border-l mx-2 h-6"></div>
           
+          {/* Layout controls */}
+          <div className="flex items-center gap-1 bg-gray-50 p-1 rounded">
+            <button
+              onClick={() => setImageLayout('inline')}
+              className={`p-1.5 hover:bg-gray-200 rounded text-xs ${
+                editor.isActive('image', { layout: 'inline' }) ? 'bg-gray-200' : ''
+              }`}
+              title="Inline with text"
+            >
+              Inline
+            </button>
+            <button
+              onClick={() => setImageLayout('wrap')}
+              className={`p-1.5 hover:bg-gray-200 rounded text-xs ${
+                editor.isActive('image', { layout: 'wrap' }) ? 'bg-gray-200' : ''
+              }`}
+              title="Text wraps around"
+            >
+              Wrap
+            </button>
+            <button
+              onClick={() => setImageLayout('block')}
+              className={`p-1.5 hover:bg-gray-200 rounded text-xs ${
+                editor.isActive('image', { layout: 'block' }) ? 'bg-gray-200' : ''
+              }`}
+              title="Full width block"
+            >
+              Block
+            </button>
+          </div>
+
           {/* Size controls */}
           <div className="flex items-center gap-1">
             <button
@@ -500,6 +707,83 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       >
         <AlignRight size={16} />
       </button>
+
+      {/* Table controls */}
+      <button
+        onClick={addTable}
+        className="p-2 hover:bg-gray-200 rounded"
+        title="Insert Table"
+      >
+        <TableIcon size={16} />
+      </button>
+
+      {editor.isActive('table') && (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={addColumnBefore}
+            className="p-2 hover:bg-gray-200 rounded text-xs"
+            title="Add Column Before"
+          >
+            +←
+          </button>
+          <button
+            onClick={addColumnAfter}
+            className="p-2 hover:bg-gray-200 rounded text-xs"
+            title="Add Column After"
+          >
+            →+
+          </button>
+          <button
+            onClick={deleteColumn}
+            className="p-2 hover:bg-gray-200 rounded text-xs text-red-500"
+            title="Delete Column"
+          >
+            -↕
+          </button>
+          <button
+            onClick={addRowBefore}
+            className="p-2 hover:bg-gray-200 rounded text-xs"
+            title="Add Row Before"
+          >
+            +↑
+          </button>
+          <button
+            onClick={addRowAfter}
+            className="p-2 hover:bg-gray-200 rounded text-xs"
+            title="Add Row After"
+          >
+            ↓+
+          </button>
+          <button
+            onClick={deleteRow}
+            className="p-2 hover:bg-gray-200 rounded text-xs text-red-500"
+            title="Delete Row"
+          >
+            -↔
+          </button>
+          <button
+            onClick={toggleHeaderCell}
+            className="p-2 hover:bg-gray-200 rounded text-xs"
+            title="Toggle Header Cell"
+          >
+            TH
+          </button>
+          <button
+            onClick={mergeOrSplit}
+            className="p-2 hover:bg-gray-200 rounded"
+            title="Merge/Split Cells"
+          >
+            <MoreHorizontal size={16} />
+          </button>
+          <button
+            onClick={deleteTable}
+            className="p-2 hover:bg-gray-200 rounded text-red-500"
+            title="Delete Table"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -510,6 +794,23 @@ interface BlogEditorProps {
 }
 
 const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
+  const [editorMode, setEditorMode] = useState<EditorMode>('rich');
+  const [htmlContent, setHtmlContent] = useState(content);
+  const [slug, setSlug] = useState('');
+
+  // Update content when editor mode changes
+  useEffect(() => {
+    if (editorMode === 'html') {
+      setHtmlContent(content);
+    }
+  }, [editorMode, content]);
+
+  const handleHtmlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    setHtmlContent(newContent);
+    onChange(newContent);
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
@@ -533,28 +834,56 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
     }
   };
 
+  const createH1Extension = () => {
+    return StarterKit.configure({
+      document: false,
+      heading: {
+        levels: [1, 2, 3],
+        HTMLAttributes: {
+          class: 'heading',
+        },
+      },
+      bulletList: {
+        keepMarks: true,
+        keepAttributes: false
+      },
+      orderedList: {
+        keepMarks: true,
+        keepAttributes: false
+      }
+    }).extend({
+      addKeyboardShortcuts() {
+        return {
+          'Mod-Alt-1': () => {
+            // Check if H1 already exists
+            const hasH1 = this.editor.state.doc.descendants(node => {
+              return node.type.name === 'heading' && node.attrs.level === 1;
+            }).some((node: { type: { name: string; }; attrs: { level: number; }; }) => node.type.name === 'heading' && node.attrs.level === 1);
+            
+            if (hasH1) {
+              // If H1 exists, convert to H2 instead
+              this.editor.commands.toggleHeading({ level: 2 });
+            }
+            return this.editor.commands.toggleHeading({ level: 1 });
+          },
+        };
+      },
+    });
+  };
+
   const editor = useEditor({
     extensions: [
       Document,
-      Paragraph,
-      Text,
-      StarterKit.configure({
-        document: false,
-        heading: {
-          levels: [1, 2, 3]
+      Paragraph.configure({
+        HTMLAttributes: {
+          class: 'blog-paragraph',
         },
-        bulletList: {
-          keepMarks: true,
-          keepAttributes: false
-        },
-        orderedList: {
-          keepMarks: true,
-          keepAttributes: false
-        }
       }),
+      Text,
+      createH1Extension(),
       CustomImage,
       TextAlign.configure({
-        types: ['heading', 'paragraph'],
+        types: ['heading', 'paragraph', 'table'],
       }),
       Link.configure({
         openOnClick: false,
@@ -563,7 +892,17 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
           rel: 'noopener noreferrer nofollow',
           target: '_blank',
         },
+        validate: href => /^https?:\/\//.test(href),
       }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'border-collapse table-auto w-full',
+        },
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: content || '<p></p>',
     onUpdate: ({ editor }) => {
@@ -577,24 +916,78 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
     parseOptions: {
       preserveWhitespace: true,
     },
+    editorProps: {
+      attributes: {
+        class: 'prose max-w-none focus:outline-none',
+      },
+    },
   });
+
+  const handleSlugChange = (value: string) => {
+    // Convert to lowercase and replace spaces with hyphens
+    const formattedSlug = value
+      .toLowerCase()
+      .replace(/\s+/g, '-') // Replace one or more spaces with a single hyphen
+      .replace(/[^a-z0-9-]/g, '') // Remove any characters that aren't letters, numbers, or hyphens
+      .replace(/-+/g, '-') // Replace multiple consecutive hyphens with a single hyphen
+      .replace(/^-+|-+$/g, ''); // Remove hyphens from start and end
+    
+    setSlug(formattedSlug);
+    
+    // Clear validation error if slug is not empty
+    if (formattedSlug) {
+      setValidationErrors((prev: Record<string, unknown>) => ({ ...prev, slug: undefined }));
+    }
+  };
 
   return (
     <div className="rounded-lg border bg-white relative">
-      <MenuBar editor={editor} />
-      <div 
-        onDragOver={handleDragOver}
-        onDrop={(e) => editor && handleDrop(e, editor)}
-        className="relative"
-      >
-        <div className="absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-move opacity-30 hover:opacity-100 transition-opacity">
-          <DragHandleDots2Icon className="h-5 w-5 text-gray-500" />
+      {/* Editor Mode Switch */}
+      <div className="flex items-center justify-end gap-4 p-2 bg-gray-50 border-b">
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="editor-mode" className="text-sm font-medium">
+            HTML Mode
+          </Label>
+          <Switch
+            id="editor-mode"
+            checked={editorMode === 'html'}
+            onCheckedChange={(checked) => setEditorMode(checked ? 'html' : 'rich')}
+          />
         </div>
-        <EditorContent 
-          editor={editor} 
-          className="p-4 pl-8 min-h-[400px] prose max-w-none"
-        />
       </div>
+
+      {editorMode === 'rich' ? (
+        <>
+          <MenuBar editor={editor} />
+          <div
+            onDragOver={handleDragOver}
+            onDrop={(e) => editor && handleDrop(e, editor)}
+            className="relative"
+          >
+            <div className="absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-move opacity-30 hover:opacity-100 transition-opacity">
+              <DragHandleDots2Icon className="h-5 w-5 text-gray-500" />
+            </div>
+            <EditorContent 
+              editor={editor} 
+              className="p-4 pl-8 min-h-[400px] prose max-w-none"
+            />
+          </div>
+        </>
+      ) : (
+        <div className="relative">
+          <textarea
+            value={htmlContent}
+            onChange={handleHtmlChange}
+            className="w-full min-h-[400px] p-4 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+            placeholder="Enter HTML content..."
+            spellCheck={false}
+          />
+          <div className="absolute right-2 bottom-2 text-xs text-gray-400">
+            HTML Editor
+          </div>
+        </div>
+      )}
+
       <style>{`
         /* Base editor styles */
         .ProseMirror {
@@ -649,9 +1042,10 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
         .ProseMirror img {
           max-width: 100%;
           height: auto;
-          margin: 1em 0;
-          border-radius: 4px;
-          transition: all 0.2s ease;
+          border-radius: 0.5rem;
+          padding: 4rem;
+          background-color: #fff;
+
         }
 
         .ProseMirror img.is-selected {
@@ -695,30 +1089,36 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
           color: #2563eb;
           text-decoration: none;
           cursor: pointer;
-          padding: 0 2px;
-          border-radius: 2px;
         }
 
         .ProseMirror a:hover {
           text-decoration: underline;
+        }
+
+        /* Selected link state */
+        .ProseMirror a.is-active {
           background-color: rgba(37, 99, 235, 0.1);
+          border-radius: 0.25rem;
+          padding: 0 2px;
         }
 
         /* Image alignment */
         .ProseMirror img[data-alignment="left"] {
           float: left;
-          margin-right: 1em;
+          margin: 2.5rem 2rem 2rem 0;
+          max-width: 50%;
         }
 
         .ProseMirror img[data-alignment="center"] {
           display: block;
-          margin-left: auto;
-          margin-right: auto;
+          margin: 2.5rem auto;
+          max-width: 70%;
         }
 
         .ProseMirror img[data-alignment="right"] {
           float: right;
-          margin-left: 1em;
+          margin: 2.5rem 0 2rem 2rem;
+          max-width: 50%;
         }
 
         /* Image size transition */
@@ -740,6 +1140,267 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
         .tooltip {
           animation: tooltipFade 0.2s ease-out;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .ProseMirror table {
+          border-collapse: collapse;
+          margin: 0;
+          overflow: hidden;
+          table-layout: fixed;
+          width: 100%;
+        }
+
+        .ProseMirror table td,
+        .ProseMirror table th {
+          border: 2px solid #ced4da;
+          box-sizing: border-box;
+          min-width: 1em;
+          padding: 8px;
+          position: relative;
+          vertical-align: top;
+        }
+
+        .ProseMirror table th {
+          background-color: #f8f9fa;
+          font-weight: bold;
+          text-align: left;
+        }
+
+        .ProseMirror table .selectedCell:after {
+          background: rgba(200, 200, 255, 0.4);
+          content: "";
+          left: 0;
+          right: 0;
+          top: 0;
+          bottom: 0;
+          pointer-events: none;
+          position: absolute;
+          z-index: 2;
+        }
+
+        .ProseMirror table .column-resize-handle {
+          background-color: #adf;
+          bottom: -2px;
+          position: absolute;
+          right: -2px;
+          pointer-events: none;
+          top: 0;
+          width: 4px;
+        }
+
+        .tableWrapper {
+          padding: 1rem 0;
+          overflow-x: auto;
+        }
+
+        /* Image and text spacing styles */
+        .ProseMirror {
+          img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin: 1.5rem 0;
+            clear: both;
+          }
+
+          img[data-alignment="left"] {
+            float: left;
+            margin-right: 2rem;
+            margin-bottom: 1rem;
+            max-width: 50%;
+          }
+
+          img[data-alignment="right"] {
+            float: right;
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+            max-width: 50%;
+          }
+
+          img[data-alignment="center"] {
+            display: block;
+            margin: 1.5rem auto;
+            max-width: 70%;
+          }
+
+          /* Clear floats after images */
+          p:after {
+            content: "";
+            display: table;
+            clear: both;
+          }
+
+          /* Responsive image sizing */
+          @media (max-width: 768px) {
+            img[data-alignment="left"],
+            img[data-alignment="right"] {
+              float: none;
+              margin: 1.5rem auto;
+              max-width: 100%;
+              display: block;
+            }
+
+            img[data-alignment="center"] {
+              max-width: 100%;
+            }
+          }
+
+          /* Add spacing between paragraphs */
+          p {
+            margin: 1.2rem 0;
+            line-height: 1.6;
+          }
+
+          /* Add spacing for headings */
+          h1, h2, h3, h4, h5, h6 {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            clear: both;
+          }
+
+          /* Table spacing */
+          table {
+            margin: 1.5rem 0;
+            width: 100%;
+            clear: both;
+          }
+        }
+
+        .blog-paragraph {
+          margin: 1.5rem 0;
+          line-height: 2; /* Increased line height */
+          font-size: 1.1rem;
+        }
+
+        /* Heading styles */
+        h1 {
+          font-size: 2.5rem;
+          font-weight: 700;
+          margin: 2rem 0 1.5rem;
+          line-height: 1.2;
+          color: #111827;
+        }
+
+        h2 {
+          font-size: 2rem;
+          font-weight: 600;
+          margin: 2rem 0 1rem;
+          line-height: 1.3;
+          color: #1f2937;
+        }
+
+        h3 {
+          font-size: 1.5rem;
+          font-weight: 600;
+          margin: 1.5rem 0 1rem;
+          line-height: 1.4;
+          color: #374151;
+        }
+
+        /* Image container styles */
+        .image-container {
+          position: relative;
+          margin: 2.5rem 0;
+          padding: 1rem;
+          background-color: #fff;
+          border-radius: 0.5rem;
+         
+        }
+
+        /* Clear floats after paragraphs containing images */
+        p:has(img) {
+          overflow: hidden;
+          margin: 2rem 0;
+        }
+
+        /* Add spacing between consecutive images */
+        img + img {
+          margin-top: 3rem;
+        }
+
+        /* Responsive image sizing with maintained spacing */
+        @media (max-width: 768px) {
+          img[data-alignment="left"],
+          img[data-alignment="right"] {
+            float: none;
+            margin: 2.5rem auto;
+            max-width: 100%;
+            display: block;
+          }
+
+          img[data-alignment="center"] {
+            max-width: 100%;
+            margin: 2.5rem auto;
+          }
+
+          .image-container {
+            margin: 2rem 0;
+          }
+        }
+
+        /* Image layout styles */
+        img[data-layout="inline"] {
+          display: inline-block;
+          vertical-align: middle;
+          margin: 0 1rem;
+          width: auto;
+          max-width: 40%;
+        }
+
+        img[data-layout="wrap"] {
+          max-width: 45%;
+          margin: 0.5rem 1.5rem 1rem 0;
+          
+          &[data-alignment="right"] {
+            float: right;
+            margin: 0.5rem 0 1rem 1.5rem;
+          }
+          
+          &[data-alignment="left"] {
+            float: left;
+            margin: 0.5rem 1.5rem 1rem 0;
+          }
+        }
+
+        img[data-layout="block"] {
+          display: block;
+          margin: 2rem auto;
+          max-width: 100%;
+        }
+
+        /* Clear floats after wrapped images */
+        p:after {
+          content: "";
+          display: table;
+          clear: both;
+        }
+
+        /* Improve text wrapping around images */
+        p {
+          overflow: hidden;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          img[data-layout="inline"],
+          img[data-layout="wrap"] {
+            float: none;
+            display: block;
+            margin: 1rem auto;
+            max-width: 100%;
+          }
+        }
+
+        /* HTML Editor styles */
+        textarea {
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+          line-height: 1.5;
+          tab-size: 2;
+        }
+
+        /* Add syntax highlighting hint */
+        textarea::selection {
+          background: rgba(37, 99, 235, 0.1);
         }
       `}</style>
     </div>
@@ -763,64 +1424,160 @@ const BlogPreview: React.FC<BlogPreviewProps> = ({ title, content }) => (
       />
     </div>
     <style>{`
-      .prose h1 {
-        font-size: 2em;
-        font-weight: 700;
-        margin: 1em 0 0.5em;
-        color: #111827;
-      }
+      .prose {
+        /* ... existing styles ... */
 
-      .prose h2 {
-        font-size: 1.5em;
-        font-weight: 600;
-        margin: 1em 0 0.5em;
-        color: #111827;
-      }
-
-      .prose h3 {
-        font-size: 1.25em;
-        font-weight: 600;
-        margin: 1em 0 0.5em;
-        color: #111827;
-      }
-
-      .prose p {
-        margin: 0.75em 0;
-        line-height: 1.6;
-      }
-
-      .prose img {
-        max-width: 100%;
-        height: auto;
-        margin: 1em 0;
-        border-radius: 4px;
-      }
-
-      .prose ul,
-      .prose ol {
-        padding-left: 1.2em;
-        margin: 0.5em 0;
-      }
-
-      .prose li {
-        margin: 0.2em 0;
-      }
-
-      @media (max-width: 640px) {
-        .prose {
-          font-size: 15px;
+        img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 0.5rem;
+          padding: 1rem;
+          background-color: #fff;
+        
         }
 
-        .prose h1 {
-          font-size: 1.75em;
+        img[data-alignment="left"] {
+          float: left;
+          margin: 2.5rem 2rem 2rem 0;
+          max-width: 50%;
         }
 
-        .prose h2 {
-          font-size: 1.35em;
+        img[data-alignment="right"] {
+          float: right;
+          margin: 2.5rem 0 2rem 2rem;
+          max-width: 50%;
         }
 
-        .prose h3 {
-          font-size: 1.15em;
+        img[data-alignment="center"] {
+          display: block;
+          margin: 2.5rem auto;
+          max-width: 70%;
+        }
+
+        /* Image container styles */
+        .image-container {
+          position: relative;
+          margin: 2.5rem 0;
+          padding: 1rem;
+          background-color: #fff;
+          border-radius: 0.5rem;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Clear floats and add spacing for paragraphs with images */
+        p:has(img) {
+          overflow: hidden;
+          margin: 2rem 0;
+        }
+
+        /* Add spacing between consecutive images */
+        img + img {
+          margin-top: 3rem;
+        }
+
+        /* Responsive image sizing */
+        @media (max-width: 768px) {
+          img[data-alignment="left"],
+          img[data-alignment="right"] {
+            float: none;
+            margin: 2.5rem auto;
+            max-width: 100%;
+            display: block;
+          }
+
+          img[data-alignment="center"] {
+            max-width: 100%;
+            margin: 2.5rem auto;
+          }
+
+          .image-container {
+            margin: 2rem 0;
+          }
+        }
+
+        /* Improved paragraph spacing */
+        p {
+          margin: 1.5rem 0;
+          line-height: 2; /* Increased line height */
+          font-size: 1.1rem;
+          color: #374151;
+        }
+
+        /* Heading spacing */
+        h1, h2, h3, h4, h5, h6 {
+          margin-top: 2rem;
+          margin-bottom: 1rem;
+          clear: both;
+        }
+
+        /* List spacing */
+        ul, ol {
+          margin: 1.5rem 0;
+          padding-left: 1.8rem;
+          line-height: 1.8;
+        }
+
+        li {
+          margin: 0.8rem 0;
+        }
+
+        /* Table spacing */
+        table {
+          margin: 1.5rem 0;
+          width: 100%;
+          clear: both;
+        }
+
+        /* Image layout styles */
+        img[data-layout="inline"] {
+          display: inline-block;
+          vertical-align: middle;
+          margin: 0 1rem;
+          width: auto;
+          max-width: 40%;
+        }
+
+        img[data-layout="wrap"] {
+          max-width: 45%;
+          margin: 0.5rem 1.5rem 1rem 0;
+          
+          &[data-alignment="right"] {
+            float: right;
+            margin: 0.5rem 0 1rem 1.5rem;
+          }
+          
+          &[data-alignment="left"] {
+            float: left;
+            margin: 0.5rem 1.5rem 1rem 0;
+          }
+        }
+
+        img[data-layout="block"] {
+          display: block;
+          margin: 2rem auto;
+          max-width: 100%;
+        }
+
+        /* Clear floats and improve text wrapping */
+        p {
+          overflow: hidden;
+          
+          &:after {
+            content: "";
+            display: table;
+            clear: both;
+          }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          img[data-layout="inline"],
+          img[data-layout="wrap"] {
+            float: none;
+            display: block;
+            margin: 1rem auto;
+            max-width: 100%;
+          }
         }
       }
     `}</style>
@@ -846,13 +1603,16 @@ const Index = () => {
     title?: string;
     category?: string;
     content?: string;
+    slug?: string;
   }>({});
+  const [slug, setSlug] = useState('');
 
   const validateForm = () => {
     const errors: {
       title?: string;
       category?: string;
       content?: string;
+      slug?: string;
     } = {};
     
     if (!title.trim()) {
@@ -865,6 +1625,10 @@ const Index = () => {
     
     if (!content.trim() || content === '<p></p>') {
       errors.content = 'Content is required';
+    }
+    
+    if (!slug.trim()) {
+      errors.slug = 'Slug is required';
     }
     
     setValidationErrors(errors);
@@ -889,6 +1653,7 @@ const Index = () => {
         tagNames,
         relatedArticleIds: [101, 102, 103],
         coverImage: coverImageUrl,
+        slug,
       };
     setIsSubmitting(true);
     try {
@@ -963,6 +1728,38 @@ const Index = () => {
     setCoverImageError('');
   };
 
+  const handleSlugChange = (value: string) => {
+    // Convert to lowercase and replace spaces with hyphens
+    const formattedSlug = value
+      .toLowerCase()
+      .replace(/\s+/g, '-') // Replace one or more spaces with a single hyphen
+      .replace(/[^a-z0-9-]/g, '') // Remove any characters that aren't letters, numbers, or hyphens
+      .replace(/-+/g, '-') // Replace multiple consecutive hyphens with a single hyphen
+      .replace(/^-+|-+$/g, ''); // Remove hyphens from start and end
+    
+    setSlug(formattedSlug);
+    
+    // Clear validation error if slug is not empty
+    if (formattedSlug) {
+      setValidationErrors(prev => ({ ...prev, slug: undefined }));
+    }
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setTitle(newTitle);
+    
+    // Clear title validation error if title is not empty
+    if (newTitle.trim()) {
+      setValidationErrors(prev => ({ ...prev, title: undefined }));
+    }
+    
+    // Automatically update slug when title changes if slug is empty
+    if (!slug) {
+      handleSlugChange(newTitle);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-0 sm:px-2 lg:px-8 py-5">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Create New Blog Post</h1>
@@ -976,12 +1773,7 @@ const Index = () => {
             <input
               type="text"
               value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                if (e.target.value.trim()) {
-                  setValidationErrors(prev => ({ ...prev, title: undefined }));
-                }
-              }}
+              onChange={handleTitleChange}
               className={`w-full border rounded-md p-2 ${
                 validationErrors.title ? 'border-red-500' : 'border-gray-300'
               }`}
@@ -990,6 +1782,36 @@ const Index = () => {
             {validationErrors.title && (
               <p className="mt-1 text-sm text-red-500">{validationErrors.title}</p>
             )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Slug <span className="text-red-500">*</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={slug}
+                onChange={(e) => handleSlugChange(e.target.value)}
+                className={`w-full border rounded-md p-2 font-mono text-sm ${
+                  validationErrors.slug ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="enter-your-slug-here"
+              />
+              <button
+                onClick={() => handleSlugChange(title)}
+                type="button"
+                className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded border border-gray-300 transition-colors"
+                title="Generate from title"
+              >
+                Generate from title
+              </button>
+            </div>
+            {validationErrors.slug && (
+              <p className="mt-1 text-sm text-red-500">{validationErrors.slug}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              This will be the URL of your blog post. Use hyphens to separate words.
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
