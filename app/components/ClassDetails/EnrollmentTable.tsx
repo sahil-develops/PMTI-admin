@@ -24,11 +24,15 @@ interface Enrollment {
   Price: number;
   Comments: string;
   status: boolean;
+  [key: string]: any; // This allows for dynamic day input properties
+  testDate?: string;
 }
 
 interface EnrollmentTableProps {
   enrollments: Enrollment[];
   onUpdate?: () => void;
+  startDate?: string;
+  endDate?: string;
 }
 
 interface UpdatePayload {
@@ -129,13 +133,32 @@ const updateEnrollment = async (studentId: number, payload: UpdatePayload) => {
   }
 };
 
-export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: EnrollmentTableProps) => {
+const getDaysBetweenDates = (startDate: string, endDate: string) => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const days: Date[] = [];
+  
+  let currentDate = new Date(start);
+  while (currentDate <= end) {
+    days.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return days;
+};
+
+export const EnrollmentTable = ({ 
+  enrollments: initialEnrollments, 
+  onUpdate,
+  startDate,
+  endDate 
+}: EnrollmentTableProps) => {
   const [enrollments, setEnrollments] = useState(initialEnrollments);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [loading, setLoading] = useState<{[key: string]: boolean}>({});
   const [error, setError] = useState<string | null>(null);
 
-
+  const classdays = startDate && endDate ? getDaysBetweenDates(startDate, endDate) : [];
 
   const handleUpdate = async (studentId: number, payload: UpdatePayload) => {
     const loadingKey = `${studentId}-${Object.keys(payload)[0]}`;
@@ -200,12 +223,18 @@ export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: E
             <StyledTableHeader>Status</StyledTableHeader>
             <StyledTableHeader>Meal Type</StyledTableHeader>
             <StyledTableHeader>Phone</StyledTableHeader>
-            {/* <StyledTableHeader>Price</StyledTableHeader> */}
-            {/* <StyledTableHeader>Comments</StyledTableHeader> */}
-            <StyledTableHeader>Day 1 10hrs</StyledTableHeader>
-            <StyledTableHeader>Day 2 10hrs</StyledTableHeader>
-            <StyledTableHeader>Day 3 10hrs</StyledTableHeader>
-            <StyledTableHeader>Day 4 10hrs</StyledTableHeader>
+            <StyledTableHeader>Price</StyledTableHeader>
+            <StyledTableHeader>Comments</StyledTableHeader>
+            
+            {/* Dynamic day headers */}
+            {classdays.map((date, index) => (
+              <StyledTableHeader  key={date.toISOString()}>
+                Day {index + 1}<br/>
+          
+                10hrs
+              </StyledTableHeader>
+            ))}
+
             <StyledTableHeader>Test Date</StyledTableHeader>
             <StyledTableHeader>Signature</StyledTableHeader>
           </TableRow>
@@ -289,46 +318,24 @@ export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: E
 />
               </StyledTableCell>
               <StyledTableCell>{enrollment.student.phone}</StyledTableCell>
-              <StyledTableCell>
-                <CompactInput 
-                  value={enrollment.day1Input || ""}
-                  onChange={(value) => handleUpdate(enrollment.student.id, {
-                    day1Input: value
-                  })}
-                  loading={loading[`${enrollment.student.id}-day1Input`]}
-                  placeholder="Day 1 Input"
-                />
-              </StyledTableCell>
-              <StyledTableCell>
-                <CompactInput 
-                  value={enrollment.day2Input || ""}
-                  onChange={(value) => handleUpdate(enrollment.student.id, {
-                    day2Input: value
-                  })}
-                  loading={loading[`${enrollment.student.id}-day2Input`]}
-                  placeholder="Day 2 Input"
-                />
-              </StyledTableCell>
-              <StyledTableCell>
-                <CompactInput 
-                  value={enrollment.day3Input || ""}
-                  onChange={(value) => handleUpdate(enrollment.student.id, {
-                    day3Input: value
-                  })}
-                  loading={loading[`${enrollment.student.id}-day3Input`]}
-                  placeholder="Day 3 Input"
-                />
-              </StyledTableCell>
-              <StyledTableCell>
-                <CompactInput 
-                  value={enrollment.day4Input || ""}
-                  onChange={(value) => handleUpdate(enrollment.student.id, {
-                    day4Input: value
-                  })}
-                  loading={loading[`${enrollment.student.id}-day4Input`]}
-                  placeholder="Day 4 Input"
-                />
-              </StyledTableCell>
+              <StyledTableCell> {enrollment.Price}</StyledTableCell>
+              <StyledTableCell> {enrollment.Comments ? enrollment.Comments : "N/A"}</StyledTableCell>
+              
+              {/* Dynamic day input cells */}
+              {classdays.map((date, index) => (
+                <StyledTableCell key={date.toISOString()}>
+                  <CompactInput 
+                    value={enrollment[`day${index + 1}Input`] || ""}
+                    onChange={(value) => handleUpdate(enrollment.student.id, {
+                      [`day${index + 1}Input`]: value
+                    })}
+                    loading={loading[`${enrollment.student.id}-day${index + 1}Input`]}
+                    placeholder={`Day ${index + 1} Input`}
+                  />
+                </StyledTableCell>
+              ))}
+
+              {/* Test Date and Signature cells */}
               <StyledTableCell>
                 <CompactInput 
                   value={enrollment.day1Input || ""}
@@ -338,7 +345,6 @@ export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: E
                   loading={loading[`${enrollment.student.id}-EnrollmentDate`]}
                   placeholder="Test Date"
                 />
-                {/* Test Date column remains unchanged */}
               </StyledTableCell>
               <StyledTableCell>
                 <CompactInput 
@@ -357,7 +363,7 @@ export const EnrollmentTable = ({ enrollments: initialEnrollments, onUpdate }: E
         </TableBody>
         <TableFooter>
           <TableRow className="bg-zinc-50 font-medium">
-            <TableCell colSpan={13} className="text-right pr-4">
+            <TableCell colSpan={15} className="text-right pr-4">
               Grand Total:
             </TableCell>
             <TableCell>${grandTotal.toFixed(2)}</TableCell>

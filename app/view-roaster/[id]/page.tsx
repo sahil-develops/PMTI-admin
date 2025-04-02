@@ -131,6 +131,21 @@ const DetailSection = ({ title, children, className = "" }: { title: string; chi
   </div>
 );
 
+// Add this helper function after the DetailSection component and before the main component
+const getDaysBetweenDates = (startDate: string, endDate: string) => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const days: Date[] = [];
+  
+  let currentDate = new Date(start);
+  while (currentDate <= end) {
+    days.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return days;
+};
+
 export default function ClassDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null);
@@ -176,24 +191,25 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
   const handleDownloadPDF = () => {
     if (!classDetails) return;
-  
+
+    const classDays = getDaysBetweenDates(classDetails.startDate, classDetails.endDate);
+    
     const pdfData = {
       instructor: classDetails.instructor.name,
       location: `${classDetails.location.location}, ${classDetails.country.CountryName}`,
       startDate: new Date(classDetails.startDate).toLocaleDateString(),
       endDate: new Date(classDetails.endDate).toLocaleDateString(),
-      title: classDetails.title
+      title: classDetails.title,
+      classTime: classDetails.classTime,
+      days: classDays.map((date, index) => ({
+        dayNumber: index + 1,
+        date: date.toLocaleDateString()
+      }))
     };
-  
-    // Assuming the first enrollment is used for the PDF
-    const firstEnrollment = enrollments[0] || {
-      student: { name: '' },
-      EnrollmentDate: ''
-    };
-  
-    // Dynamic import of the PDF generator
+
+    // Pass all enrollments to the PDF generator
     import('@/app/components/ClassDetails/GeneratePDF').then(module => {
-      module.default(pdfData, firstEnrollment);
+      module.default(pdfData, enrollments);
     }).catch(err => {
       console.error('Error loading PDF generator:', err);
     });
@@ -277,6 +293,21 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                     <span>{new Date(classDetails.startDate).toLocaleDateString()} - {new Date(classDetails.endDate).toLocaleDateString()}</span>
                   </div>
                 </DetailSection>
+                
+                {/* Add the daily breakdown */}
+                <DetailSection title="Daily Schedule">
+                  <div className="space-y-2">
+                    {getDaysBetweenDates(classDetails.startDate, classDetails.endDate).map((date, index) => (
+                      <div key={date.toISOString()} className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-zinc-400" />
+                        <span className="font-medium">Day {index + 1}:</span>
+                        <span>{date.toLocaleDateString()}</span>
+                        <span className="text-zinc-500">({classDetails.classTime})</span>
+                      </div>
+                    ))}
+                  </div>
+                </DetailSection>
+
                 <DetailSection title="Class Time">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-zinc-400" />
@@ -404,7 +435,11 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
             <CardTitle>Class Enrollments</CardTitle>
           </CardHeader>
           <CardContent>
-            <EnrollmentTable enrollments={enrollments} />
+            <EnrollmentTable 
+              enrollments={enrollments} 
+              startDate={classDetails.startDate}
+              endDate={classDetails.endDate}
+            />
           </CardContent>
         </Card>
       </div>
