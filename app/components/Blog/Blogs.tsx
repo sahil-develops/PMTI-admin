@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Plus, Search, Trash2, Edit, X } from 'lucide-react';
 import { Tooltip } from 'react-tooltip';
 import ReactQuill from 'react-quill';
+import { useRouter } from 'next/navigation';
 
 // Define types
 interface User {
@@ -64,18 +65,7 @@ export default function Blogs() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   
-  // Edit related states
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [postToEdit, setPostToEdit] = useState<BlogPost | null>(null);
-  const [editedTitle, setEditedTitle] = useState('');
-  const [editedContent, setEditedContent] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-  const [isLoadingPost, setIsLoadingPost] = useState(false);
-  const [editError, setEditError] = useState('');
-  const [editedCoverImage, setEditedCoverImage] = useState('');
-  const [newCoverImage, setNewCoverImage] = useState<File | null>(null);
-  const [isImageUploading, setIsImageUploading] = useState(false);
-  const [imageUploadError, setImageUploadError] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
     const fetchBlogPosts = async () => {
@@ -201,141 +191,8 @@ export default function Blogs() {
   };
 
   // Function to handle edit click
-  const handleEditClick = async (post: BlogPost) => {
-    try {
-      setIsLoadingPost(true);
-      setPostToEdit(post);
-      
-      // Get auth token
-      const userDataString = localStorage.getItem('userData');
-      if (!userDataString) {
-        throw new Error('User data not found in localStorage');
-      }
-      
-      const userData = JSON.parse(userDataString);
-      const authToken = userData.token;
-      
-      // Fetch the full blog post data
-      const response = await fetch(`https://api.4pmti.com/blog/${post.id}`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch blog post details');
-      }
-      
-      const result: SingleBlogResponse = await response.json();
-      if (result.success) {
-        setEditedTitle(result.data.title);
-        setEditedContent(result.data.content);
-        setShowEditModal(true);
-      } else {
-        throw new Error(result.error || 'Failed to fetch blog post details');
-      }
-    } catch (error) {
-      console.error('Error fetching blog post details:', error);
-      alert('Failed to load blog post details. Please try again.');
-    } finally {
-      setIsLoadingPost(false);
-    }
-  };
-
-  // Updated handleImageUpload with loading state
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        setIsImageUploading(true);
-        setImageUploadError('');
-        
-        const authToken = localStorage.getItem('accessToken');
-        if (!authToken) {
-          throw new Error('Authentication token not found');
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('https://api.4pmti.com/upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-          },
-          body: formData
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to upload image');
-        }
-
-        const data = await response.json();
-        setEditedCoverImage(data.url);
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        setImageUploadError('Failed to upload image. Please try again.');
-      } finally {
-        setIsImageUploading(false);
-      }
-    }
-  };
-
-  // Modify handleSaveEdit to use the URL instead of binary
-  const handleSaveEdit = async () => {
-    if (!postToEdit) return;
-
-    try {
-      setIsEditing(true);
-      setEditError('');
-      
-      const authToken = localStorage.getItem('accessToken');
-      if (!authToken) {
-        throw new Error('Authentication token not found');
-      }
-
-      // Now we can send JSON instead of FormData
-      const updateData = {
-        title: editedTitle,
-        content: editedContent,
-        cover_image: editedCoverImage || postToEdit.cover_image
-      };
-      
-      const response = await fetch(`https://api.4pmti.com/blog/${postToEdit.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updateData)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update blog post');
-      }
-      
-      const result = await response.json();
-      if (result.success) {
-        // Update local state
-        setBlogPosts(prevPosts => 
-          prevPosts.map(post => 
-            post.id === postToEdit.id 
-              ? { ...post, title: editedTitle, content: editedContent }
-              : post
-          )
-        );
-        setSuccessMessage(`Successfully updated "${editedTitle}"`);
-        setShowEditModal(false);
-        setShowSuccessModal(true);
-      } else {
-        throw new Error(result.error || 'Failed to update blog post');
-      }
-    } catch (error) {
-      console.error('Error updating blog post:', error);
-      setEditError('Failed to update blog post. Please try again.');
-    } finally {
-      setIsEditing(false);
-    }
+  const handleEditClick = (post: BlogPost) => {
+    router.push(`/blog/edit/${post.id}`);
   };
 
   return (
@@ -536,143 +393,6 @@ export default function Blogs() {
                     'Delete'
                   )}
                 </button>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Edit Modal */}
-        {showEditModal && postToEdit && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Edit Blog Post</h2>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                  disabled={isEditing || isImageUploading}
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* Cover Image Section */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cover Image
-                  </label>
-                  <div className="mt-1 space-y-4">
-                    {/* Current/Preview Image */}
-                    {(editedCoverImage || postToEdit.cover_image) && (
-                      <div className="relative w-fit">
-                        <img
-                          src={editedCoverImage || postToEdit.cover_image}
-                          alt="Cover preview"
-                          className="h-48 w-auto object-cover rounded-lg shadow"
-                        />
-                        <button
-                          onClick={() => {
-                            setEditedCoverImage('');
-                            setImageUploadError('');
-                          }}
-                          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow transition-colors"
-                          disabled={isEditing || isImageUploading}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Upload Section */}
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className={`block w-full text-sm text-gray-500
-                          file:mr-4 file:py-2 file:px-4
-                          file:rounded-md file:border-0
-                          file:text-sm file:font-semibold
-                          file:bg-blue-50 file:text-blue-700
-                          hover:file:bg-blue-100
-                          disabled:opacity-50 disabled:cursor-not-allowed
-                          ${isImageUploading ? 'opacity-50' : ''}`}
-                        disabled={isEditing || isImageUploading}
-                      />
-                      
-                      {/* Loading Spinner */}
-                      {isImageUploading && (
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Error Message */}
-                    {imageUploadError && (
-                      <p className="text-red-500 text-sm mt-1">{imageUploadError}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Title Input */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    value={editedTitle}
-                    onChange={(e) => setEditedTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    disabled={isEditing || isImageUploading}
-                  />
-                </div>
-
-                {/* Content Editor */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Content
-                  </label>
-                  <div className="border border-gray-300 rounded-md">
-                    <ReactQuill
-                      value={editedContent}
-                      onChange={setEditedContent}
-                      readOnly={isEditing || isImageUploading}
-                    />
-                  </div>
-                </div>
-
-                {/* Error Message */}
-                {editError && (
-                  <p className="text-red-500 text-sm">{editError}</p>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex justify-end space-x-3 mt-6">
-                  <button
-                    onClick={() => setShowEditModal(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-                    disabled={isEditing || isImageUploading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveEdit}
-                    disabled={isEditing || isImageUploading}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    {isEditing ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        <span>Saving...</span>
-                      </>
-                    ) : (
-                      <span>Save Changes</span>
-                    )}
-                  </button>
-                </div>
               </div>
             </div>
           </div>

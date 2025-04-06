@@ -9,6 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import EnrollmentTable from "@/app/components/ClassDetails/EnrollmentTable";
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+import { toast } from "@/hooks/use-toast";
 
 interface Instructor {
   id: number;
@@ -77,6 +80,7 @@ interface ClassDetails {
   isCancel: boolean;
   isDelete: boolean;
 }
+
 interface APIResponse {
   message: string;
   error: string;
@@ -87,42 +91,44 @@ interface APIResponse {
   };
 }
 
-
 interface EnrollmentTableProps {
-
   enrollments: {
-
     id: number;
-
     enrollmentType: string;
-
     EnrollmentDate: string;
-
     student: {
-
       name: string;
-
       email: string;
-
     };
-
     Price: string;
-
     MealType: string;
-
     PaymentMode: string;
-
     PMPPass: boolean;
-
     pmbok: boolean;
-
     Comments: string;
-
   }[];
-
 }
 
-
+interface PerformanceData {
+  classInfo: {
+    classDate: string;
+    trainingLocation: string;
+    instructorName: string;
+    title: string;
+    days: number;
+  };
+  students: {
+    id: number;
+    name: string;
+    days: {
+      midDayExam: number | null;
+      eveningExam: number | null;
+    }[];
+    studentAverage: number | null;
+    simTests: (number | null)[];
+    testDate: string | null;
+  }[];
+}
 
 const DetailSection = ({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) => (
   <div className={`space-y-1 ${className}`}>
@@ -131,19 +137,18 @@ const DetailSection = ({ title, children, className = "" }: { title: string; chi
   </div>
 );
 
-// Add this helper function after the DetailSection component and before the main component
-const getDaysBetweenDates = (startDate: string, endDate: string) => {
+const calculateDays = (startDate: string, endDate: string) => {
   const start = new Date(startDate);
   const end = new Date(endDate);
-  const days: Date[] = [];
-  
-  let currentDate = new Date(start);
-  while (currentDate <= end) {
-    days.push(new Date(currentDate));
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-  
-  return days;
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+};
+
+// Add this helper function to calculate dates
+const addDays = (dateString: string, days: number) => {
+  const date = new Date(dateString);
+  date.setDate(date.getDate() + days);
+  return date;
 };
 
 export default function ClassDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -192,7 +197,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
   const handleDownloadPDF = () => {
     if (!classDetails) return;
 
-    const classDays = getDaysBetweenDates(classDetails.startDate, classDetails.endDate);
+    const classDays = calculateDays(classDetails.startDate, classDetails.endDate);
     
     const pdfData = {
       instructor: classDetails.instructor.name,
@@ -201,10 +206,10 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       endDate: new Date(classDetails.endDate).toLocaleDateString(),
       title: classDetails.title,
       classTime: classDetails.classTime,
-      days: classDays.map((date, index) => ({
+      days: Array.isArray(classDays) ? classDays.map((date: { toLocaleDateString: () => any; }, index: number) => ({
         dayNumber: index + 1,
         date: date.toLocaleDateString()
-      }))
+      })) : []
     };
 
     // Pass all enrollments to the PDF generator
@@ -213,6 +218,192 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     }).catch(err => {
       console.error('Error loading PDF generator:', err);
     });
+  };
+
+  const handleGeneratePerformanceTracker = async () => {
+    if (!classDetails || !enrollments) return;
+
+    try {
+      // Create worksheet data
+      const wsData = [];
+
+      // Add logo placeholder (we'll add the image later)
+      wsData.push(['', '', '', '', '', '', '', '', '4PMTI']);
+      wsData.push([]); // Empty row for spacing
+
+      // Add header information with more spacing
+      wsData.push(['', '', 'Class Date :', `${classDetails.startDate} - ${classDetails.endDate}`]);
+      wsData.push(['', '', 'Training Location :', `${classDetails.location.location}, ${classDetails.country.CountryName}`]);
+      wsData.push(['', '', 'Instructor Name :', classDetails.instructor.name]);
+      wsData.push([]); // Empty row for spacing
+      wsData.push([]); // Extra empty row for better spacing
+
+      const numDays = calculateDays(classDetails.startDate, classDetails.endDate);
+
+      // Create headers based on number of days with more spacing
+      const headers = ['', '#', 'Student Name'];
+      for (let i = 0; i < numDays; i++) {
+        headers.push("",`Day - ${i + 1}`);
+        headers.push(''); // Empty cell that will be merged
+      }
+      headers.push('Student Average');
+      headers.push('Sim Test 1');
+      headers.push('Sim Test 2');
+      headers.push('Sim Test 3');
+      headers.push('Sim Test 4');
+      headers.push('Test Date?');
+      wsData.push(headers);
+
+      // Add sub-headers for exams
+      const subHeaders = ['', '', ''];
+      for (let i = 0; i < numDays; i++) {
+        subHeaders.push('Mid-day Exam');
+        subHeaders.push('Evening Exam');
+      }
+      subHeaders.push('', '', '', '', '', ''); // Add empty cells for the remaining columns
+      wsData.push(subHeaders);
+
+      // Add student data with more spacing
+      enrollments.forEach((enrollment, index) => {
+        const row = [
+          '', // Extra spacing at the start
+          index + 1,
+          enrollment.student.name,
+          // Initialize empty exam scores for each day
+          ...Array(numDays).fill(null).flatMap(() => ['', '']),
+          '', // Student Average
+          '', '', '', '', // Sim Tests
+          '' // Test Date
+        ];
+        wsData.push(row);
+      });
+
+      // Create Excel workbook
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+      // Set column widths
+      const colWidths: { [key: string]: { wch: number } } = {
+        A: { wch: 5 },  // Spacing column
+        B: { wch: 5 },  // # column
+        C: { wch: 30 }, // Student Name
+      };
+
+      // Add widths for day columns and other columns
+      let col = 'D';
+      for (let i = 0; i < (numDays * 2) + 6; i++) {
+        colWidths[col] = { wch: 15 };
+        col = String.fromCharCode(col.charCodeAt(0) + 1);
+      }
+
+      ws['!cols'] = Object.values(colWidths);
+
+      // Add merge cells configuration
+      ws['!merges'] = [];
+      // Merge Day headers
+      for (let i = 0; i < numDays; i++) {
+        ws['!merges'].push({
+          s: { r: 7, c: i * 2 + 3 }, // Start cell (row 7, column D + offset)
+          e: { r: 7, c: i * 2 + 4 }  // End cell (same row, next column)
+        });
+      }
+
+      // Add some styling
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cell_address = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!ws[cell_address]) continue;
+          
+          // Basic cell styling
+          ws[cell_address].s = {
+            font: { name: 'Arial', sz: 11 },
+            alignment: { 
+              horizontal: 'center',
+              vertical: 'center',
+              wrapText: true
+            },
+            border: {
+              top: { style: 'thin', color: { rgb: "000000" } },
+              bottom: { style: 'thin', color: { rgb: "000000" } },
+              left: { style: 'thin', color: { rgb: "000000" } },
+              right: { style: 'thin', color: { rgb: "000000" } }
+            }
+          };
+
+          // Header information styling (Class Date, Training Location, Instructor Name)
+          if (R >= 2 && R <= 4) {
+            if (C === 2 || C === 3) { // Columns for headers and their values
+              ws[cell_address].s.fill = {
+                fgColor: { rgb: "4C8092" },
+                patternType: 'solid'
+              };
+              ws[cell_address].s.font.color = { rgb: "FFFFFF" }; // White text
+              ws[cell_address].s.font.bold = true;
+              ws[cell_address].s.alignment.horizontal = 'left';
+            }
+          }
+
+          // Header row styling (Student names and days)
+          if (R === 7) {
+            ws[cell_address].s = {
+              ...ws[cell_address].s,
+              fill: {
+                fgColor: { rgb: "ECF9FB" },
+                patternType: 'solid'
+              },
+              font: {
+                ...ws[cell_address].s.font,
+                bold: true
+              },
+              alignment: {
+                ...ws[cell_address].s.alignment,
+                horizontal: 'center',
+                vertical: 'center'
+              }
+            };
+          }
+
+          // Student data rows styling
+          if (R > 7) {
+            ws[cell_address].s.fill = {
+              fgColor: { rgb: "ECF9FB" },
+              patternType: 'solid'
+            };
+          }
+
+          // Logo cell styling
+          if (R === 0 && C === 8) {
+            ws[cell_address].s.font.bold = true;
+            ws[cell_address].s.font.color = { rgb: "4CAF50" };
+            ws[cell_address].s.font.sz = 16;
+            // Remove background color for logo cell
+            delete ws[cell_address].s.fill;
+          }
+        }
+      }
+
+      // Set row heights
+      ws['!rows'] = Array(range.e.r + 1).fill({ hpt: 25 }); // Set all rows to height 25
+      ws['!rows'][0] = { hpt: 40 }; // Make the logo row taller
+      ws['!rows'][6] = { hpt: 30 }; // Make the header row taller
+      ws['!rows'][7] = { hpt: 30 }; // Make the sub-header row taller
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Performance Tracker');
+
+      // Generate Excel file
+      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, `performance_tracker_${classDetails.id}.xlsx`);
+
+    } catch (error) {
+      console.error('Error generating performance tracker:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate performance tracker",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -243,7 +434,6 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
   if (!classDetails) return null;
 
-
   return (
     <div className="max-w-full mx-auto p-4 sm:p-6">
       {/* Header with Download Button */}
@@ -255,13 +445,22 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
           <ChevronRight className="w-4 h-4 text-zinc-400" />
           <span className="text-zinc-900">{classDetails.title}</span>
         </nav>
-        <Button
-          onClick={handleDownloadPDF}
-          className="flex items-center gap-2"
-        >
-          <Download className="w-4 h-4" />
-          Download PDF
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleGeneratePerformanceTracker}
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Performance Tracker
+          </Button>
+          <Button
+            onClick={handleDownloadPDF}
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Download PDF
+          </Button>
+        </div>
       </div>
 
       <div ref={componentRef} className="space-y-6">
@@ -294,17 +493,23 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                   </div>
                 </DetailSection>
                 
-                {/* Add the daily breakdown */}
+                {/* Update the Daily Schedule section */}
                 <DetailSection title="Daily Schedule">
                   <div className="space-y-2">
-                    {getDaysBetweenDates(classDetails.startDate, classDetails.endDate).map((date, index) => (
-                      <div key={date.toISOString()} className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-zinc-400" />
-                        <span className="font-medium">Day {index + 1}:</span>
-                        <span>{date.toLocaleDateString()}</span>
-                        <span className="text-zinc-500">({classDetails.classTime})</span>
-                      </div>
-                    ))}
+                    {Array.from(
+                      { length: calculateDays(classDetails.startDate, classDetails.endDate) },
+                      (_, index) => {
+                        const currentDate = addDays(classDetails.startDate, index);
+                        return (
+                          <div key={index} className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-zinc-400" />
+                            <span className="font-medium">Day {index + 1}:</span>
+                            <span>{currentDate.toLocaleDateString()}</span>
+                            <span className="text-zinc-500">({classDetails.classTime})</span>
+                          </div>
+                        );
+                      }
+                    )}
                   </div>
                 </DetailSection>
 
@@ -444,6 +649,5 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
         </Card>
       </div>
     </div>
-
   );
 }

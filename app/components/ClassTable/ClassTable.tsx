@@ -220,11 +220,8 @@ const ActionDropdown = ({
       case "details":
         router.push(`/class-details/${classId}`);
         break;
-        case "roster":
-          router.push(`/view-roaster/${classId}`);
-          break;
       case "roster":
-        router.push(`/class-details/${classId}`);
+        router.push(`/view-roaster/${classId}`);
         break;
     }
     setIsOpen(false);
@@ -546,6 +543,7 @@ fetchStates("52"); // Fetch US states
       // Add other search parameters
       if (searchParams.startFrom) queryParams.append('startFrom', searchParams.startFrom);
       if (searchParams.dateTo) queryParams.append('dateTo', searchParams.dateTo);
+      if(searchParams.stateId) queryParams.append('stateId', searchParams.stateId);
       if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId);
       if (searchParams.locationId) queryParams.append('locationId', searchParams.locationId);
       if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
@@ -642,33 +640,20 @@ fetchStates("52"); // Fetch US states
     }
   };
 
-  // Add handleStateChange function
+  // Update the handleStateChange function to filter locations
   const handleStateChange = async (stateId: string) => {
     setSelectedState(stateId);
     setSearchParams(prev => ({ ...prev, stateId, locationId: '' }));
 
-    try {
-      // Fetch locations for selected state
-      const response = await fetch(
-        `https://api.4pmti.com/location?countryId=${searchParams.countryId}&stateId=${stateId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch locations');
-      }
-
-      const data = await response.json();
-      const sortedLocations = [...data.data].sort((a, b) => 
-        a.location.localeCompare(b.location)
-      );
+    // Find the selected state and its locations from the states array
+    const selectedStateData = states.find(state => state.id.toString() === stateId);
+    
+    if (selectedStateData) {
+      // Sort locations alphabetically and filter out deleted ones if needed
+      const sortedLocations = [...selectedStateData.locations]
+        .sort((a, b) => a.location.localeCompare(b.location));
       setCities(sortedLocations);
-    } catch (error) {
-      console.error('Error fetching locations:', error);
+    } else {
       setCities([]);
     }
   };
@@ -844,8 +829,51 @@ fetchStates("52"); // Fetch US states
     });
   };
 
-  function handleReset(event: React.MouseEvent<HTMLButtonElement>): void {
-    throw new Error("Function not implemented.");
+  async function handleReset(event: React.MouseEvent<HTMLButtonElement>): Promise<void> {
+    // Reset all search parameters
+    setSearchParams({
+      startFrom: '',
+      dateTo: '',
+      countryId: '52', // Default to US
+      stateId: '',
+      locationId: '',
+      instructorId: '',
+      courseCategoryId: '',
+      classTypeId: '',
+      showClass: '',
+      globalSearch: ''
+    });
+
+    // Show loading state
+    setLoading(true);
+
+    try {
+      // Fetch fresh data from API
+      const response = await fetch('https://api.4pmti.com/class', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch classes');
+      }
+
+      const data = await response.json();
+      
+      // Update the classes and metadata
+      setClasses(data.data.data);
+      setMetadata(data.data.metadata);
+      
+      // Reset current page
+      setCurrentPage(1);
+
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -1036,20 +1064,20 @@ fetchStates("52"); // Fetch US states
       </SelectTrigger>
       <SelectContent>
         {cities && cities.length > 0 ? (
-          cities.map((city) => (
-<SelectItem 
-  key={city.id} 
-  value={city.id.toString()}
-  className={city.isDelete ? 'text-zinc-400' : ''}
->
-  {city.location}
-  {city.isDelete && ' (Inactive)'}
-</SelectItem>
-          ))
+          cities
+            .filter(city => !city.isDelete) // Only show active locations
+            .map((city) => (
+              <SelectItem 
+                key={city.id} 
+                value={city.id.toString()}
+              >
+                {city.location}
+              </SelectItem>
+            ))
         ) : (
           <SelectItem value="no-locations" disabled>
-          No locations available
-        </SelectItem>
+            No locations available
+          </SelectItem>
         )}
       </SelectContent>
     </Select>
