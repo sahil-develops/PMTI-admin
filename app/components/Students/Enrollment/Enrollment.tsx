@@ -883,6 +883,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     value={selectedLocation}
                     onValueChange={(value) => {
                       setSelectedLocation(value);
+                      // @ts-ignore
                       setFormData(prev => ({
                         ...prev,
                         classId: isCourseEnrollment ? prev.classId : 1,
