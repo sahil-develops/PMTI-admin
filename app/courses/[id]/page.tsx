@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface User {
@@ -283,13 +282,22 @@ export default function CourseDetails({ params }: PageProps) {
                 } 
               />
               <DetailRow 
-                label="Status" 
+                label="Course Status" 
                 value={
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    course.isGuestAccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {course.isGuestAccess ? 'Active' : 'Inactive'}
-                  </span>
+                  <div className="flex items-center">
+                    <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      course.isVisible ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      <span 
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          course.isVisible ? 'translate-x-6' : 'translate-x-1'
+                        }`} 
+                      />
+                    </div>
+                    <span className="ml-2 text-sm font-medium">
+                      {course.isVisible ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
                 } 
               />
             </div>
@@ -301,6 +309,25 @@ export default function CourseDetails({ params }: PageProps) {
               </div>
               <DetailRow label="Category" value={course.category.name} />
               <DetailRow label="Category Description" value={course.category.description} />
+              <DetailRow 
+                label="Category Status" 
+                value={
+                  <div className="flex items-center">
+                    <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      course.category.active ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      <span 
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          course.category.active ? 'translate-x-6' : 'translate-x-1'
+                        }`} 
+                      />
+                    </div>
+                    <span className="ml-2 text-sm font-medium">
+                      {course.category.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                } 
+              />
               <DetailRow label="Class Type" value={course && course?.classType?.name} />
             </div>
 

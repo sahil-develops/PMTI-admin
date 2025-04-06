@@ -107,7 +107,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
           body: JSON.stringify({
             ...formData,
             amount: parseInt(formData.amount, 10),
-            active: formData.active ? 0 : 1
+            active: formData.active ? 1 : 0
           }),
         }
       );

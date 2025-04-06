@@ -84,7 +84,7 @@ const Transaction = () => {
       expiryDate: "",
       cvv: "",
       // @ts-ignore
-      amount: "0",
+      amount: "",
       invoiceNumber: "",
       description: "",
       billingFirstName: "",
@@ -111,7 +111,7 @@ const Transaction = () => {
 
   const onSubmit = async (data: TransactionFormValues) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}payment/charge`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/charge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +178,9 @@ const Transaction = () => {
             <Input 
               placeholder={placeholder} 
               type={type} 
-              {...field} 
+              {...field}
+              value={field.value || ''}
+              onChange={(e) => field.onChange(e.target.value)}
             />
           </FormControl>
           <FormMessage />

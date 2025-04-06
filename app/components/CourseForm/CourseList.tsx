@@ -194,7 +194,6 @@ const CourseList = () => {
               <tr>
                 <th scope="col" className="px-6 py-4 text-left font-medium">Type</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">Title</th>
-                <th scope="col" className="px-6 py-4 text-left font-medium">Location</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">Start Date</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">End Date</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">Instructor</th>
@@ -209,7 +208,6 @@ const CourseList = () => {
                 <tr key={course.id} className="bg-white hover:bg-gray-50">
                   <td className="px-6 py-4">{!course.isDelete ? 'Active' : 'Inactive'}</td>
                   <td className="px-6 py-4">{course.courseName}</td>
-                  <td className="px-6 py-4">New York City</td>
                   <td className="px-6 py-4">12/15/2024</td>
                   <td className="px-6 py-4">12/17/2024</td>
                   <td className="px-6 py-4">John Cena</td>

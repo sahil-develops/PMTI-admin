@@ -37,7 +37,7 @@ interface FormData {
   endDate: string;
   title: string;
   description: string;
-  active: boolean;
+  active: number;
   promotionType: string;
 }
 
@@ -63,7 +63,7 @@ export default function AddPromotionForm() {
     endDate: '',
     title: '',
     description: '',
-    active: false,
+    active:1,
     promotionType: '2'
   });
 
@@ -263,7 +263,7 @@ export default function AddPromotionForm() {
         endDate: new Date(formData.endDate).toISOString(),
         title: formData.title,
         description: formData.description,
-        active: formData.active ? 1 : 0,
+        active: formData.active ? 0 : 1,
         promotionType: parseInt(formData.promotionType),
         isDelete: 0,
         addedBy: parseInt(localStorage.getItem('userId') || '0'),
@@ -302,6 +302,8 @@ export default function AddPromotionForm() {
       setLoading(false);
     }
   };
+
+  const isActive = formData.active === 1;
 
   return (
     <div className="p-6 bg-white rounded-lg shadow">
@@ -579,13 +581,13 @@ export default function AddPromotionForm() {
         <div className="flex items-center space-x-2">
           <Switch
             id="active"
-            checked={formData.active}
+            checked={isActive}
             onCheckedChange={(checked) => 
-              setFormData({ ...formData, active: checked })
+              setFormData({ ...formData, active: checked ? 1 : 0 })
             }
           />
           <Label htmlFor="active" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-            {formData.active ? 'Active' : 'Inactive'}
+            {isActive ? 'Active' : 'Inactive'}
           </Label>
         </div>
 

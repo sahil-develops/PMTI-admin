@@ -86,6 +86,9 @@ interface BaseEnrollmentFormData {
   state: string;
   address: string;
   country: string;
+  startDate: string;
+  endDate: string;
+  enrollmentDate: string;
 }
 
 interface ClassEnrollmentFormData extends BaseEnrollmentFormData {
@@ -136,6 +139,8 @@ interface ItemData {
   title?: string;      // for classes
   courseName?: string; // for courses
   price: string;
+  startDate?: string;  // Add this
+  endDate?: string;    // Add this
 }
 
 const Enrollment = ({ params }: { params: { id: string } }) => {
@@ -420,6 +425,9 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     address: "",
     country: "52",
     ...(isCourseEnrollment ? { courseId: 1 } : { classId: 1 }),
+    enrollmentDate: new Date().toISOString().split('T')[0], // Format: YYYY-MM-DD
+    startDate: "",
+    endDate: "",
   });
 
   useEffect(() => {
@@ -436,10 +444,17 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   }, [selectedCountry]);
 
 
-  const fetchItems = async () => {
+  const fetchItems = async (countryId?: string, locationId?: string) => {
     try {
       const endpoint = isCourseEnrollment ? 'course' : 'class';
-      const response = await fetch(`https://api.4pmti.com/${endpoint}`, {
+      let url = `https://api.4pmti.com/${endpoint}`;
+      
+      // Add query parameters if both country and location are selected
+      if (!isCourseEnrollment && countryId && locationId) {
+        url += `?countryId=${countryId}&locationId=${locationId}`;
+      }
+
+      const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -448,6 +463,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       
       if (result.success) {
         setItems(result.data.data);
+      } else {
+        setItems([]); // Clear items if no results
       }
     } catch (error) {
       console.error(`Error fetching ${enrollmentType.toLowerCase()}:`, error);
@@ -456,12 +473,24 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         description: `Failed to fetch ${enrollmentType.toLowerCase()}es`,
         variant: "destructive",
       });
+      setItems([]); // Clear items on error
     }
   };
 
   useEffect(() => {
-    fetchItems();
+    if (isCourseEnrollment) {
+      fetchItems();
+    } else {
+      setItems([]); // Clear items when switching to class enrollment
+    }
   }, [isCourseEnrollment]);
+
+  // Add a new effect to fetch classes when country and location are selected
+  useEffect(() => {
+    if (!isCourseEnrollment && selectedCountry && selectedLocation) {
+      fetchItems(selectedCountry, selectedLocation);
+    }
+  }, [selectedCountry, selectedLocation, isCourseEnrollment]);
 
   
 
@@ -492,14 +521,19 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     const selected = items.find(item => item.id === selectedId);
 
     if (selected) {
+      const currentDate = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      
       setFormData(prev => ({
-              ...prev,
-              ...(isCourseEnrollment 
-                ? { courseId: selectedId, classId: undefined }
-                : { classId: selectedId, courseId: undefined }
-              ),
-              amount: parseFloat(selected.price) || 0,
-            }));
+        ...prev,
+        ...(isCourseEnrollment 
+          ? { courseId: selectedId, classId: undefined }
+          : { classId: selectedId, courseId: undefined }
+        ),
+        amount: parseFloat(selected.price) || 0,
+        startDate: selected.startDate || '',
+        endDate: selected.endDate || '',
+        enrollmentDate: currentDate
+      }));
     }
   };
 
@@ -617,7 +651,76 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     }
   };
 
-  
+  // Update the class/course selection JSX
+  const renderItemSelection = () => {
+    if (isCourseEnrollment) {
+      return (
+        <div>
+          <Label>Select Course</Label>
+          <Select
+            value={(formData.courseId)?.toString() || ""}
+            onValueChange={handleItemSelect}
+            required
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Course" />
+            </SelectTrigger>
+            <SelectContent>
+              {items.map((item) => (
+                <SelectItem 
+                  key={item.id} 
+                  value={item.id.toString()}
+                >
+                  {item.courseName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <Label>Select Class</Label>
+        <Select
+          value={(formData.classId)?.toString() || ""}
+          onValueChange={handleItemSelect}
+          required
+          disabled={!selectedCountry || !selectedLocation}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={
+              !selectedCountry 
+                ? "Select a country first" 
+                : !selectedLocation 
+                  ? "Select a location first"
+                  : items.length === 0 
+                    ? "No classes available"
+                    : "Select Class"
+            } />
+          </SelectTrigger>
+          <SelectContent>
+            {items.length > 0 ? (
+              items.map((item) => (
+                <SelectItem 
+                  key={item.id} 
+                  value={item.id.toString()}
+                >
+                  {item.title}
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem disabled value="no-classes">
+                No classes available for this location
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-full mx-auto p-6">
       {studentInfo && (
@@ -748,8 +851,14 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     value={selectedCountry}
                     onValueChange={(value) => {
                       setSelectedCountry(value);
-                      setSelectedLocation(value);
-                      setLocations([]);
+                      setSelectedLocation(""); // Reset location when country changes
+                      // @ts-ignore
+                      setFormData(prev => ({
+                        ...prev,
+                        classId: isCourseEnrollment ? prev.classId : 1 ,
+                        startDate: "",
+                        endDate: ""
+                      }));
                     }}
                     required
                   >
@@ -772,7 +881,15 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Label>Location</Label>
                   <Select
                     value={selectedLocation}
-                    onValueChange={setSelectedLocation}
+                    onValueChange={(value) => {
+                      setSelectedLocation(value);
+                      setFormData(prev => ({
+                        ...prev,
+                        classId: isCourseEnrollment ? prev.classId : 1,
+                        startDate: "",
+                        endDate: ""
+                      }));
+                    }}
                     disabled={!selectedCountry || locations.length === 0}
                   >
                     <SelectTrigger>
@@ -780,8 +897,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                         !selectedCountry 
                           ? "Select a country first" 
                           : locations.length === 0 
-                          ? "No locations available" 
-                          : "Select Location"
+                            ? "No locations available" 
+                            : "Select Location"
                       } />
                     </SelectTrigger>
                     <SelectContent>
@@ -796,28 +913,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label>Select {enrollmentType}</Label>
-                  <Select
-                    value={(isCourseEnrollment ? formData.courseId : formData.classId)?.toString() || ""}
-                    onValueChange={handleItemSelect}
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={`Select ${enrollmentType}`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {items.map((item) => (
-                        <SelectItem 
-                          key={item.id} 
-                          value={item.id.toString()}
-                        >
-                          {isCourseEnrollment ? item.courseName : item.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {renderItemSelection()}
               </div>
             </div>
 
@@ -825,11 +921,23 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Start Date</Label>
-                  <Input type="date" required />
+                  <Input 
+                    type="date" 
+                    value={formData.startDate || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                    required 
+                    readOnly={!isCourseEnrollment} // Make readonly for class enrollment
+                  />
                 </div>
                 <div>
                   <Label>End Date</Label>
-                  <Input type="date" required />
+                  <Input 
+                    type="date" 
+                    value={formData.endDate || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                    required
+                    readOnly={!isCourseEnrollment} // Make readonly for class enrollment
+                  />
                 </div>
               </div>
             </div>
@@ -872,7 +980,16 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Enrollment Date</Label>
-                  <Input type="date" required />
+                  <Input 
+                    type="date" 
+                    value={formData.enrollmentDate}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      enrollmentDate: e.target.value 
+                    }))}
+                    required
+                    readOnly // Make it readonly since it should be the current date
+                  />
                 </div>
                 <div>
                   <Label>Comments</Label>
