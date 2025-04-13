@@ -327,23 +327,56 @@ const Loader = () => (
 // Alternative version with a pulse effect if you prefer
 
 
-// Add this helper function near the top of your component
-const formatDateFromAPI = (dateString: string) => {
+// Update this helper function near the top of your component
+const formatDateFromAPI = (dateString: string): string => {
   if (!dateString) return "N/A";
   try {
-    // Parse the date string and format it
-    const date = new Date(dateString);
-    return format(date, "MM/dd/yyyy");  // US format
-    // Or use "dd/MM/yyyy" for UK/European format
+    // Handle the date part only to avoid timezone issues
+    const dateParts = dateString.split('T')[0].split('-');
+    if (dateParts.length !== 3) {
+      return dateString; // Return original if not in expected format
+    }
+    
+    const year = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]) - 1;
+    const day = parseInt(dateParts[2]);
+    
+    return `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year.toString().slice(-2)}`;
   } catch (error) {
     console.error("Error formatting date:", error);
-    return dateString; // Return original string if parsing fails
+    return dateString;
+  }
+};
+
+// Helper function to format dates as "DD/MM/YY"
+const formatDate = (dateString: string): string => {
+  if (!dateString) return "N/A";
+  try {
+    // Split the date string to handle just the date part
+    // This avoids timezone issues by not letting JS interpret the time
+    const dateParts = dateString.split('T')[0].split('-');
+    if (dateParts.length !== 3) {
+      return dateString; // Return original if not in expected format
+    }
+    
+    // Create date using UTC to avoid timezone shifts
+    // Parse as year-month-day (months are 0-indexed in JS Date)
+    const year = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]) - 1;
+    const day = parseInt(dateParts[2]);
+    
+    // Format as DD/MM/YY
+    return `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year.toString().slice(-2)}`;
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return dateString;
   }
 };
 
 export function ClassTable() {
   const { toast } = useToast();
   const [classes, setClasses] = useState<ClassData[]>([]);
+  const [originalClasses, setOriginalClasses] = useState<ClassData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -549,7 +582,11 @@ fetchStates("52"); // Fetch US states
       if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
       if (searchParams.courseCategoryId) queryParams.append('courseCategory', searchParams.courseCategoryId);
       if (searchParams.classTypeId) queryParams.append('classType', searchParams.classTypeId);
-      if (searchParams.showClass) queryParams.append('showClass', searchParams.showClass);
+      
+      // Only send status parameter to API if it's not handled client-side
+      if (searchParams.showClass) {
+        queryParams.append('unique', searchParams.showClass);
+      }
 
       const response = await fetch(
         `https://api.4pmti.com/class?${queryParams.toString()}`,
@@ -565,6 +602,9 @@ fetchStates("52"); // Fetch US states
       }
 
       const data = await response.json();
+      
+      // Store both the original and displayed data
+      setOriginalClasses(data.data.data);
       setClasses(data.data.data);
       setMetadata(data.data.metadata);
 
@@ -1171,23 +1211,38 @@ fetchStates("52"); // Fetch US states
         )}
 
         <div className="flex flex-col gap-2">
-          <Label>Show Class</Label>
-          <Select
-            value={searchParams.showClass}
-            onValueChange={(value) =>
-              setSearchParams({ ...searchParams, showClass: value })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="all">All</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+  <Label>Show Class</Label>
+  <Select
+    value={searchParams.showClass}
+    onValueChange={(value) => {
+      setSearchParams({ ...searchParams, showClass: value });
+      
+      // Apply client-side filtering without making an API call
+      if (classes.length > 0) {
+        if (value === "all" || value === "") {
+          // Reset to original data from last API call
+          handleSearch();
+        } else {
+          // Filter the existing classes based on status
+          const filteredClasses = classes.filter(classItem => {
+            // Handle exact match for status values
+            return classItem.status === value;
+          });
+          setClasses(filteredClasses);
+        }
+      }
+    }}
+  >
+    <SelectTrigger>
+      <SelectValue placeholder="Select Status" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="1">Active</SelectItem>
+      <SelectItem value="0">Inactive</SelectItem>
+      <SelectItem value="all">All</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
       </div>
 
       {/* Action Buttons */}
@@ -1225,31 +1280,9 @@ fetchStates("52"); // Fetch US states
                   const filteredClasses = filterClasses(classes, searchTerm);
                   setClasses(filteredClasses);
                 } else {
-                  // When search is cleared, fetch fresh data from API
-                  try {
-                    setLoading(true);
-                    const response = await fetch(
-                      `https://api.4pmti.com/class`,
-                      {
-                        headers: {
-                          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                        },
-                      }
-                    );
-                    
-                    if (!response.ok) {
-                      throw new Error('Failed to fetch classes');
-                    }
-
-                    const data = await response.json();
-                    setClasses(data.data.data);
-                    setMetadata(data.data.metadata);
-                  } catch (error) {
-                    console.error('Error fetching classes:', error);
-                    setError(error instanceof Error ? error.message : 'An error occurred');
-                  } finally {
-                    setLoading(false);
-                  }
+                  // When search is cleared, call handleSearch instead of direct fetch
+                  // This will preserve all other filter parameters
+                  handleSearch();
                 }
               }}
             />
@@ -1342,7 +1375,7 @@ fetchStates("52"); // Fetch US states
                       >
                         {classItem.status === "1"
                           ? "Active"
-                          : classItem.status === "2"
+                          : classItem.status === "0"
                           ? "Pending"
                           : "Inactive"}
                       </span>

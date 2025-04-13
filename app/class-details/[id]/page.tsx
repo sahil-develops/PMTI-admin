@@ -8,6 +8,20 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import EnrollmentTable from "@/app/components/ClassDetails/EnrollmentTable";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Instructor {
   id: number;
@@ -77,6 +91,27 @@ interface ClassDetails {
   isDelete: boolean;
 }
 
+interface AvailableClass {
+  id: number;
+  title: string;
+  startDate: string;
+  endDate: string;
+  location: {
+    location: string;
+  };
+}
+
+interface Enrollment {
+  ID: number;
+  student: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  EnrollmentDate: string;
+}
+
 const DetailSection = ({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) => (
   <div className={`space-y-1 ${className}`}>
     <h3 className="text-xs uppercase tracking-wider text-zinc-500">{title}</h3>
@@ -87,9 +122,17 @@ const DetailSection = ({ title, children, className = "" }: { title: string; chi
 export default function ClassDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null);
-  const [enrollments, setEnrollments] = useState([]);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<{
+    studentId: number;
+    enrollmentId: number;
+  } | null>(null);
+  const [availableClasses, setAvailableClasses] = useState<AvailableClass[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const [isRescheduling, setIsRescheduling] = useState(false);
 
   useEffect(() => {
     const fetchClassDetails = async () => {
@@ -124,6 +167,100 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
     fetchClassDetails();
   }, [params]);
+
+  const handleRescheduleClick = async (studentId: number, enrollmentId: number) => {
+    console.log('Reschedule clicked:', { studentId, enrollmentId });
+    
+    setSelectedStudent({ studentId, enrollmentId });
+    
+    try {
+      if (!classDetails?.category?.id) {
+        console.error('No category ID available');
+        return;
+      }
+
+      const response = await fetch(`https://api.4pmti.com/class/available?categoryId=${classDetails.category.id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to fetch available classes:', errorText);
+        throw new Error('Failed to fetch available classes');
+      }
+
+      const data = await response.json();
+      console.log('Available classes:', data);
+
+      if (data.success) {
+        setAvailableClasses(data.data.classes);
+        setIsRescheduleModalOpen(true);
+      } else {
+        console.error('API returned success: false', data);
+      }
+    } catch (error) {
+      console.error('Error in handleRescheduleClick:', error);
+    }
+  };
+
+  const handleReschedule = async () => {
+    if (!selectedStudent || !selectedClassId) return;
+
+    setIsRescheduling(true);
+    try {
+      const response = await fetch('https://api.4pmti.com/enrollment/reschedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify({
+          classId: selectedClassId,
+          enrollmentId: selectedStudent.enrollmentId,
+          studentId: selectedStudent.studentId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reschedule');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        // Refresh enrollments data
+        const unwrappedParams = await params;
+        const updatedResponse = await fetch(
+          `https://api.4pmti.com/class/${unwrappedParams.id}/detail`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            },
+          }
+        );
+        
+        if (updatedResponse.ok) {
+          const updatedData = await updatedResponse.json();
+          if (updatedData.success) {
+            setEnrollments(updatedData.data.enrollments);
+            // Add success toast/notification here if you have a notification system
+          }
+        }
+
+        setIsRescheduleModalOpen(false);
+        setSelectedStudent(null);
+        setSelectedClassId(null);
+      } else {
+        throw new Error(data.error || 'Failed to reschedule');
+      }
+    } catch (error) {
+      console.error('Error rescheduling:', error);
+      // Add error toast/notification here if you have a notification system
+    } finally {
+      setIsRescheduling(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -172,7 +309,6 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                 <CardTitle className="text-2xl">{classDetails.title}</CardTitle>
                 <p className="text-sm text-zinc-500 mt-1">{classDetails.description}</p>
               </div>
-          {/* // ... (previous code remains the same until the status span) */}
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                 classDetails.status === "1" ? "bg-green-100 text-green-800" :
                 classDetails.status === "2" ? "bg-yellow-100 text-yellow-800" :
@@ -323,10 +459,55 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
             <CardTitle>Class Enrollments</CardTitle>
           </CardHeader>
           <CardContent>
-            <EnrollmentTable enrollments={enrollments} />
+             <EnrollmentTable 
+              enrollments={enrollments as any[]} 
+              onReschedule={handleRescheduleClick}
+            />
           </CardContent>
         </Card>
       </div>
+
+      {/* Reschedule Modal */}
+      <Dialog open={isRescheduleModalOpen} onOpenChange={setIsRescheduleModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Reschedule Class</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select New Class</label>
+              <Select
+                onValueChange={(value) => setSelectedClassId(Number(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableClasses.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id.toString()}>
+                      {cls.title} - {new Date(cls.startDate).toLocaleDateString()} ({cls.location.location})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsRescheduleModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReschedule}
+              disabled={!selectedClassId || isRescheduling}
+            >
+              {isRescheduling ? "Rescheduling..." : "Confirm Reschedule"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

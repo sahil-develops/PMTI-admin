@@ -1,29 +1,37 @@
-import React , {useState} from 'react';
-import { Table, TableBody, TableCell,  TableHeader, TableRow, TableFooter } from "@/components/ui/table";
+import React, { useState } from 'react';
+import { Table, TableBody, TableCell, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 interface Enrollment {
-  day4Input: string | undefined;
-  day2Input: string | undefined;
-  day1Input: string | undefined;
-  day3Input: string | undefined;
-  signatureInput: string | undefined;
-  id: string;
+  ID: number; // Changed from id: string to ID: number based on ClassDetailsPage usage
+  day4Input?: string;
+  day2Input?: string;
+  day1Input?: string;
+  day3Input?: string;
+  signatureInput?: string;
   student: {
-    id: any;
+    id: number;
     name: string;
     email: string;
     phone: string;
   };
   EnrollmentDate: string;
-  PaymentMode: string;
-  PMPPass: boolean;
-  pmbok: boolean;
+  PaymentMode?: string;
+  PMPPass?: boolean;
+  pmbok?: boolean;
   MealType?: string;
-  Price: number;
-  Comments: string;
-  status: boolean;
+  Price?: number;
+  Comments?: string;
+  status?: boolean;
   [key: string]: any; // This allows for dynamic day input properties
   testDate?: string;
 }
@@ -33,6 +41,7 @@ interface EnrollmentTableProps {
   onUpdate?: () => void;
   startDate?: string;
   endDate?: string;
+  onReschedule: (studentId: number, enrollmentId: number) => void; // Added this prop
 }
 
 interface UpdatePayload {
@@ -46,7 +55,6 @@ interface UpdatePayload {
   day4Input?: string;
   signatureInput?: string;
 }
-
 
 const StyledTableHeader = ({ children, sortable = false, onClick }: { 
   children: React.ReactNode; 
@@ -117,6 +125,7 @@ const updateEnrollment = async (studentId: number, payload: UpdatePayload) => {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`, // Added token for auth
       },
       body: JSON.stringify(payload),
     });
@@ -151,10 +160,11 @@ export const EnrollmentTable = ({
   enrollments: initialEnrollments, 
   onUpdate,
   startDate,
-  endDate 
+  endDate,
+  onReschedule
 }: EnrollmentTableProps) => {
   const [enrollments, setEnrollments] = useState(initialEnrollments);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [selectedItems, setSelectedItems] = useState<number[]>([]); // Changed from string[] to number[]
   const [loading, setLoading] = useState<{[key: string]: boolean}>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -196,9 +206,16 @@ export const EnrollmentTable = ({
   };
 
   // Calculate summary data
-  const grandTotal = enrollments.reduce((sum, enrollment) => sum + Number(enrollment.Price), 0);
+  const grandTotal = enrollments.reduce((sum, enrollment) => sum + Number(enrollment.Price || 0), 0);
   const vegetarianCount = enrollments.filter(e => e.MealType?.toLowerCase() === 'vegetarian').length;
   const nonVegetarianCount = enrollments.filter(e => e.MealType?.toLowerCase() === 'non-vegetarian').length;
+
+  // Handle reschedule - Now just calling the parent component's onReschedule
+  const handleRescheduleClick = (studentId: number, enrollmentId: number) => {
+    if (onReschedule) {
+      onReschedule(studentId, enrollmentId);
+    }
+  };
 
   return (
     <div className="w-full overflow-x-auto hideScrollBar border border-zinc-100">
@@ -210,14 +227,13 @@ export const EnrollmentTable = ({
                 className="bg-white data-[state=checked]:bg-white" 
                 checked={selectedItems.length === enrollments.length}
                 onCheckedChange={(checked) => {
-                  setSelectedItems(checked ? enrollments.map(e => e.id) : []);
+                  setSelectedItems(checked ? enrollments.map(e => e.ID) : []);
                 }}
               />
             </StyledTableHeader>
             <StyledTableHeader>Name</StyledTableHeader>
             <StyledTableHeader>Email</StyledTableHeader>
             <StyledTableHeader>Enrollment on</StyledTableHeader>
-            {/* <StyledTableHeader>Mode</StyledTableHeader> */}
             <StyledTableHeader>Progress</StyledTableHeader>
             <StyledTableHeader>PMBOK</StyledTableHeader>
             <StyledTableHeader>Status</StyledTableHeader>
@@ -228,27 +244,27 @@ export const EnrollmentTable = ({
             
             {/* Dynamic day headers */}
             {classdays.map((date, index) => (
-              <StyledTableHeader  key={date.toISOString()}>
+              <StyledTableHeader key={date.toISOString()}>
                 Day {index + 1}<br/>
-          
                 10hrs
               </StyledTableHeader>
             ))}
 
             <StyledTableHeader>Test Date</StyledTableHeader>
             <StyledTableHeader>Signature</StyledTableHeader>
+            <StyledTableHeader>Actions</StyledTableHeader>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {enrollments.map((enrollment, index) => (
-            <TableRow key={enrollment.id} className="hover:bg-zinc-50">
+          {enrollments.map((enrollment) => (
+            <TableRow key={enrollment.ID} className="hover:bg-zinc-50">
               <StyledTableCell>
                 <Checkbox
-                  checked={selectedItems.includes(enrollment.id)}
+                  checked={selectedItems.includes(enrollment.ID)}
                   onCheckedChange={(checked) => {
                     setSelectedItems(checked ? 
-                      [...selectedItems, enrollment.id] : 
-                      selectedItems.filter(id => id !== enrollment.id)
+                      [...selectedItems, enrollment.ID] : 
+                      selectedItems.filter(id => id !== enrollment.ID)
                     );
                   }}
                 />
@@ -258,68 +274,61 @@ export const EnrollmentTable = ({
               <StyledTableCell>
                 {new Date(enrollment.EnrollmentDate).toLocaleDateString()}
               </StyledTableCell>
-              {/* <StyledTableCell>{enrollment.PaymentMode}</StyledTableCell> */}
               <StyledTableCell>
-         {/* Progress Select */}
-<CompactSelect
-  value={enrollment.PMPPass ? "pass" : "fail"}
-  onChange={(value) => handleUpdate(enrollment.student.id, {
-    enrollmentProgress: value
-  })}
-  loading={loading[`${enrollment.student.id}-enrollmentProgress`]}
-  options={[
-    { value: "pass", label: "Pass" },
-    { value: "fail", label: "Fail" }
-  ]}
-/>
+                <CompactSelect
+                  value={(enrollment.PMPPass ? "pass" : "fail")}
+                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                    enrollmentProgress: value
+                  })}
+                  loading={loading[`${enrollment.student.id}-enrollmentProgress`]}
+                  options={[
+                    { value: "pass", label: "Pass" },
+                    { value: "fail", label: "Fail" }
+                  ]}
+                />
               </StyledTableCell>
               <StyledTableCell>
-              {/* PMBOK Select */}
-<CompactSelect
-  value={enrollment.pmbok ? "yes" : "no"}
-  onChange={(value) => handleUpdate(enrollment.student.id, {
-    pmbok: value === "yes"
-  })}
-  loading={loading[`${enrollment.student.id}-pmbok`]}
-  options={[
-    { value: "yes", label: "Yes" },
-    { value: "no", label: "No" }
-  ]}
-/>
-
+                <CompactSelect
+                  value={(enrollment.pmbok ? "yes" : "no")}
+                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                    pmbok: value === "yes"
+                  })}
+                  loading={loading[`${enrollment.student.id}-pmbok`]}
+                  options={[
+                    { value: "yes", label: "Yes" },
+                    { value: "no", label: "No" }
+                  ]}
+                />
               </StyledTableCell>
               <StyledTableCell>
-             {/* Status Select */}
-<CompactSelect
-  value={enrollment.status ? "active" : "inactive"}
-  onChange={(value) => handleUpdate(enrollment.student.id, {
-    status: value === "active"
-  })}
-  loading={loading[`${enrollment.student.id}-status`]}
-  options={[
-    { value: "active", label: "Active" },
-    { value: "inactive", label: "Inactive" }
-  ]}
-/>
-
+                <CompactSelect
+                  value={(enrollment.status ? "active" : "inactive")}
+                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                    status: value === "active"
+                  })}
+                  loading={loading[`${enrollment.student.id}-status`]}
+                  options={[
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" }
+                  ]}
+                />
               </StyledTableCell>
               <StyledTableCell>
-              {/* Meal Type Select */}
-<CompactSelect
-  value={enrollment.MealType || "non-vegetarian"}
-  onChange={(value) => handleUpdate(enrollment.student.id, {
-    MealType: value
-  })}
-  loading={loading[`${enrollment.student.id}-MealType`]}
-  options={[
-    { value: "vegetarian", label: "Vegetarian" },
-    { value: "non-vegetarian", label: "Non-Vegetarian" }
-  ]}
-/>
+                <CompactSelect
+                  value={enrollment.MealType || "non-vegetarian"}
+                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                    MealType: value
+                  })}
+                  loading={loading[`${enrollment.student.id}-MealType`]}
+                  options={[
+                    { value: "vegetarian", label: "Vegetarian" },
+                    { value: "non-vegetarian", label: "Non-Vegetarian" }
+                  ]}
+                />
               </StyledTableCell>
               <StyledTableCell>{enrollment.student.phone}</StyledTableCell>
-              <StyledTableCell> {enrollment.Price}</StyledTableCell>
-              <StyledTableCell> {enrollment.Comments ? enrollment.Comments : "N/A"}</StyledTableCell>
+              <StyledTableCell>{enrollment.Price}</StyledTableCell>
+              <StyledTableCell>{enrollment.Comments ? enrollment.Comments : "N/A"}</StyledTableCell>
               
               {/* Dynamic day input cells */}
               {classdays.map((date, index) => (
@@ -338,11 +347,11 @@ export const EnrollmentTable = ({
               {/* Test Date and Signature cells */}
               <StyledTableCell>
                 <CompactInput 
-                  value={enrollment.day1Input || ""}
+                  value={enrollment.testDate || ""}
                   onChange={(value) => handleUpdate(enrollment.student.id, {
-                    day1Input: value
+                    testDate: value
                   })}
-                  loading={loading[`${enrollment.student.id}-EnrollmentDate`]}
+                  loading={loading[`${enrollment.student.id}-testDate`]}
                   placeholder="Test Date"
                 />
               </StyledTableCell>
@@ -356,8 +365,15 @@ export const EnrollmentTable = ({
                   placeholder="Signature"
                 />
               </StyledTableCell>
-              {/* <StyledTableCell>${enrollment.Price}</StyledTableCell> */}
-              {/* <StyledTableCell>{enrollment.Comments}</StyledTableCell> */}
+              <StyledTableCell>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleRescheduleClick(enrollment.student.id, enrollment.ID)}
+                >
+                  Reschedule
+                </Button>
+              </StyledTableCell>
             </TableRow>
           ))}
         </TableBody>
