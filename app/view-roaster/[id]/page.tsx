@@ -644,6 +644,11 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
               enrollments={enrollments} 
               startDate={classDetails.startDate}
               endDate={classDetails.endDate}
+              onReschedule={(studentId, enrollmentId) => {
+                // Handle rescheduling logic here
+                console.log(`Reschedule student ${studentId} enrollment ${enrollmentId}`);
+                // You might want to implement actual rescheduling functionality
+              }}
             />
           </CardContent>
         </Card>

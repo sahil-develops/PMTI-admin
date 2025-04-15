@@ -54,6 +54,7 @@ interface UpdatePayload {
   day3Input?: string;
   day4Input?: string;
   signatureInput?: string;
+  testDate?: string;
 }
 
 const StyledTableHeader = ({ children, sortable = false, onClick }: { 
