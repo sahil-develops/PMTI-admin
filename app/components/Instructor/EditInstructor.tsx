@@ -220,7 +220,7 @@ const EditInstructor = () => {
                     checked={formData.active}
                     onCheckedChange={handleSwitchChange}
                   />
-                  <Label htmlFor="active">Active Account</Label>
+                  <Label htmlFor="active">Active</Label>
                 </div>
               </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// import { SuccessModal } from "@/";
 import {SuccessModal} from "../../components/SuccessModal";
 
 interface Country {
@@ -61,8 +60,8 @@ interface ClassData {
   address: string;
   maxStudent: number;
   minStudent: number;
-  price: string;
-  status: string;
+  price: string | number;
+  status: string | boolean;
   onlineAvailable: boolean;
   isCancel: boolean;
   isDelete: boolean;
@@ -97,7 +96,7 @@ interface ClassData {
 
 interface ApiResponse {
   message: string;
-  error: string;
+  error: string | string[];
   success: boolean;
   data: ClassData;
 }
@@ -207,11 +206,15 @@ export default function EditClass({ params }: PageProps) {
         const data: ApiResponse = await response.json();
         if (data.success) {
           setClassData(data.data);
+          // If the class has participants, set them
+          if (data.data.participants) {
+            setParticipants(data.data.participants);
+          }
         } else {
           toast({
             variant: "destructive",
             title: "Error",
-            description: data.error || "Failed to fetch class details",
+            description: Array.isArray(data.error) ? data.error[0] : data.error || "Failed to fetch class details",
           });
         }
       } catch (error) {
@@ -306,6 +309,12 @@ export default function EditClass({ params }: PageProps) {
     return isValid;
   };
 
+  // Convert status string to boolean
+  const convertStatusToBoolean = (status: string): boolean => {
+    // Return true if status is "1", false for any other value
+    return status === "1";
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
@@ -321,17 +330,26 @@ export default function EditClass({ params }: PageProps) {
     setIsLoading(true);
 
     try {
+      // Create a payload with proper data types
+      const payload = {
+        ...(classData || {}),
+        // Convert price from string to number
+        price: classData ? parseFloat(classData.price as string) : 0,
+        // Convert status from string to boolean
+        status: classData ? convertStatusToBoolean(classData.status as string) : false,
+        startDate: classData ? new Date(classData.startDate).toISOString() : '',
+        endDate: classData ? new Date(classData.endDate).toISOString() : '',
+      };
+
+      console.log("Submitting payload:", payload);
+
       const response = await fetch(`https://api.4pmti.com/class/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
-        body: JSON.stringify({
-          ...(classData || {}),
-          startDate: classData ? new Date(classData.startDate).toISOString() : '',
-          endDate: classData ? new Date(classData.endDate).toISOString() : '',
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -343,7 +361,10 @@ export default function EditClass({ params }: PageProps) {
           router.refresh();
         }, 1500);
       } else {
-        throw new Error(data.error || 'Failed to update class');
+        const errorMessage = Array.isArray(data.error) 
+          ? data.error.join(', ') 
+          : data.error || 'Failed to update class';
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error updating class:', error);
@@ -448,8 +469,8 @@ export default function EditClass({ params }: PageProps) {
               <div>
                 <Label>Price</Label>
                 <Input
-                  type="text"
-                  value={classData.price}
+                  type="number"
+                  value={typeof classData.price === 'string' ? classData.price : classData.price.toString()}
                   onChange={(e) => setClassData({ ...classData, price: e.target.value })}
                   required
                 />
@@ -486,7 +507,9 @@ export default function EditClass({ params }: PageProps) {
               <div>
                 <Label>Status</Label>
                 <Select
-                  value={classData.status}
+                  value={typeof classData.status === 'boolean' 
+                    ? (classData.status ? "1" : "0") 
+                    : classData.status}
                   onValueChange={(value) => setClassData({ ...classData, status: value })}
                 >
                   <SelectTrigger>
@@ -494,7 +517,6 @@ export default function EditClass({ params }: PageProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">Active</SelectItem>
-                    <SelectItem value="2">Pending</SelectItem>
                     <SelectItem value="0">Inactive</SelectItem>
                   </SelectContent>
                 </Select>

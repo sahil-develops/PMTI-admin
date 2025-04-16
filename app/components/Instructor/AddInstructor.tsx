@@ -96,7 +96,7 @@ const AddInstructor = () => {
       emailID: formData.get('emailID')?.toString() || '',
       mobile,
       telNo: formData.get('telNo')?.toString() || '',
-      password: formData.get('password')?.toString() || '',
+      password: 'Default@123',
       billingAddress: formData.get('billingAddress')?.toString() || '',
       contactAddress: formData.get('contactAddress')?.toString() || '',
       profile: formData.get('profile')?.toString() || '',
@@ -172,8 +172,9 @@ const AddInstructor = () => {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" name="password" type="password" required />
+                  {/* Removed Password Field */}
+                  {/* <Label htmlFor="password">Password</Label>
+                  <Input id="password" name="password" type="password" required /> */}
                 </div>
 
                 <div className='grid lg:grid-cols-2 grid-cols-1 gap-4'>
