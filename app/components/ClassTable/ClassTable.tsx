@@ -341,7 +341,7 @@ const formatDateFromAPI = (dateString: string): string => {
     const month = parseInt(dateParts[1]) - 1;
     const day = parseInt(dateParts[2]);
     
-    return `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year.toString().slice(-2)}`;
+    return `${(month + 1).toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${year.toString().slice(-2)}`;
   } catch (error) {
     console.error("Error formatting date:", error);
     return dateString;
