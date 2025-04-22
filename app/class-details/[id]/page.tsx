@@ -326,7 +326,17 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                 <DetailSection title="Date Range">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-zinc-400" />
-                    <span>{new Date(classDetails.startDate).toLocaleDateString()} - {new Date(classDetails.endDate).toLocaleDateString()}</span>
+                    <span>
+                      {new Date(classDetails.startDate).toLocaleDateString('en-US', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        year: '2-digit'
+                      })} - {new Date(classDetails.endDate).toLocaleDateString('en-US', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        year: '2-digit'
+                      })}
+                    </span>
                   </div>
                 </DetailSection>
                 <DetailSection title="Class Time">

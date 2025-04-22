@@ -141,19 +141,6 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-/**
- * EditClass Component
- * 
- * A form component for editing class details with the following features:
- * - Real-time date validation
- * - Instructor selection and management
- * - Participant search and filtering
- * - Corporate class specific fields
- * - Comprehensive error handling
- * 
- * @param {PageProps} props - Contains the class ID from the URL params
- */
-
 // Custom hook for form error handling
 const useFormErrors = () => {
   const [errors, setErrors] = useState<{
@@ -175,6 +162,30 @@ const useFormErrors = () => {
   const clearAllErrors = () => setErrors({});
 
   return { errors, setError, clearError, clearAllErrors };
+};
+
+// Update the helper function to format dates as MM/DD/YY
+const formatDateForInput = (dateString: string) => {
+  const date = new Date(dateString);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${month}/${day}/${year}`;
+};
+
+// Add this new helper function
+const formatForDateInput = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-CA'); // Returns YYYY-MM-DD format
+};
+
+// Update the formatDateForInput function to format as MM/DD/YY
+const formatDateForDisplay = (dateString: string) => {
+  const date = new Date(dateString);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${month}/${day}/${year}`;
 };
 
 export default function EditClass({ params }: PageProps) {
@@ -439,22 +450,40 @@ export default function EditClass({ params }: PageProps) {
 
               <div>
                 <Label>Start Date</Label>
-                <Input
-                  type="date"
-                  value={classData.startDate.split('T')[0]}
-                  onChange={(e) => setClassData({ ...classData, startDate: e.target.value })}
-                  required
-                />
+                <div className="flex flex-col gap-1">
+                  <Input
+                    type="date"
+                    value={formatForDateInput(classData.startDate)}
+                    onChange={(e) => {
+                      const selectedDate = new Date(e.target.value);
+                      selectedDate.setHours(12); // Set to noon to avoid timezone issues
+                      setClassData({ ...classData, startDate: selectedDate.toISOString() });
+                    }}
+                    required
+                  />
+                  <div className="text-sm text-gray-500">
+                    {formatDateForDisplay(classData.startDate)}
+                  </div>
+                </div>
               </div>
 
               <div>
                 <Label>End Date</Label>
-                <Input
-                  type="date"
-                  value={classData.endDate.split('T')[0]}
-                  onChange={(e) => setClassData({ ...classData, endDate: e.target.value })}
-                  required
-                />
+                <div className="flex flex-col gap-1">
+                  <Input
+                    type="date"
+                    value={formatForDateInput(classData.endDate)}
+                    onChange={(e) => {
+                      const selectedDate = new Date(e.target.value);
+                      selectedDate.setHours(12); // Set to noon to avoid timezone issues
+                      setClassData({ ...classData, endDate: selectedDate.toISOString() });
+                    }}
+                    required
+                  />
+                  <div className="text-sm text-gray-500">
+                    {formatDateForDisplay(classData.endDate)}
+                  </div>
+                </div>
               </div>
 
               <div>

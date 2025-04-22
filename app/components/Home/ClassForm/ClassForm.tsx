@@ -67,9 +67,8 @@ const classFormSchema = z.object({
   formattedTimeFrom: z.string(),
   formattedTimeTo: z.string(),
 
-  // Course ID
-  onlineCourseId: z.string()
-    .min(1, "Course ID is required"),
+  // Course ID - remove validation requirements
+  onlineCourseId: z.string().optional(),
 
   // Booleans
   onlineAvailable: z.boolean(),
@@ -447,7 +446,13 @@ const formatTime = (time: string) => {
   }
 };
 
-// Update your onSubmit function
+// Add this helper function at the top of your component
+const normalizeDate = (date: Date | undefined) => {
+  if (!date) return undefined;
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+};
+
+// Update the onSubmit function
 const onSubmit = async (data: ClassFormData) => {
   setLoading(true);
   setShowError(false);
@@ -457,10 +462,17 @@ const onSubmit = async (data: ClassFormData) => {
     const formattedTimeFrom = formatTime(data.classTimeFrom);
     const formattedTimeTo = formatTime(data.classTimeTo);
     
+    // Format dates to UTC, ensuring consistent timezone handling
+    const startDate = normalizeDate(data.startDate);
+    const endDate = normalizeDate(data.endDate);
+    
     // Prepare the data for submission
     const submitData = {
       ...data,
       classTime: `${formattedTimeFrom} - ${formattedTimeTo}`,
+      // Format dates in UTC
+      startDate: startDate?.toISOString().split('T')[0] + ' 00:00:00',
+      endDate: endDate?.toISOString().split('T')[0] + ' 00:00:00',
       // Convert IDs to numbers
       categoryId: Number(data.categoryId),
       classTypeId: Number(data.classTypeId),
@@ -472,9 +484,6 @@ const onSubmit = async (data: ClassFormData) => {
       addedBy: Number(data.addedBy),
       updatedBy: Number(data.updatedBy),
       instructorId: Number(data.instructorId),
-      // Format dates for API
-      startDate: format(data.startDate, "yyyy-MM-dd HH:mm:ss"),
-      endDate: format(data.endDate, "yyyy-MM-dd HH:mm:ss"),
       // Include optional fields
       hotel: data.hotel || "",
       hotelEmailId: data.hotelEmailId || "",
@@ -489,7 +498,7 @@ const onSubmit = async (data: ClassFormData) => {
       isDelete: data.isDelete,
       isCorpClass: data.isCorpClass,
       // Add cover image URL
-      coverImage: coverImageUrl // Pass the image URL here
+      coverImage: coverImageUrl
     };
 
     const response = await fetch(`https://api.4pmti.com/class`, {
@@ -913,12 +922,15 @@ const onSubmit = async (data: ClassFormData) => {
                       mode="single"
                       selected={watch("startDate")}
                       onSelect={(date) => {
+                        if (date) {
+                          const normalizedDate = normalizeDate(date);
                           // @ts-ignore
-                        setValue("startDate", date);
-                        // Reset end date if it's before new start date
-                        if (watch("endDate") && date && watch("endDate") < date) {
-                          // @ts-ignore
-                          setValue("endDate", undefined);
+                          setValue("startDate", normalizedDate);
+                          // Reset end date if it's before new start date
+                          if (watch("endDate") && normalizedDate && watch("endDate") < normalizedDate) {
+                            // @ts-ignore
+                            setValue("endDate", undefined);
+                          }
                         }
                       }}
                       disabled={(date) => date < new Date()}
@@ -960,8 +972,13 @@ const onSubmit = async (data: ClassFormData) => {
                     <Calendar
                       mode="single"
                       selected={watch("endDate")}
+                      onSelect={(date) => {
+                        if (date) {
+                          const normalizedDate = normalizeDate(date);
                           // @ts-ignore
-                      onSelect={(date) => setValue("endDate", date)}
+                          setValue("endDate", normalizedDate);
+                        }
+                      }}
                       disabled={(date) => 
                         date < new Date() || // Can't select past dates
                         (watch("startDate") && date < watch("startDate")) // Can't select dates before start date
@@ -1028,6 +1045,7 @@ const onSubmit = async (data: ClassFormData) => {
               label="Online Course ID"
               name="onlineCourseId"
               placeholder="OC-2024-ADVJS"
+              required={false}
             />
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700">
