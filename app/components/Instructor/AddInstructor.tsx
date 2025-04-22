@@ -18,7 +18,37 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/app/lib/api';
-import { Check } from 'lucide-react';
+import { Check, ChevronRight, Home } from 'lucide-react';
+import Link from 'next/link';
+
+const Breadcrumb = () => {
+  return (
+    <nav className="flex mb-4 text-sm" aria-label="Breadcrumb">
+      <ol className="flex items-center space-x-2">
+        <li>
+          <Link href="/" className="flex items-center text-gray-500 hover:text-gray-700">
+            <Home className="h-4 w-4" />
+            <span className="sr-only">Home</span>
+          </Link>
+        </li>
+        <li>
+          <div className="flex items-center">
+            <ChevronRight className="h-4 w-4 text-gray-500" />
+            <Link href="/instructors" className="ml-2 text-gray-500 hover:text-gray-700">
+              Instructors
+            </Link>
+          </div>
+        </li>
+        <li>
+          <div className="flex items-center">
+            <ChevronRight className="h-4 w-4 text-gray-500" />
+            <span className="ml-2 text-gray-900 font-medium">Add Instructor</span>
+          </div>
+        </li>
+      </ol>
+    </nav>
+  );
+};
 
 const Confetti = () => {
   const confettiCount = 50;
@@ -125,7 +155,9 @@ const AddInstructor = () => {
 
   return (
     <>
-      <div className="flex min-h-screen items-start max-w-full w-full justify-start ">
+      <div className="flex flex-col min-h-screen w-full p-4 space-y-4">
+        <Breadcrumb />
+        
         <Card className="w-full max-w-full">
           <CardHeader>
             <CardTitle>Instructor Signup</CardTitle>

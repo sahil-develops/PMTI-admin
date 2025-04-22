@@ -23,6 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ChevronRight, Home } from "lucide-react";
 
 // Add this interface with your other interfaces
 interface Category {
@@ -236,207 +238,223 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
   };
 
   return (
-    <Card className="mb-4">
-      <CardHeader className="p-4 pb-0">
-        <CardTitle className="text-lg">Create New Course</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="courseName" className="text-sm">Course Name</Label>
-              <Input
-                id="courseName"
-                name="courseName"
-                value={formData.courseName}
-                onChange={handleInputChange}
-                required
-                className="h-8"
-              />
-            </div>
+    <>
+      {/* Add Breadcrumbs */}
+      <div className="m-4 flex items-center space-x-1 text-sm text-gray-600">
+        <Link href="/dashboard" className="flex items-center hover:text-blue-600">
+          <Home className="h-4 w-4" />
+          {/* <span className="ml-1">Home</span> */}
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link href="/courses" className="hover:text-blue-600">
+          Courses
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-gray-900">Create Course</span>
+      </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="shortName" className="text-sm">Short Name</Label>
-              <Input
-                id="shortName"
-                name="shortName"
-                value={formData.shortName}
-                onChange={handleInputChange}
-                required
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="courseDuration" className="text-sm">Duration (hours)</Label>
-              <Input
-                id="courseDuration"
-                name="courseDuration"
-                type="number"
-                value={formData.courseDuration}
-                onChange={handleInputChange}
-                required
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-1">
-            <ClassTypeDropdown
-    searchParams={{ classTypeId: formData.classType.toString() }}
-    setSearchParams={(params) => {
-      setFormData(prev => ({
-        ...prev,
-        classType: Number(params.classTypeId)
-      }));
-    }}
-    classTypes={classTypes}
-    refreshClassTypes={fetchClassTypes}
-  />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="price" className="text-sm">Price ($)</Label>
-              <Input
-                id="price"
-                name="price"
-                type="number"
-                step="0.01"
-                value={formData.price}
-                onChange={handleInputChange}
-                required
-                className="h-8"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="extPrice" className="text-sm">External Price ($)</Label>
-              <Input
-                id="extPrice"
-                name="extPrice"
-                type="number"
-                step="0.01"
-                value={formData.extPrice}
-                onChange={handleInputChange}
-                required
-                className="h-8"
-              />
-            </div>
-
-            {/* // Replace the categoryId Input component with this Select component */}
-  <div className="space-y-1">
-    <Label>Category</Label>
-    <Select
-      value={formData.categoryId.toString()}
-      onValueChange={(value) => {
-        setFormData(prev => ({
-          ...prev,
-          categoryId: Number(value)
-        }));
-      }}
-    >
-      <SelectTrigger>
-        <SelectValue placeholder="Select Category" />
-      </SelectTrigger>
-      <SelectContent>
-        {categories.map((category) => (
-          <SelectItem 
-            key={category.id} 
-            value={category.id.toString()}
-          >
-            {category.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>
-
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="isGuestAccess" className="text-sm">Guest Access</Label>
-              <Switch
-                id="isGuestAccess"
-                checked={formData.isGuestAccess}
-                onCheckedChange={() => handleSwitchChange("isGuestAccess")}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="isVisible" className="text-sm">Visible</Label>
-              <Switch
-                id="isVisible"
-                checked={formData.isVisible}
-                onCheckedChange={() => handleSwitchChange("isVisible")}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="description" className="text-sm">Description</Label>
-            <Textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              required
-              className="h-20 resize-none"
-            />
-          </div>
-
-          <div className="space-y-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Cover Image <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="file"
-              accept="image/png, image/jpeg"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setCoverImage(e.target.files[0]);
-                  handleCoverImageUpload(e.target.files[0]);
-                }
-              }}
-              className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
-                coverImageError ? 'border-red-500' : 'border-gray-300'
-              } focus:border-blue-500 focus:ring-blue-500`}
-            />
-            {coverImageError && (
-              <p className="mt-1 text-sm text-red-500">{coverImageError}</p>
-            )}
-            {isCoverImageUploading && (
-              <p className="mt-1 text-sm text-gray-500">Uploading cover image...</p>
-            )}
-
-            {isPreviewVisible && coverImageUrl && (
-              <div className="mt-4">
-                <h3 className="text-sm font-medium text-gray-700">Image Preview:</h3>
-                <img
-                  src={coverImageUrl}
-                  alt="Cover Preview"
-                  className="mt-2 w-1/3 h-auto rounded-md border border-gray-300"
+      <Card className="mb-4">
+        <CardHeader className="p-4 pb-0">
+          <CardTitle className="text-lg">Create New Course</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="courseName" className="text-sm">Course Name</Label>
+                <Input
+                  id="courseName"
+                  name="courseName"
+                  value={formData.courseName}
+                  onChange={handleInputChange}
+                  required
+                  className="h-8"
                 />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCoverImage(null);
-                    setCoverImageUrl('');
-                    setIsPreviewVisible(false);
-                  }}
-                  className="mt-2 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                >
-                  Delete Image
-                </button>
               </div>
-            )}
-          </div>
 
-          <Button
-            type="submit"
-            className="w-full h-9"
-            disabled={loading}
-          >
-            {loading ? "Creating..." : "Create Course"}
-          </Button>
-        </form>
-      </CardContent>
+              <div className="space-y-1">
+                <Label htmlFor="shortName" className="text-sm">Short Name</Label>
+                <Input
+                  id="shortName"
+                  name="shortName"
+                  value={formData.shortName}
+                  onChange={handleInputChange}
+                  required
+                  className="h-8"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="courseDuration" className="text-sm">Duration (hours)</Label>
+                <Input
+                  id="courseDuration"
+                  name="courseDuration"
+                  type="number"
+                  value={formData.courseDuration}
+                  onChange={handleInputChange}
+                  required
+                  className="h-8"
+                />
+              </div>
+
+              <div className="space-y-1">
+              <ClassTypeDropdown
+  searchParams={{ classTypeId: formData.classType.toString() }}
+  setSearchParams={(params) => {
+    setFormData(prev => ({
+      ...prev,
+      classType: Number(params.classTypeId)
+    }));
+  }}
+  classTypes={classTypes}
+  refreshClassTypes={fetchClassTypes}
+/>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="price" className="text-sm">Price ($)</Label>
+                <Input
+                  id="price"
+                  name="price"
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  required
+                  className="h-8"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="extPrice" className="text-sm">External Price ($)</Label>
+                <Input
+                  id="extPrice"
+                  name="extPrice"
+                  type="number"
+                  step="0.01"
+                  value={formData.extPrice}
+                  onChange={handleInputChange}
+                  required
+                  className="h-8"
+                />
+              </div>
+
+              {/* // Replace the categoryId Input component with this Select component */}
+    <div className="space-y-1">
+      <Label>Category</Label>
+      <Select
+        value={formData.categoryId.toString()}
+        onValueChange={(value) => {
+          setFormData(prev => ({
+            ...prev,
+            categoryId: Number(value)
+          }));
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Select Category" />
+        </SelectTrigger>
+        <SelectContent>
+          {categories.map((category) => (
+            <SelectItem 
+              key={category.id} 
+              value={category.id.toString()}
+            >
+              {category.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="isGuestAccess" className="text-sm">Guest Access</Label>
+                <Switch
+                  id="isGuestAccess"
+                  checked={formData.isGuestAccess}
+                  onCheckedChange={() => handleSwitchChange("isGuestAccess")}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="isVisible" className="text-sm">Visible</Label>
+                <Switch
+                  id="isVisible"
+                  checked={formData.isVisible}
+                  onCheckedChange={() => handleSwitchChange("isVisible")}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="description" className="text-sm">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                required
+                className="h-20 resize-none"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Cover Image <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="file"
+                accept="image/png, image/jpeg"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setCoverImage(e.target.files[0]);
+                    handleCoverImageUpload(e.target.files[0]);
+                  }
+                }}
+                className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
+                  coverImageError ? 'border-red-500' : 'border-gray-300'
+                } focus:border-blue-500 focus:ring-blue-500`}
+              />
+              {coverImageError && (
+                <p className="mt-1 text-sm text-red-500">{coverImageError}</p>
+              )}
+              {isCoverImageUploading && (
+                <p className="mt-1 text-sm text-gray-500">Uploading cover image...</p>
+              )}
+
+              {isPreviewVisible && coverImageUrl && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-gray-700">Image Preview:</h3>
+                  <img
+                    src={coverImageUrl}
+                    alt="Cover Preview"
+                    className="mt-2 w-1/3 h-auto rounded-md border border-gray-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoverImage(null);
+                      setCoverImageUrl('');
+                      setIsPreviewVisible(false);
+                    }}
+                    className="mt-2 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Delete Image
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full h-9"
+              disabled={loading}
+            >
+              {loading ? "Creating..." : "Create Course"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {/* Success Modal */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
@@ -471,7 +489,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
           </div>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   );
 };
 

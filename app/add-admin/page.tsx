@@ -4,7 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight,Home } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -153,7 +153,7 @@ const AddAdmin = () => {
         <ol className="inline-flex items-center space-x-1 text-sm">
           <li>
             <Link href="/" className="text-zinc-500 hover:text-zinc-700">
-              Home
+           <Home className="w-4 h-4" />
             </Link>
           </li>
           <li>
