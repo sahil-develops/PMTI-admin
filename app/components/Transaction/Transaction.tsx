@@ -24,6 +24,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Control } from "react-hook-form";
 
 // Validation schema using Zod
 const transactionSchema = z.object({
@@ -169,7 +170,7 @@ const Transaction = () => {
     type?: string; 
   }) => (
     <FormField
-      control={form.control}
+      control={form.control as unknown as Control<TransactionFormValues>}
       name={name}
       render={({ field }) => (
         <FormItem>
@@ -197,7 +198,7 @@ const Transaction = () => {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit((data) => onSubmit(data as unknown as TransactionFormValues))} className="space-y-8">
               {/* Payment Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Payment Information</h3>
