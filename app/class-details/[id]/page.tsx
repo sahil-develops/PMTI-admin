@@ -23,6 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from "@/components/ui/toast";
 
 interface Instructor {
   id: number;
@@ -210,6 +212,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
   });
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [isPaid, setIsPaid] = useState(false);
+  const {toast} = useToast();
 
   useEffect(() => {
     const fetchClassDetails = async () => {
@@ -387,12 +390,19 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
   const handleReschedule = async () => {
     if (!selectedStudent || !selectedClassId) {
-      console.log('Missing required fields:', { selectedStudent, selectedClassId });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Missing required fields",
+      });
       return;
     }
-    
     if (isPaid && !validatePaymentDetails()) {
-      console.log('Payment validation failed');
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please check payment details and try again",
+      });
       return;
     }
 
@@ -412,8 +422,6 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
         })
       };
 
-      console.log('Sending reschedule request with:', requestBody);
-
       const response = await fetch('https://api.4pmti.com/enrollment/reschedule', {
         method: 'POST',
         headers: {
@@ -424,31 +432,20 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       });
 
       const data = await response.json();
-      console.log('Reschedule response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to reschedule');
       }
 
       if (data.success) {
-        // Refresh enrollments data
-        const unwrappedParams = await params;
-        const updatedResponse = await fetch(
-          `https://api.4pmti.com/class/${unwrappedParams.id}/detail`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-            },
-          }
-        );
-        
-        if (updatedResponse.ok) {
-          const updatedData = await updatedResponse.json();
-          if (updatedData.success) {
-            setEnrollments(updatedData.data.enrollments);
-          }
-        }
+        // Show success message
+        toast({
+          title: "Success",
+          description: "Class has been rescheduled successfully",
+          action: <ToastAction altText="Close">Close</ToastAction>,
+        });
 
+        // Reset form and close modal
         setIsRescheduleModalOpen(false);
         setSelectedStudent(null);
         setSelectedClassId(null);
@@ -459,12 +456,55 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
           CCExpiry: '',
           amount: ''
         });
+
+        // Refresh the page data
+        try {
+          const unwrappedParams = await params;
+          const updatedResponse = await fetch(
+            `https://api.4pmti.com/class/${unwrappedParams.id}/detail`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+              },
+            }
+          );
+          
+          if (updatedResponse.ok) {
+            const updatedData = await updatedResponse.json();
+            if (updatedData.success) {
+              setClassDetails(updatedData.data.classs);
+              setEnrollments(updatedData.data.enrollments);
+            } else {
+              throw new Error("Failed to refresh data");
+            }
+          } else {
+            throw new Error("Failed to refresh data");
+          }
+        } catch (refreshError) {
+          toast({
+            variant: "destructive",
+            title: "Warning",
+            description: "Rescheduling successful but failed to refresh data. Please reload the page.",
+            action: (
+              <ToastAction altText="Reload" onClick={() => window.location.reload()}>
+                Reload
+              </ToastAction>
+            ),
+          });
+        }
       } else {
         throw new Error(data.error || 'Failed to reschedule');
       }
     } catch (error) {
       console.error('Error rescheduling:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reschedule class",
+        action: (
+          <ToastAction altText="Try again">Try again</ToastAction>
+        ),
+      });
     } finally {
       setIsRescheduling(false);
     }
