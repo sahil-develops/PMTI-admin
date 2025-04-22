@@ -117,7 +117,7 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
             <ChevronRight className="w-4 h-4 text-zinc-400" />
           </li>
           <li>
-            <Link href="/classes" className="text-zinc-500 hover:text-zinc-700">
+            <Link href="/" className="text-zinc-500 hover:text-zinc-700">
               Classes
             </Link>
           </li>

@@ -129,7 +129,7 @@ export default function EditClass({ params }: PageProps) {
           title: "Error",
           description: "Failed to load class details. Please try again later.",
         });
-        router.push('/classes');
+        router.push('/');
       } finally {
         setIsFetching(false);
       }
@@ -210,7 +210,7 @@ export default function EditClass({ params }: PageProps) {
           Home
         </Link>
         <span>›</span>
-        <Link href="/classes" className="hover:text-gray-700">
+        <Link href="/" className="hover:text-gray-700">
           Classes
         </Link>
         <span>›</span>

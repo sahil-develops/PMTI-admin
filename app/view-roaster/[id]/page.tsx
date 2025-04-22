@@ -441,7 +441,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
         <nav className="flex items-center space-x-2 text-sm">
           <Link href="/" className="text-zinc-500 hover:text-zinc-700">Home</Link>
           <ChevronRight className="w-4 h-4 text-zinc-400" />
-          <Link href="/classes" className="text-zinc-500 hover:text-zinc-700">Classes</Link>
+          <Link href="/" className="text-zinc-500 hover:text-zinc-700">Classes</Link>
           <ChevronRight className="w-4 h-4 text-zinc-400" />
           <span className="text-zinc-900">{classDetails.title}</span>
         </nav>

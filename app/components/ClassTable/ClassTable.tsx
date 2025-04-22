@@ -576,16 +576,31 @@ fetchStates("52"); // Fetch US states
       // Add other search parameters
       if (searchParams.startFrom) queryParams.append('startFrom', searchParams.startFrom);
       if (searchParams.dateTo) queryParams.append('dateTo', searchParams.dateTo);
-      if(searchParams.stateId) queryParams.append('stateId', searchParams.stateId);
+      if (searchParams.stateId) queryParams.append('stateId', searchParams.stateId);
       if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId);
       if (searchParams.locationId) queryParams.append('locationId', searchParams.locationId);
       if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
       if (searchParams.courseCategoryId) queryParams.append('courseCategory', searchParams.courseCategoryId);
       if (searchParams.classTypeId) queryParams.append('classType', searchParams.classTypeId);
       
-      // Only send status parameter to API if it's not handled client-side
-      if (searchParams.showClass) {
-        queryParams.append('unique', searchParams.showClass);
+      // Add status parameters based on showClass value
+      switch (searchParams.showClass) {
+        case "active":
+          queryParams.append('status', 'active');
+          break;
+        case "inactive":
+          queryParams.append('status', 'inactive');
+          break;
+        case "cancelled":
+          queryParams.append('isCancel', 'true');
+          break;
+        case "corporate":
+          queryParams.append('isCorpClass', 'true');
+          break;
+        case "non-corporate":
+          queryParams.append('isCorpClass', 'false');
+          break;
+        // For "all", don't append any status params
       }
 
       const response = await fetch(
@@ -603,7 +618,6 @@ fetchStates("52"); // Fetch US states
 
       const data = await response.json();
       
-      // Store both the original and displayed data
       setOriginalClasses(data.data.data);
       setClasses(data.data.data);
       setMetadata(data.data.metadata);
@@ -1215,31 +1229,20 @@ fetchStates("52"); // Fetch US states
   <Select
     value={searchParams.showClass}
     onValueChange={(value) => {
-      setSearchParams({ ...searchParams, showClass: value });
-      
-      // Apply client-side filtering without making an API call
-      if (classes.length > 0) {
-        if (value === "all" || value === "") {
-          // Reset to original data from last API call
-          handleSearch();
-        } else {
-          // Filter the existing classes based on status
-          const filteredClasses = classes.filter(classItem => {
-            // Handle exact match for status values
-            return classItem.status === value;
-          });
-          setClasses(filteredClasses);
-        }
-      }
+      // Only update the searchParams without making an API call
+      setSearchParams((prev) => ({ ...prev, showClass: value }));
     }}
   >
     <SelectTrigger>
       <SelectValue placeholder="Select Status" />
     </SelectTrigger>
     <SelectContent>
-      <SelectItem value="1">Active</SelectItem>
-      <SelectItem value="0">Inactive</SelectItem>
-      <SelectItem value="all">All</SelectItem>
+      <SelectItem value="all">All Classes</SelectItem>
+      <SelectItem value="active">Active Classes</SelectItem>
+      <SelectItem value="inactive">Inactive Classes</SelectItem>
+      <SelectItem value="cancelled">Cancelled Classes</SelectItem>
+      <SelectItem value="corporate">Corporate Classes</SelectItem>
+      <SelectItem value="non-corporate">Non-Corporate Classes</SelectItem>
     </SelectContent>
   </Select>
 </div>
@@ -1366,18 +1369,18 @@ fetchStates("52"); // Fetch US states
                     <TableCell>
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${
-                          classItem.status === "1"
+                          classItem.status === "active"
                             ? "bg-green-100 text-green-800"
-                            : classItem.status === "2"
+                            : classItem.status === "inactive"
                             ? "bg-yellow-100 text-yellow-800"
                             : "bg-red-100 text-red-800"
                         }`}
                       >
-                        {classItem.status === "1"
+                        {classItem.status === "active"
                           ? "Active"
-                          : classItem.status === "0"
-                          ? "Pending"
-                          : "Inactive"}
+                          : classItem.status === "inactive"
+                          ? "Inactive"
+                          : "Cancelled"}
                       </span>
                     </TableCell>
                     <TableCell>{classItem.enrollmentCount || "N/A"}</TableCell>

@@ -108,7 +108,7 @@ export default function ViewPromotionDetails({ id }: { id: string | any }) {
             <ChevronRight className="w-4 h-4 text-zinc-400" />
           </li>
           <li>
-            <Link href="/classes" className="text-zinc-500 hover:text-zinc-700">
+            <Link href="/" className="text-zinc-500 hover:text-zinc-700">
              Promotion
             </Link>
           </li>

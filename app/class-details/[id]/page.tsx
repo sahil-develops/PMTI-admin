@@ -295,7 +295,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       <nav className="flex items-center space-x-2 text-sm mb-6">
         <Link href="/" className="text-zinc-500 hover:text-zinc-700">Home</Link>
         <ChevronRight className="w-4 h-4 text-zinc-400" />
-        <Link href="/classes" className="text-zinc-500 hover:text-zinc-700">Classes</Link>
+        <Link href="/" className="text-zinc-500 hover:text-zinc-700">Classes</Link>
         <ChevronRight className="w-4 h-4 text-zinc-400" />
         <span className="text-zinc-900">{classDetails.title}</span>
       </nav>
@@ -310,11 +310,11 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                 <p className="text-sm text-zinc-500 mt-1">{classDetails.description}</p>
               </div>
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                classDetails.status === "1" ? "bg-green-100 text-green-800" :
-                classDetails.status === "2" ? "bg-yellow-100 text-yellow-800" :
+                classDetails.status === "active" ? "bg-green-100 text-green-800" :
+                classDetails.status === "inactive" ? "bg-yellow-100 text-yellow-800" :
                 "bg-red-100 text-red-800"
               }`}>
-                {classDetails.status === "1" ? "Active" : classDetails.status === "2" ? "Pending" : "Inactive"}
+                {classDetails.status === "active" ? "Active" : classDetails.status === "inactive" ? "Inactive" : "Cancelled"}
               </span>
             </div>
           </CardHeader>

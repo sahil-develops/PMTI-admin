@@ -11,7 +11,7 @@ export default function ClassList() {
   useEffect(() => {
     const loadClasses = async () => {
       try {
-        const response = await fetchClasses('/classes', { params: { limit: 10, page: 1 } })
+        const response = await fetchClasses('/', { params: { limit: 10, page: 1 } })
         setClasses(response.data)
       } catch (error) {
         console.error('Failed to fetch classes:', error)

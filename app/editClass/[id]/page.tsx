@@ -235,7 +235,7 @@ export default function EditClass({ params }: PageProps) {
           title: "Error",
           description: "Failed to load class details. Please try again later.",
         });
-        router.push('/classes');
+        router.push('/');
       } finally {
         setIsFetching(false);
       }
@@ -320,10 +320,10 @@ export default function EditClass({ params }: PageProps) {
     return isValid;
   };
 
-  // Convert status string to boolean
-  const convertStatusToBoolean = (status: string): boolean => {
-    // Return true if status is "1", false for any other value
-    return status === "1";
+  // Update the convertStatusToBoolean function to convertStatusToString
+  const convertStatusToString = (status: string): string => {
+    // Return "active" if status is "1", "inactive" for any other value
+    return status === "1" ? "active" : "inactive";
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -346,8 +346,8 @@ export default function EditClass({ params }: PageProps) {
         ...(classData || {}),
         // Convert price from string to number
         price: classData ? parseFloat(classData.price as string) : 0,
-        // Convert status from string to boolean
-        status: classData ? convertStatusToBoolean(classData.status as string) : false,
+        // Convert status from string to "active"/"inactive"
+        status: classData ? convertStatusToString(classData.status as string) : "inactive",
         startDate: classData ? new Date(classData.startDate).toISOString() : '',
         endDate: classData ? new Date(classData.endDate).toISOString() : '',
       };
@@ -410,7 +410,7 @@ export default function EditClass({ params }: PageProps) {
           Home
         </Link>
         <span>›</span>
-        <Link href="/classes" className="hover:text-gray-700">
+        <Link href="/" className="hover:text-gray-700">
           Classes
         </Link>
         <span>›</span>
