@@ -25,7 +25,7 @@ import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import { useToast } from "@/hooks/use-toast";
 import ClassTypeDropdown1 from "@/app/components/DropDown/ClassTypeDropdown1";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -327,50 +327,44 @@ const Loader = () => (
 // Alternative version with a pulse effect if you prefer
 
 
-// Update this helper function near the top of your component
+// Update this helper function
 const formatDateFromAPI = (dateString: string): string => {
   if (!dateString) return "N/A";
   try {
-    // Handle the date part only to avoid timezone issues
-    const dateParts = dateString.split('T')[0].split('-');
-    if (dateParts.length !== 3) {
-      return dateString; // Return original if not in expected format
-    }
-    
-    const year = parseInt(dateParts[0]);
-    const month = parseInt(dateParts[1]) - 1;
-    const day = parseInt(dateParts[2]);
-    
-    return `${(month + 1).toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${year.toString().slice(-2)}`;
+    const date = new Date(dateString);
+    const month = date.toLocaleString('default', { month: 'long' });
+    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    return `${month} ${day}, ${year}`;
   } catch (error) {
     console.error("Error formatting date:", error);
     return dateString;
   }
 };
 
-// Helper function to format dates as "DD/MM/YY"
+// Update this helper function as well
 const formatDate = (dateString: string): string => {
   if (!dateString) return "N/A";
   try {
-    // Split the date string to handle just the date part
-    // This avoids timezone issues by not letting JS interpret the time
-    const dateParts = dateString.split('T')[0].split('-');
-    if (dateParts.length !== 3) {
-      return dateString; // Return original if not in expected format
-    }
-    
-    // Create date using UTC to avoid timezone shifts
-    // Parse as year-month-day (months are 0-indexed in JS Date)
-    const year = parseInt(dateParts[0]);
-    const month = parseInt(dateParts[1]) - 1;
-    const day = parseInt(dateParts[2]);
-    
-    // Format as DD/MM/YY
-    return `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year.toString().slice(-2)}`;
+    const date = new Date(dateString);
+    const month = date.toLocaleString('default', { month: 'long' });
+    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    return `${month} ${day}, ${year}`;
   } catch (error) {
     console.error("Error formatting date:", error);
     return dateString;
   }
+};
+
+// Update the getUTCDate function to preserve the local date
+const getUTCDate = (date: Date | null): string => {
+  if (!date) return "";
+  // Use the local date components to create the date string
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export function ClassTable() {
@@ -976,14 +970,16 @@ fetchStates("52"); // Fetch US states
                 mode="single"
                 selected={searchParams.startFrom ? new Date(searchParams.startFrom) : undefined}
                 onSelect={(date) => {
-                  setSearchParams((prev) => ({
-                    ...prev,
-                    startFrom: date ? format(date, "yyyy-MM-dd") : "",
-                    // Clear end date if it's before new start date
-                    dateTo: prev.dateTo && date && new Date(prev.dateTo) < date 
-                      ? "" 
-                      : prev.dateTo
-                  }));
+                  if (date) {
+                    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+                    setSearchParams((prev) => ({
+                      ...prev,
+                      startFrom: getUTCDate(localDate),
+                      dateTo: prev.dateTo && new Date(prev.dateTo) < date 
+                        ? "" 
+                        : prev.dateTo
+                    }));
+                  }
                 }}
                 initialFocus
               />
@@ -1019,13 +1015,15 @@ fetchStates("52"); // Fetch US states
                 mode="single"
                 selected={searchParams.dateTo ? new Date(searchParams.dateTo) : undefined}
                 onSelect={(date) => {
-                  setSearchParams((prev) => ({
-                    ...prev,
-                    dateTo: date ? format(date, "yyyy-MM-dd") : ""
-                  }));
+                  if (date) {
+                    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+                    setSearchParams((prev) => ({
+                      ...prev,
+                      dateTo: getUTCDate(localDate)
+                    }));
+                  }
                 }}
                 disabled={(date) => {
-                  // Disable dates before start date
                   return date < (searchParams.startFrom ? new Date(searchParams.startFrom) : new Date());
                 }}
                 initialFocus

@@ -446,10 +446,11 @@ const formatTime = (time: string) => {
   }
 };
 
-// Add this helper function at the top of your component
+// Update the normalizeDate function
 const normalizeDate = (date: Date | undefined) => {
   if (!date) return undefined;
-  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  // Create new date object with the same year, month, and day in local timezone
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 };
 
 // Update the onSubmit function
@@ -923,11 +924,11 @@ const onSubmit = async (data: ClassFormData) => {
                       selected={watch("startDate")}
                       onSelect={(date) => {
                         if (date) {
-                          const normalizedDate = normalizeDate(date);
+                          const localDate = normalizeDate(date);
                           // @ts-ignore
-                          setValue("startDate", normalizedDate);
+                          setValue("startDate", localDate);
                           // Reset end date if it's before new start date
-                          if (watch("endDate") && normalizedDate && watch("endDate") < normalizedDate) {
+                          if (watch("endDate") && localDate && watch("endDate") < localDate) {
                             // @ts-ignore
                             setValue("endDate", undefined);
                           }
@@ -974,9 +975,9 @@ const onSubmit = async (data: ClassFormData) => {
                       selected={watch("endDate")}
                       onSelect={(date) => {
                         if (date) {
-                          const normalizedDate = normalizeDate(date);
+                          const localDate = normalizeDate(date);
                           // @ts-ignore
-                          setValue("endDate", normalizedDate);
+                          setValue("endDate", localDate);
                         }
                       }}
                       disabled={(date) => 
