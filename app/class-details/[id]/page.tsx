@@ -172,6 +172,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     console.log('Reschedule clicked:', { studentId, enrollmentId });
     
     setSelectedStudent({ studentId, enrollmentId });
+    setAvailableClasses([]);
     
     try {
       if (!classDetails?.category?.id) {
@@ -179,7 +180,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
         return;
       }
 
-      const response = await fetch(`https://api.4pmti.com/class/available?categoryId=${classDetails.category.id}`, {
+      const response = await fetch(`https://api.4pmti.com/enrollment/reschedule?categoryId=${classDetails.category.id}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -194,11 +195,11 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       const data = await response.json();
       console.log('Available classes:', data);
 
-      if (data.success) {
+      if (data.success && Array.isArray(data.data?.classes)) {
         setAvailableClasses(data.data.classes);
         setIsRescheduleModalOpen(true);
       } else {
-        console.error('API returned success: false', data);
+        console.error('Invalid data format or no classes available:', data);
       }
     } catch (error) {
       console.error('Error in handleRescheduleClick:', error);
@@ -493,11 +494,15 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                   <SelectValue placeholder="Select a class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableClasses.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id.toString()}>
-                      {cls.title} - {new Date(cls.startDate).toLocaleDateString()} ({cls.location.location})
-                    </SelectItem>
-                  ))}
+                  {Array.isArray(availableClasses) && availableClasses.length > 0 ? (
+                    availableClasses.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id.toString()}>
+                        {cls.title} - {new Date(cls.startDate).toLocaleDateString()} ({cls.location.location})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No available classes</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

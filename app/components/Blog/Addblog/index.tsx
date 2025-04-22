@@ -6,7 +6,7 @@ import Text from '@tiptap/extension-text';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
-import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered, ArrowDown, Link2, Link2Off } from 'lucide-react';
+import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered, ArrowDown, Link2, Link2Off, Underline as UnderlineIcon, Strikethrough, Type, Highlighter, Superscript as SuperscriptIcon, Subscript as SubscriptIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DragHandleDots2Icon } from "@radix-ui/react-icons";
@@ -20,6 +20,14 @@ import TableRow from '@tiptap/extension-table-row'
 import TableHeader from '@tiptap/extension-table-header'
 import TableCell from '@tiptap/extension-table-cell'
 import { Table as TableIcon, MoreHorizontal } from 'lucide-react'
+import { Color } from '@tiptap/extension-color'
+import TextStyle from '@tiptap/extension-text-style'
+import Highlight from '@tiptap/extension-highlight'
+import Superscript from '@tiptap/extension-superscript'
+import Subscript from '@tiptap/extension-subscript'
+import Underline from '@tiptap/extension-underline'
+import {Strike} from '@tiptap/extension-strike'
+import { createPortal } from 'react-dom';
 
 // Add this new type for image layout
 type ImageLayout = 'inline' | 'wrap' | 'block';
@@ -108,6 +116,9 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [showTextColors, setShowTextColors] = useState(false);
+  const [showBgColors, setShowBgColors] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     const handleSelectionChange = () => {
@@ -141,6 +152,21 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       }
     };
   }, [editor]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showTextColors || showBgColors) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.color-picker-dropdown')) {
+          setShowTextColors(false);
+          setShowBgColors(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showTextColors, showBgColors]);
 
   if (!editor) {
     return null;
@@ -422,8 +448,30 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
     }
   };
 
+  const colors = [
+    '#000000', '#434343', '#666666', '#999999', '#b7b7b7', '#cccccc',
+    '#d9d9d9', '#efefef', '#f3f3f3', '#ffffff', '#980000', '#ff0000',
+    '#ff9900', '#ffff00', '#00ff00', '#00ffff', '#4a86e8', '#0000ff',
+    '#9900ff', '#ff00ff'
+  ];
+
+  const bgColors = [
+    '#ffffff', '#f3f3f3', '#efefef', '#d9d9d9', '#cccccc', '#b7b7b7',
+    '#999999', '#666666', '#434343', '#000000', '#ffd2d2', '#ffe6cc',
+    '#fff2cc', '#d9ead3', '#d0e0e3', '#cfe2f3', '#d9d2e9', '#ead1dc'
+  ];
+
+  // Add these helper functions
+  const getCurrentTextColor = () => {
+    return editor?.getAttributes('textStyle').color || '#000000';
+  };
+
+  const getCurrentHighlightColor = () => {
+    return editor?.getAttributes('highlight').color || 'transparent';
+  };
+
   return (
-    <div className="flex flex-wrap gap-1 p-2 bg-gray-100 border-b sticky top-0 overflow-x-auto">
+    <div className="flex flex-wrap gap-1 p-2 bg-gray-100 border-b sticky top-0 overflow-x-auto z-50">
       <input
         type="file"
         ref={fileInputRef}
@@ -686,6 +734,39 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         <ArrowDown size={16} />
       </button>
 
+      {/* Text formatting buttons */}
+      <button
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('underline') ? 'bg-gray-200' : ''}`}
+        title="Underline"
+      >
+        <UnderlineIcon size={16} />
+      </button>
+
+      <button
+        onClick={() => editor.chain().focus().toggleStrike().run()}
+        className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('strike') ? 'bg-gray-200' : ''}`}
+        title="Strikethrough"
+      >
+        <Strikethrough size={16} />
+      </button>
+
+      <button
+        onClick={() => editor.chain().focus().toggleSuperscript().run()}
+        className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('superscript') ? 'bg-gray-200' : ''}`}
+        title="Superscript"
+      >
+        <SuperscriptIcon size={16} />
+      </button>
+
+      <button
+        onClick={() => editor.chain().focus().toggleSubscript().run()}
+        className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('subscript') ? 'bg-gray-200' : ''}`}
+        title="Subscript"
+      >
+        <SubscriptIcon size={16} />
+      </button>
+
       {/* Text alignment buttons */}
       <button
         onClick={() => editor.chain().focus().setTextAlign('left').run()}
@@ -785,6 +866,127 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
           </button>
         </div>
       )}
+
+      {/* Text Color Picker */}
+      <div className="relative">
+        <button
+          className="p-2 hover:bg-gray-200 rounded flex items-center gap-1 group"
+          onClick={(e) => {
+            const button = e.currentTarget;
+            const rect = button.getBoundingClientRect();
+            setDropdownPosition({
+              top: rect.bottom + window.scrollY + 5,
+              left: rect.left + window.scrollX
+            });
+            setShowTextColors(!showTextColors);
+            setShowBgColors(false); // Close other dropdown
+          }}
+          title="Text Color"
+        >
+          <Type size={16} />
+          <div 
+            className="w-4 h-4 border rounded" 
+            style={{ backgroundColor: editor?.getAttributes('textStyle').color || '#000000' }}
+          />
+        </button>
+
+        {showTextColors && (
+  <div
+    className="absolute z-50 bg-white rounded-lg shadow-xl p-2 color-picker-dropdown"
+    style={{
+      top: `${dropdownPosition.top}px`,
+      left: `${dropdownPosition.left}px`,
+      width: '240px',
+    }}
+  >
+    <div className="grid grid-cols-10 gap-1">
+      {colors.map((color) => (
+        <button
+          key={color}  // Add key prop here
+          className="w-6 h-6 rounded border hover:scale-125 transition-transform relative"
+          style={{ backgroundColor: color }}
+          onClick={() => {
+            editor?.chain().focus().setColor(color).run();
+            setShowTextColors(false);
+          }}
+        >
+          {editor?.getAttributes('textStyle').color === color && (
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className={`text-${color === '#ffffff' ? 'black' : 'white'} text-xs`}>✓</span>
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
+      </div>
+
+      {/* Background Color Picker */}
+      <div className="relative">
+        <button
+          className="p-2 hover:bg-gray-200 rounded flex items-center gap-1 group"
+          onClick={(e) => {
+            const button = e.currentTarget;
+            const rect = button.getBoundingClientRect();
+            setDropdownPosition({
+              top: rect.bottom + window.scrollY + 5,
+              left: rect.left + window.scrollX
+            });
+            setShowTextColors(!showTextColors);
+            setShowBgColors(false);
+          }}
+          title="Highlight Color"
+        >
+          <Highlighter size={16} />
+          <div 
+            className="w-4 h-4 border rounded" 
+            style={{ backgroundColor: editor?.getAttributes('highlight').color || 'transparent' }}
+          />
+        </button>
+
+        {showBgColors && (
+          <div
+            className="absolute z-[9999] bg-white rounded-lg shadow-xl p-2 color-picker-dropdown"
+            style={{
+              top: '100%',
+              left: '0',
+              marginTop: '5px',
+              width: '240px',
+            }}
+          >
+            <div className="grid grid-cols-10 gap-1">
+              {bgColors.map((color) => (
+                <button
+                  key={color}
+                  className="w-6 h-6 rounded border hover:scale-125 transition-transform relative"
+                  style={{ backgroundColor: color }}
+                  onClick={() => {
+                    editor?.chain().focus().toggleHighlight({ color }).run();
+                    setShowBgColors(false);
+                  }}
+                >
+                  {editor?.getAttributes('highlight').color === color && (
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className={`text-${color === '#ffffff' ? 'black' : 'white'} text-xs`}>✓</span>
+                    </span>
+                  )}
+                </button>
+              ))}
+              <button
+                className="w-6 h-6 rounded border hover:scale-125 transition-transform flex items-center justify-center"
+                onClick={() => {
+                  editor?.chain().focus().unsetHighlight().run();
+                  setShowBgColors(false);
+                }}
+                title="Remove highlight"
+              >
+                <span className="text-red-500 text-xs">×</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -824,7 +1026,14 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
     
     if (imageFiles.length > 0) {
       for (const file of imageFiles) {
-        await uploadImageToServer(editor, file);
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const content = e.target?.result;
+          if (content) {
+            await editor.chain().focus().insertContent(content).run();
+          }
+        };
+        reader.readAsDataURL(file);
       }
     } else {
       // Handle text drag and drop
@@ -851,15 +1060,21 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
       orderedList: {
         keepMarks: true,
         keepAttributes: false
-      }
+      },
+      // @ts-ignore
+      underline: false,
+      strike: false,
+      color: false,
+      highlight: false,
+      textStyle: false,
     }).extend({
       addKeyboardShortcuts() {
         return {
           'Mod-Alt-1': () => {
             // Check if H1 already exists
-            const hasH1 = this.editor.state.doc.descendants(node => {
+            const hasH1 = this.editor.state.doc.descendants((node) => {
               return node.type.name === 'heading' && node.attrs.level === 1;
-          // @ts-ignore
+              // @ts-ignore
             }).some((node: { type: { name: string; }; attrs: { level: number; }; }) => node.type.name === 'heading' && node.attrs.level === 1);
             
             if (hasH1) {
@@ -884,6 +1099,13 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
       Text,
       createH1Extension(),
       CustomImage,
+      TextStyle,
+      Color.configure({ types: [TextStyle.name] }),
+      Highlight.configure({ multicolor: true }),
+      Underline,
+      Strike,
+      Superscript,
+      Subscript,
       TextAlign.configure({
         types: ['heading', 'paragraph', 'table'],
       }),
@@ -944,7 +1166,7 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
   };
 
   return (
-    <div className="rounded-lg border bg-white relative">
+    <div className="rounded-lg border relative bg-white ">
       {/* Editor Mode Switch */}
       <div className="flex items-center justify-end gap-4 p-2 bg-gray-50 border-b">
         <div className="flex items-center space-x-2">
@@ -972,7 +1194,7 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
             </div>
             <EditorContent 
               editor={editor} 
-              className="p-4 pl-8 min-h-[400px] prose max-w-none"
+              className="p-4 pl-8 min-h-[400px] prose max-w-none z-20"
             />
           </div>
         </>
@@ -1405,6 +1627,88 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
         textarea::selection {
           background: rgba(37, 99, 235, 0.1);
         }
+
+        /* Add these new styles */
+        mark {
+          border-radius: 0.2em;
+          padding: 0.1em 0.3em;
+          margin: 0 0.1em;
+        }
+
+        u {
+          text-decoration: underline;
+          text-decoration-thickness: 0.1em;
+        }
+
+        s {
+          text-decoration-thickness: 0.1em;
+        }
+
+        sup {
+          font-size: 0.7em;
+        }
+
+        sub {
+          font-size: 0.7em;
+        }
+
+        /* Color picker styles */
+        .fixed[style*="z-index: 99999"] {
+          box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 4px 6px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.1);
+          animation: colorPickerFadeIn 0.2s ease;
+        }
+
+        @keyframes colorPickerFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-5px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        /* Text color styles */
+        [style*="color:"] {
+          color: var(--text-color);
+        }
+
+        /* Highlight styles */
+        mark {
+          background-color: var(--highlight-color);
+          color: inherit;
+        }
+
+        /* Color picker dropdown styles */
+        .color-picker-dropdown {
+          animation: dropdownFadeIn 0.2s ease;
+        }
+
+        @keyframes dropdownFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .color-picker-dropdown button {
+          transition: transform 0.2s ease;
+        }
+
+        .color-picker-dropdown button:hover {
+          transform: scale(1.25);
+          z-index: 1;
+        }
+
+        /* Ensure the dropdown is above other content */
+        .color-picker-dropdown {
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
       `}</style>
     </div>
   );
@@ -1609,6 +1913,8 @@ const Index = () => {
     slug?: string;
   }>({});
   const [slug, setSlug] = useState('');
+  const [head, setHead] = useState('');
+  const [script, setScript] = useState('');
 
   const validateForm = () => {
     const errors: {
@@ -1650,14 +1956,19 @@ const Index = () => {
       .map(tag => tag.trim())
       .filter(tag => tag !== '');
 
-      const payload = {
-        title,
-        content,
-        tagNames,
-        relatedArticleIds: [101, 102, 103],
-        coverImage: coverImageUrl,
-        slug,
-      };
+    const payload = {
+      title,
+      content,
+      tagNames,
+      relatedArticleIds: [101, 102, 103],
+      coverImage: coverImageUrl,
+      slug,
+      metadata: {
+        head: head.toString(),
+        script: script.toString()
+      }
+    };
+
     setIsSubmitting(true);
     try {
       const response = await fetch('https://api.4pmti.com/blog', {
@@ -1762,6 +2073,54 @@ const Index = () => {
       handleSlugChange(newTitle);
     }
   };
+
+  // Add this function to generate meta description from content
+  const generateMetaDescription = (content: string): string => {
+    // Remove HTML tags and get plain text
+    const plainText = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    // Get first 155-160 characters (optimal meta description length)
+    const description = plainText.substring(0, 155);
+    return description.length === 155 ? `${description}...` : description;
+  };
+
+  // Add this function to generate head content
+  const generateHeadContent = () => {
+    const metaDescription = generateMetaDescription(content);
+    const canonicalUrl = `https://yourdomain.com/blog/${slug}`; // Replace with your actual domain
+
+    const headContent = `<!-- Primary Meta Tags -->
+<title>${title}</title>
+<meta name="title" content="${title}" />
+<meta name="description" content="${metaDescription}" />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="article" />
+<meta property="og:url" content="${canonicalUrl}" />
+<meta property="og:title" content="${title}" />
+<meta property="og:description" content="${metaDescription}" />
+${coverImageUrl ? `<meta property="og:image" content="${coverImageUrl}" />` : ''}
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:url" content="${canonicalUrl}" />
+<meta property="twitter:title" content="${title}" />
+<meta property="twitter:description" content="${metaDescription}" />
+${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />` : ''}
+
+<!-- Additional Meta Tags -->
+<meta name="robots" content="index, follow" />
+<meta name="author" content="Your Site Name" />
+<link rel="canonical" href="${canonicalUrl}" />`;
+
+    setHead(headContent);
+  };
+
+  // Add effect to update head when relevant fields change
+  useEffect(() => {
+    if (title && content) {
+      generateHeadContent();
+    }
+  }, [title, content, slug, coverImageUrl]);
 
   return (
     <div className="max-w-7xl mx-auto px-0 sm:px-2 lg:px-8 py-5">
@@ -1909,6 +2268,54 @@ const Index = () => {
           </div>
         </div>
 
+        {/* Add these fields before the Content section */}
+        <div className="grid grid-cols-1 gap-6 mb-8">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Head
+              <span className="ml-1 text-xs text-gray-500">(Auto-generated, but can be modified)</span>
+            </label>
+            <textarea
+              value={head}
+              onChange={(e) => setHead(e.target.value)}
+              className="w-full border border-gray-300 rounded-md p-2 font-mono text-sm"
+              rows={12}
+              placeholder="Meta tags will be auto-generated when you add a title and content..."
+            />
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={generateHeadContent}
+                type="button"
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                Regenerate meta tags
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              These meta tags help with SEO and social media sharing. You can edit them manually if needed.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Script
+              <span className="ml-1 text-xs text-gray-500">(Add JavaScript code)</span>
+            </label>
+            <textarea
+              value={script}
+              onChange={(e) => setScript(e.target.value)}
+              className="w-full border border-gray-300 rounded-md p-2 font-mono text-sm"
+              rows={4}
+              placeholder="<script>
+  // Your JavaScript code here
+</script>"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Add JavaScript code that will be executed on the page
+            </p>
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Content <span className="text-red-500">*</span>
@@ -1995,7 +2402,3 @@ const Index = () => {
 };
 
 export default Index;
-
-function uploadImageToServer(editor: Editor, file: File) {
-  throw new Error('Function not implemented.');
-}
