@@ -137,12 +137,25 @@ const AddInstructor = () => {
                 <div className='grid lg:grid-cols-2 grid-cols-1 gap-4'>
                   <div className="grid gap-2">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" name="name" required />
+                    <Input 
+                      id="name" 
+                      name="name" 
+                      required 
+                      pattern="^[A-Za-z\s]{2,50}$"
+                      title="Name should only contain letters and spaces, between 2 and 50 characters"
+                    />
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="emailID">Email</Label>
-                    <Input id="emailID" name="emailID" type="email" required />
+                    <Input 
+                      id="emailID" 
+                      name="emailID" 
+                      type="email" 
+                      required 
+                      pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+                      title="Please enter a valid email address"
+                    />
                   </div>
                 </div>
 
@@ -157,7 +170,8 @@ const AddInstructor = () => {
                       name="mobile" 
                       type="tel" 
                       required 
-                      pattern="[0-9]{10}"
+                      pattern="^[1-9]\d{9}$"
+                      title="Please enter a valid 10-digit mobile number starting with 6-9"
                       onChange={() => setMobileError('')}
                       placeholder="Enter 10 digit mobile number"
                     />
@@ -167,7 +181,13 @@ const AddInstructor = () => {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="telNo">Telephone Number</Label>
-                    <Input id="telNo" name="telNo" type="tel" />
+                    <Input 
+                      id="telNo" 
+                      name="telNo" 
+                      type="tel"
+                      pattern="^[0-9]{10,12}$"
+                      title="Please enter a valid telephone number between 10-12 digits"
+                    />
                   </div>
                 </div>
 
@@ -180,18 +200,43 @@ const AddInstructor = () => {
                 <div className='grid lg:grid-cols-2 grid-cols-1 gap-4'>
                   <div className="grid gap-2">
                     <Label htmlFor="billingAddress">Billing Address</Label>
-                    <Textarea id="billingAddress" name="billingAddress" required />
+                    <Textarea 
+                      id="billingAddress" 
+                      name="billingAddress" 
+                      required 
+                      maxLength={200}
+                      // @ts-ignore
+                      pattern="^[A-Za-z0-9\s,.-]{10,200}$"
+                      title="Address should be between 10 and 200 characters"
+                    />
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="contactAddress">Contact Address</Label>
-                    <Textarea id="contactAddress" name="contactAddress" required />
+                    <Textarea 
+                      id="contactAddress" 
+                      name="contactAddress" 
+                      required 
+                      maxLength={200}
+                      // @ts-ignore
+                      pattern="^[A-Za-z0-9\s,.-]{10,200}$"
+                      title="Address should be between 10 and 200 characters"
+                    />
                   </div>
                 </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="profile">Profile Description</Label>
-                  <Textarea id="profile" name="profile" required />
+                  <Textarea 
+                    id="profile" 
+                    name="profile" 
+                    required 
+                    maxLength={500}
+                      // @ts-ignore
+
+                    pattern="^[A-Za-z0-9\s,.!?-]{20,500}$"
+                    title="Profile description should be between 20 and 500 characters"
+                  />
                 </div>
 
                 <div className="flex items-center space-x-2">
