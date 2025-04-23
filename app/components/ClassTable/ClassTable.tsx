@@ -357,10 +357,10 @@ const formatDate = (dateString: string): string => {
   }
 };
 
-// Update the getUTCDate function to preserve the local date
+// Update the getUTCDate function to preserve the exact selected date
 const getUTCDate = (date: Date | null): string => {
   if (!date) return "";
-  // Use the local date components to create the date string
+  // Format the date in YYYY-MM-DD format while preserving the local date
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -948,10 +948,10 @@ fetchStates("52"); // Fetch US states
                 selected={searchParams.startFrom ? new Date(searchParams.startFrom) : undefined}
                 onSelect={(date) => {
                   if (date) {
-                    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+                    // Use the date directly without timezone adjustment
                     setSearchParams((prev) => ({
                       ...prev,
-                      startFrom: getUTCDate(localDate),
+                      startFrom: getUTCDate(date),
                       dateTo: prev.dateTo && new Date(prev.dateTo) < date ? "" : prev.dateTo
                     }));
                   }
@@ -991,10 +991,10 @@ fetchStates("52"); // Fetch US states
                 selected={searchParams.dateTo ? new Date(searchParams.dateTo) : undefined}
                 onSelect={(date) => {
                   if (date) {
-                    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+                    // Use the date directly without timezone adjustment
                     setSearchParams((prev) => ({
                       ...prev,
-                      dateTo: getUTCDate(localDate)
+                      dateTo: getUTCDate(date)
                     }));
                   }
                 }}
