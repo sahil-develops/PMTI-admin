@@ -73,7 +73,7 @@ const classFormSchema = z.object({
   // Booleans
   onlineAvailable: z.boolean(),
   isCorpClass: z.boolean(),
-  status: z.boolean().default(true),
+  status: z.string().min(1, "Status is required"),
   isCancel: z.boolean().default(false),
   isDelete: z.boolean().default(false),
 
@@ -242,7 +242,7 @@ const [loadingStates, setLoadingStates] = useState(false);
       maxStudent: 30,
       minStudent: 5,
       price: 150.0,
-      status: true,
+      status: "active",
       onlineAvailable: true,
       isCancel: false,
       addedBy: 1,
@@ -492,8 +492,8 @@ const onSubmit = async (data: ClassFormData) => {
       flightConfirmation: data.flightConfirmation || "",
       carConfirmation: data.carConfirmation || "",
       hotelConfirmation: data.hotelConfirmation || "",
-      // Include boolean fields
-      status: data.status,
+      // Send status as string instead of boolean
+      status: data.status, // This will now send "active" or "inactive"
       onlineAvailable: data.onlineAvailable,
       isCancel: data.isCancel,
       isDelete: data.isDelete,
@@ -672,6 +672,32 @@ const onSubmit = async (data: ClassFormData) => {
                 name="title"
                 placeholder="Enter class title"
               />
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Status <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  onValueChange={(value) => {
+                    setValue("status", value);
+                  }}
+                  defaultValue="active"
+                >
+                  <SelectTrigger 
+                    className={`mt-1 bg-white w-full ${
+                      errors.status ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  >
+                    <SelectValue placeholder="Select status" className="bg-white" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.status && (
+                  <p className="mt-1 text-sm text-red-500">{errors.status.message}</p>
+                )}
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Description <span className="text-red-500">*</span>
