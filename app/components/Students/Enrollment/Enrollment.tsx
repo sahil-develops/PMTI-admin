@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Card,
@@ -135,6 +135,7 @@ interface ClassData {
 
 // Type for items (courses or classes)
 interface ItemData {
+  classTime: ReactNode;
   id: number;
   title?: string;      // for classes
   courseName?: string; // for courses
@@ -651,6 +652,14 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const month = date.toLocaleString('default', { month: 'long' });
+    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    return `${month} ${day}, ${year}`;
+  };
+
   // Update the class/course selection JSX
   const renderItemSelection = () => {
     if (isCourseEnrollment) {
@@ -706,8 +715,9 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                 <SelectItem 
                   key={item.id} 
                   value={item.id.toString()}
+                  className='text-xs'
                 >
-                  {item.title}
+                  {item.title} - {formatDate(item.startDate || '')} ({item.classTime})
                 </SelectItem>
               ))
             ) : (
@@ -965,12 +975,21 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                 </div>
                 <div>
                   <Label>Payment Mode</Label>
-                  <Select required value="other">
+                  <Select 
+                    required 
+                    value={formData.cardType}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, cardType: value }))}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Payment Mode" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem  value="other">Other</SelectItem>
+                      <SelectItem value="MASTERCARD">Master Card</SelectItem>
+                      <SelectItem value="VISA">Visa</SelectItem>
+                      <SelectItem value="AMEX">American Express</SelectItem>
+                      <SelectItem value="DISCOVER">Discover</SelectItem>
+                      <SelectItem value="DINERS">Diners Club</SelectItem>
+                      <SelectItem value="OTHER">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
