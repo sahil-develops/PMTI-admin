@@ -91,18 +91,17 @@ const classFormSchema = z.object({
     .regex(/^\+?[1-9]\d{1,14}$/, "Please enter a valid phone number")
     .optional()
     .or(z.literal("")),
+  
+  // Updated confirmation fields without strict regex
   flightConfirmation: z.string()
-    .regex(/^[A-Z]+-\d{6}$/, "Please enter a valid flight confirmation (e.g., FLIGHT-123456)")
     .optional()
     .or(z.literal("")),
   carConfirmation: z.string()
-    .regex(/^[A-Z]+-\d{6}$/, "Please enter a valid car confirmation (e.g., CAR-123456)")
     .optional()
     .or(z.literal("")),
   hotelConfirmation: z.string()
-    .regex(/^[A-Z]+-\d{6}$/, "Please enter a valid hotel confirmation (e.g., HOTEL-123456)")
     .optional()
-    .or(z.literal(""))
+    .or(z.literal("")),
 }).refine(
   (data) => {
     // Validate that endDate is after startDate
@@ -1174,19 +1173,19 @@ const onSubmit = async (data: ClassFormData) => {
                 label="Flight Confirmation"
                 name="flightConfirmation"
                 required={false}
-                placeholder="FLIGHT-123456"
+                placeholder="Enter flight confirmation number"
               />
               <FormField
                 label="Car Confirmation"
                 name="carConfirmation"
                 required={false}
-                placeholder="CAR-123456"
+                placeholder="Enter car confirmation number"
               />
               <FormField
                 label="Hotel Confirmation"
                 name="hotelConfirmation"
                 required={false}
-                placeholder="HOTEL-123456"
+                placeholder="Enter hotel confirmation number"
               />
             </div>
           </div>
