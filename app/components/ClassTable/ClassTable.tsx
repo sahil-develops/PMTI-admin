@@ -327,14 +327,21 @@ const Loader = () => (
 // Alternative version with a pulse effect if you prefer
 
 
-// Update this helper function
+// Update this helper function to handle dates consistently
 const formatDateFromAPI = (dateString: string): string => {
   if (!dateString) return "N/A";
   try {
+    // Create date object and normalize it to remove timezone influence
     const date = new Date(dateString);
-    const month = date.toLocaleString('default', { month: 'long' });
-    const day = date.getDate().toString().padStart(2, '0');
-    const year = date.getFullYear().toString().slice(-2);
+    const normalizedDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+    
+    const month = normalizedDate.toLocaleString('default', { month: 'long' });
+    const day = normalizedDate.getDate().toString().padStart(2, '0');
+    const year = normalizedDate.getFullYear().toString().slice(-2);
     return `${month} ${day}, ${year}`;
   } catch (error) {
     console.error("Error formatting date:", error);
@@ -346,10 +353,17 @@ const formatDateFromAPI = (dateString: string): string => {
 const formatDate = (dateString: string): string => {
   if (!dateString) return "N/A";
   try {
+    // Create date object and normalize it to remove timezone influence
     const date = new Date(dateString);
-    const month = date.toLocaleString('default', { month: 'long' });
-    const day = date.getDate().toString().padStart(2, '0');
-    const year = date.getFullYear().toString().slice(-2);
+    const normalizedDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+    
+    const month = normalizedDate.toLocaleString('default', { month: 'long' });
+    const day = normalizedDate.getDate().toString().padStart(2, '0');
+    const year = normalizedDate.getFullYear().toString().slice(-2);
     return `${month} ${day}, ${year}`;
   } catch (error) {
     console.error("Error formatting date:", error);
@@ -365,6 +379,13 @@ const getUTCDate = (date: Date | null): string => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+// Add this helper function
+const normalizeDate = (date: Date | undefined) => {
+  if (!date) return undefined;
+  // Create new date object with the same year, month, and day in local timezone
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 };
 
 export function ClassTable() {
@@ -555,7 +576,7 @@ fetchStates("52"); // Fetch US states
     return data.slice(startIndex, endIndex);
   };
 
-  // Modify the handleSearch function to include pagination parameters
+  // Update the handleSearch function to use normalized dates
   const handleSearch = async () => {
     try {
       setLoading(true);
@@ -567,13 +588,15 @@ fetchStates("52"); // Fetch US states
       queryParams.append('page', currentPage.toString());
       queryParams.append('limit', itemsPerPage.toString());
       
-      // Add date parameters without time
+      // Add date parameters without time, using normalized dates
       if (searchParams.startFrom) {
-        queryParams.append('startFrom', searchParams.startFrom);
+        const startDate = new Date(searchParams.startFrom);
+        queryParams.append('startFrom', getUTCDate(startDate));
       }
       
       if (searchParams.dateTo) {
-        queryParams.append('dateTo', searchParams.dateTo);
+        const endDate = new Date(searchParams.dateTo);
+        queryParams.append('dateTo', getUTCDate(endDate));
       }
       
       // Add other search parameters
