@@ -173,10 +173,13 @@ const formatDateForInput = (dateString: string) => {
   return `${month}/${day}/${year}`;
 };
 
-// Add this new helper function
+// Update the formatForDateInput function to handle timezone correctly
 const formatForDateInput = (dateString: string) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-CA'); // Returns YYYY-MM-DD format
+  // Adjust for local timezone offset
+  const tzOffset = date.getTimezoneOffset() * 60000; // offset in milliseconds
+  const localDate = new Date(date.getTime() - tzOffset);
+  return localDate.toISOString().split('T')[0]; // Returns YYYY-MM-DD format
 };
 
 // Update the formatDateForInput function to format as MM/DD/YY
@@ -455,9 +458,9 @@ export default function EditClass({ params }: PageProps) {
                     type="date"
                     value={formatForDateInput(classData.startDate)}
                     onChange={(e) => {
-                      const selectedDate = new Date(e.target.value);
-                      selectedDate.setHours(12); // Set to noon to avoid timezone issues
-                      setClassData({ ...classData, startDate: selectedDate.toISOString() });
+                      const inputDate = e.target.value; // YYYY-MM-DD format
+                      const date = new Date(`${inputDate}T12:00:00`); // Set to noon local time
+                      setClassData({ ...classData, startDate: date.toISOString() });
                     }}
                     required
                   />
@@ -474,9 +477,9 @@ export default function EditClass({ params }: PageProps) {
                     type="date"
                     value={formatForDateInput(classData.endDate)}
                     onChange={(e) => {
-                      const selectedDate = new Date(e.target.value);
-                      selectedDate.setHours(12); // Set to noon to avoid timezone issues
-                      setClassData({ ...classData, endDate: selectedDate.toISOString() });
+                      const inputDate = e.target.value; // YYYY-MM-DD format
+                      const date = new Date(`${inputDate}T12:00:00`); // Set to noon local time
+                      setClassData({ ...classData, endDate: date.toISOString() });
                     }}
                     required
                   />
