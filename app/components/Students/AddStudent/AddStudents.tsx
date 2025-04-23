@@ -92,7 +92,7 @@ const AddStudent = () => {
     address: "",
     city: "",
     state: "",
-    country: "",
+    country: "United States",
     zipCode: "",
     phone: "",
     companyName: "",
@@ -136,8 +136,16 @@ const AddStudent = () => {
         __locations__: country.__locations__,
       })));
 
-      // Set initial US locations
+      // Set initial US country name
       const unitedStates = countriesData.data.find((country: any) => country.id === 52);
+      if (unitedStates) {
+        setFormData(prev => ({
+          ...prev,
+          country: unitedStates.CountryName
+        }));
+      }
+
+      // Set initial US locations
       if (unitedStates && unitedStates.__locations__) {
         const sortedLocations = [...unitedStates.__locations__].sort((a, b) => 
           a.location.localeCompare(b.location)
@@ -350,7 +358,7 @@ const AddStudent = () => {
           address: "",
           city: "",
           state: "",
-          country: "",
+          country: "United States",
           zipCode: "",
           phone: "",
           companyName: "",

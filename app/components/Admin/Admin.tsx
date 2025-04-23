@@ -299,7 +299,7 @@ const Admin = () => {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto pb-20">
         <table className="w-full">
           <thead className="bg-zinc-50">
             <tr>
