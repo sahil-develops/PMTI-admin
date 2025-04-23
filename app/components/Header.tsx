@@ -12,6 +12,7 @@ export default function Header() {
   const [userName, setUserName] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const usersDropdownRef = useRef<HTMLDivElement>(null);
   const [isUsersDropdownOpen, setIsUsersDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -47,6 +48,9 @@ export default function Header() {
       }
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
         setIsMobileMenuOpen(false);
+      }
+      if (usersDropdownRef.current && !usersDropdownRef.current.contains(event.target)) {
+        setIsUsersDropdownOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -90,7 +94,7 @@ export default function Header() {
             {menuItems.map((item) => (
               <div key={item.name} className="relative">
                 {item.hasDropdown ? (
-                  <div className="relative">
+                  <div className="relative" ref={usersDropdownRef}>
                     <button
                       onClick={() => setIsUsersDropdownOpen(!isUsersDropdownOpen)}
                       className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out

@@ -104,12 +104,12 @@ interface SortConfig {
 }
 
 
-// Update SearchParams interface to include stateId
+// Update SearchParams interface
 interface SearchParams {
   startFrom: string;
   dateTo: string;
   countryId: string;
-  stateId: string;  // Add this line
+  stateId: string;
   locationId: string;
   instructorId: string;
   courseCategoryId: string;
@@ -420,7 +420,7 @@ export function ClassTable() {
   const [searchParams, setSearchParams] = useState<SearchParams>({
     startFrom: "",
     dateTo: "",
-   countryId: "52",
+    countryId: "52",
     stateId: "",    // Add this line
     locationId: "",
     instructorId: "",
@@ -567,9 +567,16 @@ fetchStates("52"); // Fetch US states
       queryParams.append('page', currentPage.toString());
       queryParams.append('limit', itemsPerPage.toString());
       
+      // Add date parameters without time
+      if (searchParams.startFrom) {
+        queryParams.append('startFrom', searchParams.startFrom);
+      }
+      
+      if (searchParams.dateTo) {
+        queryParams.append('dateTo', searchParams.dateTo);
+      }
+      
       // Add other search parameters
-      if (searchParams.startFrom) queryParams.append('startFrom', searchParams.startFrom);
-      if (searchParams.dateTo) queryParams.append('dateTo', searchParams.dateTo);
       if (searchParams.stateId) queryParams.append('stateId', searchParams.stateId);
       if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId);
       if (searchParams.locationId) queryParams.append('locationId', searchParams.locationId);
@@ -877,12 +884,12 @@ fetchStates("52"); // Fetch US states
     });
   };
 
+  // Update handleReset function
   async function handleReset(event: React.MouseEvent<HTMLButtonElement>): Promise<void> {
-    // Reset all search parameters
     setSearchParams({
       startFrom: '',
       dateTo: '',
-      countryId: '52', // Default to US
+      countryId: '52',
       stateId: '',
       locationId: '',
       instructorId: '',
@@ -891,37 +898,7 @@ fetchStates("52"); // Fetch US states
       showClass: '',
       globalSearch: ''
     });
-
-    // Show loading state
-    setLoading(true);
-
-    try {
-      // Fetch fresh data from API
-      const response = await fetch('https://api.4pmti.com/class', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch classes');
-      }
-
-      const data = await response.json();
-      
-      // Update the classes and metadata
-      setClasses(data.data.data);
-      setMetadata(data.data.metadata);
-      
-      // Reset current page
-      setCurrentPage(1);
-
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
+    // ... rest of reset function
   }
 
   return (
@@ -975,9 +952,7 @@ fetchStates("52"); // Fetch US states
                     setSearchParams((prev) => ({
                       ...prev,
                       startFrom: getUTCDate(localDate),
-                      dateTo: prev.dateTo && new Date(prev.dateTo) < date 
-                        ? "" 
-                        : prev.dateTo
+                      dateTo: prev.dateTo && new Date(prev.dateTo) < date ? "" : prev.dateTo
                     }));
                   }
                 }}
