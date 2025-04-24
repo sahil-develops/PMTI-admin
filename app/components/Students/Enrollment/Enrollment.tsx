@@ -112,9 +112,27 @@ interface StudentInfo {
   name: string;
   email: string;
   address: string;
-  city: string;
-  state: string;
-  country: string;
+  city: {
+    id: number;
+    location: string;
+    addedBy: string;
+    updatedBy: string;
+    isDelete: boolean;
+    createdAt: string;
+    updateAt: string;
+  };
+  state: {
+    id: number;
+    name: string;
+  };
+  country: {
+    id: number;
+    CountryName: string;
+    currency: string;
+    isActive: boolean;
+    addedBy: number;
+    updatedBy: number | null;
+  };
   zipCode: string;
   phone: string;
   companyName: string;
@@ -630,18 +648,21 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         ...prev,
         BillingName: studentInfo.name,
         BillingAddress: studentInfo.address,
-        BillingCity: studentInfo.city,
-        BillingState: studentInfo.state,
-        BillCountry: studentInfo.country,
+        BillingCity: studentInfo.city.id.toString(),
+        BillingState: studentInfo.state.id.toString(),
+        BillCountry: studentInfo.country.id.toString(),
         BillPhone: studentInfo.phone,
         BillMail: studentInfo.email,
       }));
       
       // Fetch states and locations for the student's country and state
       if (studentInfo.country) {
-        fetchBillingStates(studentInfo.country);
+        const countryId = studentInfo.country.id.toString();
+        fetchBillingStates(countryId);
+        
         if (studentInfo.state) {
-          fetchBillingLocations(studentInfo.country, studentInfo.state);
+          const stateId = studentInfo.state.id.toString();
+          fetchBillingLocations(countryId, stateId);
         }
       }
     }
@@ -830,7 +851,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                 </div>
                 <div>
                   <Label className="text-gray-500">State</Label>
-                  <div>{studentInfo.state}</div>
+                  <div>{studentInfo.state.name}</div>
                 </div>
                 <div>
                   <Label className="text-gray-500">Last Login</Label>
@@ -855,7 +876,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                 </div>
                 <div>
                   <Label className="text-gray-500">Country</Label>
-                  <div>{studentInfo.country}</div>
+                  <div>{studentInfo.country.CountryName}</div>
                 </div>
                 <div>
                   <Label className="text-gray-500">Company</Label>
@@ -995,7 +1016,9 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     required
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Country" />
+                      <SelectValue placeholder="Select Country">
+                        {selectedCountry && countries.find(c => c.id.toString() === selectedCountry)?.CountryName}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {countries.map((country) => (
@@ -1214,16 +1237,17 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                       setFormData(prev => ({
                         ...prev,
                         BillCountry: value,
-                        BillingState: "", // Reset state when country changes
-                        BillingCity: ""  // Reset city when country changes
+                        BillingState: "", 
+                        BillingCity: ""  
                       }));
-                      // Fetch states for the selected billing country
                       fetchBillingStates(value);
                     }}
-                 required
-                 >
+                    required
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Country" />
+                      <SelectValue placeholder="Select Country">
+                        {formData.BillCountry && countries.find(c => c.id.toString() === formData.BillCountry)?.CountryName}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {countries.map((country) => (

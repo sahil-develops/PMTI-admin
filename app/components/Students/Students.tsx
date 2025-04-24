@@ -126,20 +126,33 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
   useEffect(() => {
     if (student) {
+      // Extract proper values from nested objects
+      const countryId = student.country && typeof student.country === 'object' 
+        ? (student.country as { id: number }).id.toString() 
+        : student.country || "";
+        
+      const stateId = student.state && typeof student.state === 'object' 
+        ? (student.state as { id: number }).id.toString() 
+        : student.state || "";
+      const cityValue = student.city && typeof student.city === 'object' 
+        ? (student.city as { location: string }).location 
+        : student.city || "";
+
       setFormData({
         name: student.name,
         address: student.address,
-        city: student.city,
-        state: student.state,
-        country: student.country,
+        city: cityValue,
+        state: stateId, 
+        country: countryId,
         zipCode: student.zipCode,
         phone: student.phone,
         email: student.email,
         companyName: student.companyName,
         profession: student.profession,
       });
-      setSelectedCountry(student.country);
-      setSelectedState(student.state);
+      
+      setSelectedCountry(countryId);
+      setSelectedState(stateId);
     }
   }, [student]);
 
@@ -357,7 +370,14 @@ const Students = () => {
   const [editingStudent, setEditingStudent] = useState<StudentData | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  const uniqueStates = Array.from(new Set(students.map(student => student.state))).sort();
+  const uniqueStates = Array.from(new Set(
+    students.map(student => {
+      if (student.state && typeof student.state === 'string') {
+        return student.state;
+      }
+      return 'Unknown';
+    })
+  )).filter(Boolean).sort();
   const uniqueProfessions = Array.from(new Set(students.map(student => student.profession))).sort();
 
   useEffect(() => {
@@ -400,7 +420,7 @@ const Students = () => {
       filtered = filtered.filter(student =>
         student.name.toLowerCase().includes(searchLower) ||
         student.email.toLowerCase().includes(searchLower) ||
-        student.companyName.toLowerCase().includes(searchLower) ||
+        (student.companyName && student.companyName.toLowerCase().includes(searchLower)) ||
         student.uid.toLowerCase().includes(searchLower)
       );
     }
@@ -412,7 +432,12 @@ const Students = () => {
     }
 
     if (stateFilter !== "all") {
-      filtered = filtered.filter(student => student.state === stateFilter);
+      filtered = filtered.filter(student => {
+        if (typeof student.state === 'object' && student.state) {
+          return (student.state as { name: string }).name === stateFilter;
+        }
+        return student.state === stateFilter;
+      });
     }
 
     if (professionFilter !== "all") {
@@ -458,6 +483,42 @@ const Students = () => {
 
   const handleAddStudent = () => {
     router.push('/students/add');
+  };
+
+  // Helper function to safely get city, state, country values
+  const getLocationInfo = (student: StudentData) => {
+    let cityName = 'N/A';
+    let stateName = 'N/A';
+    let countryName = 'N/A';
+
+    // Check if city exists and is an object before using 'in' operator
+    if (student.city && typeof student.city === 'object' && student.city !== null) {
+      // Use type assertion with optional chaining to safely access location
+      const cityObj = student.city as any;
+      cityName = cityObj.location || 'N/A';
+    } else if (typeof student.city === 'string' && student.city) {
+      cityName = student.city;
+    }
+
+    // Check if state exists and is an object before accessing properties
+    if (student.state && typeof student.state === 'object' && student.state !== null) {
+      // Use type assertion with optional chaining to safely access name
+      const stateObj = student.state as any;
+      stateName = stateObj.name || 'N/A';
+    } else if (typeof student.state === 'string' && student.state) {
+      stateName = student.state;
+    }
+
+    // Check if country exists and is an object before accessing properties
+    if (student.country && typeof student.country === 'object' && student.country !== null) {
+      // Use type assertion with optional chaining to safely access CountryName
+      const countryObj = student.country as any;
+      countryName = countryObj.CountryName || 'N/A';
+    } else if (typeof student.country === 'string' && student.country) {
+      countryName = student.country;
+    }
+
+    return { cityName, stateName, countryName };
   };
 
   if (isLoading) {
@@ -553,67 +614,70 @@ const Students = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredStudents.map((student) => (
-                    <tr key={student.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-900">{student.id}</td>
-                      <td className="px-4 py-3 text-gray-900">{student.name}</td>
-                      <td className="px-4 py-3 text-gray-500">{student.email}</td>
-                      <td className="px-4 py-3 text-gray-500">{student.companyName}</td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {`${student.city}, ${student.state}`}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">{student.phone}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          student.active 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {student.active ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {new Date(student.lastLogin).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditingStudent(student);
-                                setIsEditModalOpen(true);
-                              }}
-                            >
-                              <Edit2 className="mr-2 h-4 w-4" />
-                              Edit Student
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                             router.push(`students/classEnrollment/${student.id}`);
-                              }}
-                            >
-                              <FileInput className="mr-2 h-4 w-4" />
-                        Class  Enrollment
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                             router.push(`students/courseEnrolllment/${student.id}`);
-                              }}
-                            >
-                              <FileInput className="mr-2 h-4 w-4" />
-                        Course  Enrollment
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredStudents.map((student) => {
+                    const { cityName, stateName } = getLocationInfo(student);
+                    return (
+                      <tr key={student.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-gray-900">{student.id}</td>
+                        <td className="px-4 py-3 text-gray-900">{student.name}</td>
+                        <td className="px-4 py-3 text-gray-500">{student.email}</td>
+                        <td className="px-4 py-3 text-gray-500">{student.companyName || 'N/A'}</td>
+                        <td className="px-4 py-3 text-gray-500">
+                          {`${cityName}, ${stateName}`}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">{student.phone || 'N/A'}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            student.active 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {student.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">
+                          {student.lastLogin ? new Date(student.lastLogin).toLocaleDateString() : 'Never'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEditingStudent(student);
+                                  setIsEditModalOpen(true);
+                                }}
+                              >
+                                <Edit2 className="mr-2 h-4 w-4" />
+                                Edit Student
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                               router.push(`students/classEnrollment/${student.id}`);
+                                }}
+                              >
+                                <FileInput className="mr-2 h-4 w-4" />
+                          Class  Enrollment
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                               router.push(`students/courseEnrolllment/${student.id}`);
+                                }}
+                              >
+                                <FileInput className="mr-2 h-4 w-4" />
+                          Course  Enrollment
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
