@@ -157,7 +157,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const [classes, setClasses] = useState<ClassData[]>([]);
     const [countries, setCountries] = useState<Array<{ id: number; CountryName: string }>>([]);
   const [locations, setLocations] = useState<Array<{ id: number; location: string }>>([]);
-  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [selectedCountry, setSelectedCountry] = useState<string>("52");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
 
   const [items, setItems] = useState<ItemData[]>([])
@@ -167,7 +167,9 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const [cities, setCities] = useState<Location[]>([]);
   const [states, setStates] = useState<State[]>([]);
 
-
+  // Add these state variables
+  const [billingStates, setBillingStates] = useState<State[]>([]);
+  const [billingLocations, setBillingLocations] = useState<Location[]>([]);
 
   const enrollmentType = isCourseEnrollment ? 'Course' : 'Class';
   const typeNameChecker =  isCourseEnrollment ? 'courseId' : 'classId';
@@ -369,25 +371,53 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     };
   
     // Modify your existing handleSubmit to include validation
-    const handleSubmit11 = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       
-      // Validate all credit card fields
-      const newErrors = {
-        CCNo: validateCreditCard(formData.CCNo) ? '' : 'Invalid credit card number',
-        CCExpiry: validateExpiryDate(formData.CCExpiry) ? '' : 'Invalid expiry date',
-        CVV: validateCVV(formData.CVV) ? '' : 'Invalid CVV',
-      };
-      
-      setErrors(newErrors);
-      
-      // Check if there are any validation errors
-      if (Object.values(newErrors).some(error => error !== '')) {
-        return;
+      // Validate credit card fields if using credit card payment
+      if (paymentMode === 'cc' || paymentMode === 'both') {
+        const newErrors = {
+          CCNo: validateCreditCard(formData.CCNo) ? '' : 'Invalid credit card number',
+          CCExpiry: validateExpiryDate(formData.CCExpiry) ? '' : 'Invalid expiry date',
+          CVV: validateCVV(formData.CVV) ? '' : 'Invalid CVV',
+        };
+        
+        setErrors(newErrors);
+        
+        // Check if there are any validation errors
+        if (Object.values(newErrors).some(error => error !== '')) {
+          return;
+        }
       }
-  
+      
+      // Determine if payment is made via credit card
+      const isPaid = paymentMode === 'cc' || paymentMode === 'both';
+      
       setLoading(true);
-      // ... rest of your submit logic
+      try {
+        const response = await fetch('https://api.4pmti.com/enrollment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+          body: JSON.stringify({
+            ...formData,
+            isPaid
+          }),
+        });
+
+        if (response.ok) {
+          setShowSuccess(true);
+        } else {
+          setShowError(true);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        setShowError(true);
+      } finally {
+        setLoading(false);
+      }
     };
 
    // Initialize with properly typed form data
@@ -401,7 +431,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     BillingAddress: "",
     BillingCity: "",
     BillingState: "",
-    BillCountry: "USA",
+    BillCountry: "52",
     BillPhone: "",
     BillMail: "",
     // @ts-ignore
@@ -431,10 +461,19 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     endDate: "",
   });
 
+  // Add a new state variable for payment mode
+  const [paymentMode, setPaymentMode] = useState<'both' | 'po' | 'cc'>('both');
+
   useEffect(() => {
     fetchCountries();
     fetchClasses();
     fetchStates("52"); // Fetch US states by default
+    
+    // Also fetch locations for the default country
+    fetchLocations("52");
+    
+    // Fetch billing states for the default country (US)
+    fetchBillingStates("52");
   }, []);
 
   
@@ -597,6 +636,14 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         BillPhone: studentInfo.phone,
         BillMail: studentInfo.email,
       }));
+      
+      // Fetch states and locations for the student's country and state
+      if (studentInfo.country) {
+        fetchBillingStates(studentInfo.country);
+        if (studentInfo.state) {
+          fetchBillingLocations(studentInfo.country, studentInfo.state);
+        }
+      }
     }
   };
 
@@ -625,32 +672,6 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   };
 
 
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const response = await fetch('https://api.4pmti.com/enrollment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        setShowSuccess(true);
-      } else {
-        setShowError(true);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      setShowError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -731,6 +752,66 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     );
   };
 
+  // Add these functions to fetch billing states and locations
+  const fetchBillingStates = async (countryId: string) => {
+    try {
+      const response = await fetch(
+        `https://api.4pmti.com/state/?countryId=${countryId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch states');
+      }
+
+      const data = await response.json();
+      setBillingStates(data.data);
+    } catch (error) {
+      console.error('Error fetching billing states:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch states",
+        variant: "destructive",
+      });
+      setBillingStates([]);
+    }
+  };
+
+  const fetchBillingLocations = async (countryId: string, stateId: string) => {
+    try {
+      const response = await fetch(
+        `https://api.4pmti.com/location?countryId=${countryId}&stateId=${stateId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch locations');
+      }
+
+      const data = await response.json();
+      const sortedLocations = [...data.data]
+        .filter((loc: Location) => !loc.isDelete)
+        .sort((a, b) => a.location.localeCompare(b.location));
+      setBillingLocations(sortedLocations);
+    } catch (error) {
+      console.error('Error fetching billing locations:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch locations",
+        variant: "destructive",
+      });
+      setBillingLocations([]);
+    }
+  };
+
   return (
     <div className="max-w-full mx-auto p-6">
       {studentInfo && (
@@ -789,69 +870,110 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       <Card>
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4  pt-4">
-      <h3 className="text-lg font-semibold">Credit Card Information</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label>Card Number</Label>
-          <Input
-            type="text"
-            value={formData.CCNo ? formatCreditCard(formData.CCNo) : ''}
-            onChange={handleCreditCardChange}
-            placeholder="1234 5678 9012 3456"
-            maxLength={19}
-            className={errors.CCNo ? 'border-red-500' : ''}
-            required
-          />
-          {errors.CCNo && (
-            <p className="text-sm text-red-500 mt-1">{errors.CCNo}</p>
-          )}
-        </div>
-        <div>
-      <Label>Credit Card Holder</Label>
-      <Input
-        value={formData.CreditCardHolder}
-        onChange={(e) => setFormData(prev => ({ ...prev, CreditCardHolder: e.target.value }))}
-        placeholder="Enter credit card holder name"
-      />
-    </div>
-       
-          <div>
-            <Label>Expiry Date</Label>
-            <Input
-              type="text"
-              value={formData.CCExpiry}
-              onChange={handleExpiryChange}
-              placeholder="MM/YY"
-              maxLength={5}
-              className={errors.CCExpiry ? 'border-red-500' : ''}
-              required
-            />
-            {errors.CCExpiry && (
-              <p className="text-sm text-red-500 mt-1">{errors.CCExpiry}</p>
-            )}
-          </div>
-          
-          <div>
-            <Label>CVV</Label>
-            <Input
-              type="text"
-              value={formData.CVV}
-              onChange={handleCVVChange}
-              placeholder="123"
-              maxLength={4}
-              className={errors.CVV ? 'border-red-500' : ''}
-              required
-            />
-            {errors.CVV && (
-              <p className="text-sm text-red-500 mt-1">{errors.CVV}</p>
-            )}
-          </div>
-        </div>
+            <div className="space-y-4">
+              {/* Payment Method Selection - Moved to the top */}
+              <h3 className="text-lg font-semibold">Payment Method</h3>
+              <div className="flex flex-col space-y-2 mb-4">
+                <div className="flex items-center space-x-2">
+                  <input 
+                    type="radio" 
+                    id="payment-both" 
+                    checked={paymentMode === 'both'}
+                    onChange={() => setPaymentMode('both')}
+                    className="h-4 w-4 text-primary"
+                  />
+                  <label htmlFor="payment-both">Purchase Order ID + Credit Card Payment</label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input 
+                    type="radio" 
+                    id="payment-po" 
+                    checked={paymentMode === 'po'}
+                    onChange={() => setPaymentMode('po')}
+                    className="h-4 w-4 text-primary"
+                  />
+                  <label htmlFor="payment-po">Purchase Order ID Only</label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input 
+                    type="radio" 
+                    id="payment-cc" 
+                    checked={paymentMode === 'cc'}
+                    onChange={() => setPaymentMode('cc')}
+                    className="h-4 w-4 text-primary"
+                  />
+                  <label htmlFor="payment-cc">Credit Card Payment Only</label>
+                </div>
+              </div>
+            
+              {/* Credit Card Information - Only shows if payment mode includes credit card */}
+              {(paymentMode === 'both' || paymentMode === 'cc') && (
+                <div className="space-y-4 pt-4">
+                  <h3 className="text-lg font-semibold">Credit Card Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Card Number</Label>
+                      <Input
+                        type="text"
+                        value={formData.CCNo ? formatCreditCard(formData.CCNo) : ''}
+                        onChange={handleCreditCardChange}
+                        placeholder="1234 5678 9012 3456"
+                        maxLength={19}
+                        className={errors.CCNo ? 'border-red-500' : ''}
+                        required={paymentMode === 'cc' || paymentMode === 'both'}
+                      />
+                      {errors.CCNo && (
+                        <p className="text-sm text-red-500 mt-1">{errors.CCNo}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label>Credit Card Holder</Label>
+                      <Input
+                        value={formData.CreditCardHolder}
+                        onChange={(e) => setFormData(prev => ({ ...prev, CreditCardHolder: e.target.value }))}
+                        placeholder="Enter credit card holder name"
+                        required={paymentMode === 'cc' || paymentMode === 'both'}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label>Expiry Date</Label>
+                      <Input
+                        type="text"
+                        value={formData.CCExpiry}
+                        onChange={handleExpiryChange}
+                        placeholder="MM/YY"
+                        maxLength={5}
+                        className={errors.CCExpiry ? 'border-red-500' : ''}
+                        required={paymentMode === 'cc' || paymentMode === 'both'}
+                      />
+                      {errors.CCExpiry && (
+                        <p className="text-sm text-red-500 mt-1">{errors.CCExpiry}</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <Label>CVV</Label>
+                      <Input
+                        type="text"
+                        value={formData.CVV}
+                        onChange={handleCVVChange}
+                        placeholder="123"
+                        maxLength={4}
+                        className={errors.CVV ? 'border-red-500' : ''}
+                        required={paymentMode === 'cc' || paymentMode === 'both'}
+                      />
+                      {errors.CVV && (
+                        <p className="text-sm text-red-500 mt-1">{errors.CVV}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-
-    
-           </div>
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Select {enrollmentType}</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -955,15 +1077,18 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
 
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Payment Information</h3>
+              
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Purchase Order ID</Label>
-                  <Input
-                    value={formData.purchaseOrderId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, purchaseOrderId: e.target.value }))}
-                 required
-                 />
-                </div>
+                {(paymentMode === 'both' || paymentMode === 'po') && (
+                  <div>
+                    <Label>Purchase Order ID</Label>
+                    <Input
+                      value={formData.purchaseOrderId}
+                      onChange={(e) => setFormData(prev => ({ ...prev, purchaseOrderId: e.target.value }))}
+                      required={paymentMode === 'po' || paymentMode === 'both'}
+                    />
+                  </div>
+                )}
                 <div>
                   <Label>Amount</Label>
                   <Input
@@ -973,26 +1098,28 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     required
                   />
                 </div>
-                <div>
-                  <Label>Payment Mode</Label>
-                  <Select 
-                    required 
-                    value={formData.cardType}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, cardType: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Payment Mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MASTERCARD">Master Card</SelectItem>
-                      <SelectItem value="VISA">Visa</SelectItem>
-                      <SelectItem value="AMEX">American Express</SelectItem>
-                      <SelectItem value="DISCOVER">Discover</SelectItem>
-                      <SelectItem value="DINERS">Diners Club</SelectItem>
-                      <SelectItem value="OTHER">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {(paymentMode === 'both' || paymentMode === 'cc') && (
+                  <div>
+                    <Label>Payment Mode</Label>
+                    <Select 
+                      required={paymentMode === 'cc' || paymentMode === 'both'}
+                      value={formData.cardType}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, cardType: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Payment Mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MASTERCARD">Master Card</SelectItem>
+                        <SelectItem value="VISA">Visa</SelectItem>
+                        <SelectItem value="AMEX">American Express</SelectItem>
+                        <SelectItem value="DISCOVER">Discover</SelectItem>
+                        <SelectItem value="DINERS">Diners Club</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1086,8 +1213,12 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     onValueChange={(value) => {
                       setFormData(prev => ({
                         ...prev,
-                        BillCountry: value
+                        BillCountry: value,
+                        BillingState: "", // Reset state when country changes
+                        BillingCity: ""  // Reset city when country changes
                       }));
+                      // Fetch states for the selected billing country
+                      fetchBillingStates(value);
                     }}
                  required
                  >
@@ -1103,6 +1234,78 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                           {country.CountryName}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Select State</Label>
+                  <Select
+                    value={formData.BillingState}
+                    onValueChange={(value) => {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        BillingState: value,
+                        BillingCity: "" // Reset city when state changes
+                      }));
+                      // Fetch locations for the selected billing state
+                      fetchBillingLocations(formData.BillCountry, value);
+                    }}
+                    disabled={!formData.BillCountry}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={formData.BillCountry ? "Select State" : "Select Country First"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {billingStates.length > 0 ? (
+                        billingStates.map((state) => (
+                          <SelectItem 
+                            key={state.id} 
+                            value={state.id.toString()}
+                          >
+                            {state.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-states" disabled>
+                          No states available
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Select Location</Label>
+                  <Select
+                    value={formData.BillingCity}
+                    onValueChange={(value) => {
+                      setFormData(prev => ({ ...prev, BillingCity: value }));
+                    }}
+                    disabled={!formData.BillingState}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        !formData.BillCountry 
+                          ? "Select Country First" 
+                          : !formData.BillingState 
+                            ? "Select State First"
+                            : "Select Location"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {billingLocations.length > 0 ? (
+                        billingLocations.map((location) => (
+                          <SelectItem 
+                            key={location.id} 
+                            value={location.id.toString()}
+                          >
+                            {location.location}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-locations" disabled>
+                          No locations available
+                        </SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1133,179 +1336,6 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                 </div>
               </div>
             </div>
-
-            <div className="space-y-4 border-t pt-4">
-  <h3 className="text-lg font-semibold">Additional Information</h3>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <Label>Name</Label>
-      <Input
-        value={formData.name}
-        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-        placeholder="Enter name"
-        required
-        />
-    </div>
-    
-    <div>
-      <Label>Company Name</Label>
-      <Input
-        value={formData.companyName}
-        onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
-        placeholder="Enter company name"
-    required
-    />
-    </div>
-    <div>
-      <Label>Profession</Label>
-      <Input
-        value={formData.profession}
-        onChange={(e) => setFormData(prev => ({ ...prev, profession: e.target.value }))}
-        placeholder="Enter profession"
-   required
-   />
-    </div>
-    <div>
-      <Label>Email</Label>
-      <Input
-        type="email"
-        value={formData.email}
-        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-        placeholder="Enter email address"
-    required
-    />
-    </div>
-    
-   <div>
-      <Label>Phone</Label>
-      <Input
-        value={formData.phone}
-        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-        placeholder="Enter phone number"
-    required
-    />
- 
-   </div>
-
- 
-
-   <div>
-            <Label>Country</Label>
-            <Select
-              value={selectedCountry1}
-              onValueChange={handleCountryChange1}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Country" />
-              </SelectTrigger>
-              <SelectContent>
-                {countries.map((country) => (
-                  <SelectItem 
-                    key={country.id} 
-                    value={country.id.toString()}
-                  >
-                    {country.CountryName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>State</Label>
-            <Select
-              value={selectedState}
-              onValueChange={handleStateChange}
-              disabled={!selectedCountry1}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={selectedCountry1 ? "Select State" : "Select Country First"} />
-              </SelectTrigger>
-              <SelectContent>
-                {states.length > 0 ? (
-                  states.map((state) => (
-                    <SelectItem 
-                      key={state.id} 
-                      value={state.id.toString()}
-                    >
-                      {state.name}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="no-states" disabled>
-                    No states available
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>City</Label>
-            <Select
-              value={formData.city}
-              onValueChange={(value) => {
-                setFormData(prev => ({ ...prev, city: value }));
-              }}
-              disabled={!selectedState}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={
-                  !selectedCountry1 
-                    ? "Select Country First" 
-                    : !selectedState 
-                      ? "Select State First"
-                      : "Select City"
-                } />
-              </SelectTrigger>
-              <SelectContent>
-                {cities && cities.length > 0 ? (
-                  cities.map((city) => (
-                    <SelectItem 
-                      key={city.id} 
-                      value={city.id.toString()}
-                    >
-                      {city.location}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="no-cities" disabled>
-                    No cities available
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Address</Label>
-            <Input
-              value={formData.address}
-              onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-              placeholder="Enter address"
-            />
-          </div>
-        </div>
-      
-
-    <div className="col-span-2">
-      {/* <div className="flex items-center space-x-2">
-        <Checkbox
-          id="downloadedInfoPac"
-          checked={formData.downloadedInfoPac}
-          onCheckedChange={(checked) => 
-            setFormData(prev => ({ 
-              ...prev, 
-              downloadedInfoPac: checked as boolean 
-            }))
-          }
-        />
-        <label htmlFor="downloadedInfoPac">
-          I have downloaded and read the information package
-        </label>
-      </div> */}
-    </div>
-  </div>
-
 
             <div className="flex justify-end space-x-4 pt-4">
               <Button variant="outline" type="button" onClick={() => router.back()}>

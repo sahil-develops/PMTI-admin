@@ -171,8 +171,7 @@ const ActionDropdown = ({
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    onDelete(classId);
-
+    
     try {
       const response = await fetch(
         `https://api.4pmti.com/class/${classId}`,
@@ -194,7 +193,10 @@ const ActionDropdown = ({
         description: "Class deleted successfully",
       });
       
-      // Refresh the data
+      // First remove the class locally for immediate UI update
+      onDelete(classId);
+      
+      // Then refresh the data from the server
       refreshData();
     } catch (error) {
       toast({
@@ -331,17 +333,14 @@ const Loader = () => (
 const formatDateFromAPI = (dateString: string): string => {
   if (!dateString) return "N/A";
   try {
-    // Create date object and normalize it to remove timezone influence
-    const date = new Date(dateString);
-    const normalizedDate = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    );
+    // Create a date object without converting to UTC
+    // Add 'T00:00:00' to ensure consistent local date interpretation
+    const date = new Date(`${dateString.split('T')[0]}T00:00:00`);
     
-    const month = normalizedDate.toLocaleString('default', { month: 'long' });
-    const day = normalizedDate.getDate().toString().padStart(2, '0');
-    const year = normalizedDate.getFullYear().toString().slice(-2);
+    // Format the date components from the local date
+    const month = date.toLocaleString('default', { month: 'long' });
+    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
     return `${month} ${day}, ${year}`;
   } catch (error) {
     console.error("Error formatting date:", error);
@@ -353,17 +352,13 @@ const formatDateFromAPI = (dateString: string): string => {
 const formatDate = (dateString: string): string => {
   if (!dateString) return "N/A";
   try {
-    // Create date object and normalize it to remove timezone influence
-    const date = new Date(dateString);
-    const normalizedDate = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    );
+    // Create a date object without converting to UTC
+    const date = new Date(`${dateString.split('T')[0]}T00:00:00`);
     
-    const month = normalizedDate.toLocaleString('default', { month: 'long' });
-    const day = normalizedDate.getDate().toString().padStart(2, '0');
-    const year = normalizedDate.getFullYear().toString().slice(-2);
+    // Format the date components from the local date
+    const month = date.toLocaleString('default', { month: 'long' });
+    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
     return `${month} ${day}, ${year}`;
   } catch (error) {
     console.error("Error formatting date:", error);
@@ -588,15 +583,15 @@ fetchStates("52"); // Fetch US states
       queryParams.append('page', currentPage.toString());
       queryParams.append('limit', itemsPerPage.toString());
       
-      // Add date parameters without time, using normalized dates
+      // Add date parameters without time components
       if (searchParams.startFrom) {
-        const startDate = new Date(searchParams.startFrom);
-        queryParams.append('startFrom', getUTCDate(startDate));
+        // Keep date as is without any timezone adjustments
+        queryParams.append('startFrom', searchParams.startFrom);
       }
       
       if (searchParams.dateTo) {
-        const endDate = new Date(searchParams.dateTo);
-        queryParams.append('dateTo', getUTCDate(endDate));
+        // Keep date as is without any timezone adjustments
+        queryParams.append('dateTo', searchParams.dateTo);
       }
       
       // Add other search parameters
@@ -924,6 +919,11 @@ fetchStates("52"); // Fetch US states
     // ... rest of reset function
   }
 
+  // Update this function to properly refresh data
+  const refreshClassData = () => {
+    handleSearch(); // Call the search function to fetch fresh data with current filters
+  };
+  
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       {error && (
@@ -968,14 +968,19 @@ fetchStates("52"); // Fetch US states
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarComponent
                 mode="single"
-                selected={searchParams.startFrom ? new Date(searchParams.startFrom) : undefined}
+                selected={searchParams.startFrom ? new Date(`${searchParams.startFrom}T00:00:00`) : undefined}
                 onSelect={(date) => {
                   if (date) {
-                    // Use the date directly without timezone adjustment
+                    // Format date as YYYY-MM-DD without timezone adjustment
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const formattedDate = `${year}-${month}-${day}`;
+                    
                     setSearchParams((prev) => ({
                       ...prev,
-                      startFrom: getUTCDate(date),
-                      dateTo: prev.dateTo && new Date(prev.dateTo) < date ? "" : prev.dateTo
+                      startFrom: formattedDate,
+                      dateTo: prev.dateTo && new Date(prev.dateTo + 'T00:00:00') < date ? "" : prev.dateTo
                     }));
                   }
                 }}
@@ -1011,18 +1016,23 @@ fetchStates("52"); // Fetch US states
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarComponent
                 mode="single"
-                selected={searchParams.dateTo ? new Date(searchParams.dateTo) : undefined}
+                selected={searchParams.dateTo ? new Date(`${searchParams.dateTo}T00:00:00`) : undefined}
                 onSelect={(date) => {
                   if (date) {
-                    // Use the date directly without timezone adjustment
+                    // Format date as YYYY-MM-DD without timezone adjustment
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const formattedDate = `${year}-${month}-${day}`;
+                    
                     setSearchParams((prev) => ({
                       ...prev,
-                      dateTo: getUTCDate(date)
+                      dateTo: formattedDate
                     }));
                   }
                 }}
                 disabled={(date) => {
-                  return date < (searchParams.startFrom ? new Date(searchParams.startFrom) : new Date());
+                  return date < (searchParams.startFrom ? new Date(`${searchParams.startFrom}T00:00:00`) : new Date());
                 }}
                 initialFocus
               />
@@ -1384,7 +1394,7 @@ fetchStates("52"); // Fetch US states
                     <TableCell>
                       <ActionDropdown
                         classId={classItem.id}
-                        refreshData={() => setClasses([])}
+                        refreshData={refreshClassData}
                         classItem={classItem}
                         onDelete={deleteClassLocally}
                       />

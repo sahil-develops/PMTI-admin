@@ -170,6 +170,7 @@ type ClassType = {
   description: null | string;
   isDelete: boolean;
   active: boolean;
+  duration?: number;
 };
 
 // Add these types after your existing types
@@ -335,6 +336,13 @@ useEffect(() => {
   }
 }, [watch('stateId'), states]);
 
+  // Add a helper function to extract duration from class type name
+  const extractDuration = (classTypeName: string): number => {
+    const match = classTypeName.match(/(\d+)\s*Day/i);
+    return match ? parseInt(match[1], 10) : 1; // Default to 1 if no match
+  };
+
+  // Process class types to include duration
   useEffect(() => {
     const fetchClassTypes = async () => {
       setLoadingClassTypes(true);
@@ -351,7 +359,12 @@ useEffect(() => {
 
         const result = await response.json();
         if (result.success && result.data) {
-          setClassTypes(result.data);
+          // Process each class type to extract duration from name
+          const processedClassTypes = result.data.map((classType: ClassType) => ({
+            ...classType,
+            duration: extractDuration(classType.name)
+          }));
+          setClassTypes(processedClassTypes);
         }
       } catch (error) {
         console.error('Error fetching class types:', error);
@@ -362,6 +375,55 @@ useEffect(() => {
 
     fetchClassTypes();
   }, []);
+
+  // Add handler for class type selection to update end date
+  const handleClassTypeChange = (value: string) => {
+    const classTypeId = Number(value);
+    setValue("classTypeId", classTypeId);
+    
+    // Get the selected class type
+    const selectedClassType = classTypes.find(ct => ct.id === classTypeId);
+    
+    // If we have a start date and class type with duration, calculate end date
+    if (selectedClassType?.duration && watch("startDate")) {
+      const startDate = new Date(watch("startDate"));
+      const endDate = new Date(startDate);
+      
+      // Add duration-1 days (since start date counts as day 1)
+      endDate.setDate(startDate.getDate() + (selectedClassType.duration - 1));
+      
+      // Set the end date
+      setValue("endDate", endDate);
+    }
+  };
+
+  // Also update the start date change handler to recalculate end date if class type is selected
+  const handleStartDateChange = (date: Date | undefined) => {
+    if (!date) return;
+    
+    const localDate = normalizeDate(date);
+    // @ts-ignore
+    setValue("startDate", localDate);
+    
+    // Get the selected class type
+    const classTypeId = watch("classTypeId");
+    const selectedClassType = classTypes.find(ct => ct.id === classTypeId);
+    
+    // If we have a class type with duration, calculate end date
+    if (selectedClassType?.duration && localDate) {
+      const endDate = new Date(localDate);
+      
+      // Add duration-1 days (since start date counts as day 1)
+      endDate.setDate(localDate.getDate() + (selectedClassType.duration - 1));
+      // Set the end date
+      // @ts-ignore
+      setValue("endDate", endDate);
+    } else if (watch("endDate") && localDate && watch("endDate") < localDate) {
+      // Reset end date if it's before new start date
+      // @ts-ignore
+      setValue("endDate", undefined);
+    }
+  };
 
   useEffect(() => {
     const fetchCountries = async () => {
@@ -448,8 +510,7 @@ const formatTime = (time: string) => {
 // Update the normalizeDate function
 const normalizeDate = (date: Date | undefined) => {
   if (!date) return undefined;
-  // Create new date object with the same year, month, and day in local timezone
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return date;
 };
 
 // Update the onSubmit function
@@ -462,17 +523,19 @@ const onSubmit = async (data: ClassFormData) => {
     const formattedTimeFrom = formatTime(data.classTimeFrom);
     const formattedTimeTo = formatTime(data.classTimeTo);
     
-    // Format dates to UTC, ensuring consistent timezone handling
-    const startDate = normalizeDate(data.startDate);
-    const endDate = normalizeDate(data.endDate);
-    
+    // Format dates in proper ISO format
+    console.log(data.startDate,data.endDate,"Start Date without format");
+    const startDateISO = data.startDate ? data.startDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' 00:00:00' : '';
+    const endDateISO = data.endDate ? data.endDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' 00:00:00' : '';
+    console.log(startDateISO,endDateISO,"Start Date with format");
+
     // Prepare the data for submission
     const submitData = {
       ...data,
       classTime: `${formattedTimeFrom} - ${formattedTimeTo}`,
-      // Format dates in UTC
-      startDate: startDate?.toISOString().split('T')[0] + ' 00:00:00',
-      endDate: endDate?.toISOString().split('T')[0] + ' 00:00:00',
+      // Use proper ISO format for dates
+      startDate: startDateISO,
+      endDate: endDateISO,
       // Convert IDs to numbers
       categoryId: Number(data.categoryId),
       classTypeId: Number(data.classTypeId),
@@ -760,9 +823,7 @@ const onSubmit = async (data: ClassFormData) => {
                   Class Type <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  onValueChange={(value) => {
-                    setValue("classTypeId", Number(value));
-                  }}
+                  onValueChange={handleClassTypeChange}
                   defaultValue={watch("classTypeId")?.toString()}
                 >
                   <SelectTrigger 
@@ -947,18 +1008,7 @@ const onSubmit = async (data: ClassFormData) => {
                     <Calendar
                       mode="single"
                       selected={watch("startDate")}
-                      onSelect={(date) => {
-                        if (date) {
-                          const localDate = normalizeDate(date);
-                          // @ts-ignore
-                          setValue("startDate", localDate);
-                          // Reset end date if it's before new start date
-                          if (watch("endDate") && localDate && watch("endDate") < localDate) {
-                            // @ts-ignore
-                            setValue("endDate", undefined);
-                          }
-                        }
-                      }}
+                      onSelect={handleStartDateChange}
                       disabled={(date) => date < new Date()}
                       initialFocus
                     />
