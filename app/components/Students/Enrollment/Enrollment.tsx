@@ -388,7 +388,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       }));
     };
   
-    // Modify your existing handleSubmit to include validation
+    // Modify your existing handleSubmit to include validation and properly format the data
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       
@@ -411,6 +411,26 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       // Determine if payment is made via credit card
       const isPaid = paymentMode === 'cc' || paymentMode === 'both';
       
+      // Ensure we have all required student data from the studentInfo
+      const dataToSubmit = {
+        ...formData,
+        isPaid,
+        // Add missing required fields from studentInfo
+        name: studentInfo?.name || formData.name,
+        address: studentInfo?.address || formData.address,
+        city: studentInfo?.city?.id ? parseInt(studentInfo.city.id.toString()) : parseInt(formData.city || "0"),
+        state: studentInfo?.state?.id ? parseInt(studentInfo.state.id.toString()) : parseInt(formData.state || "0"),
+        country: studentInfo?.country?.id ? parseInt(studentInfo.country.id.toString()) : parseInt(formData.country || "0"),
+        phone: studentInfo?.phone || formData.phone,
+        profession: studentInfo?.profession || formData.profession,
+        email: studentInfo?.email || formData.email,
+        zipCode: studentInfo?.zipCode || formData.zipCode,
+        // Convert strings to numbers where needed
+        BillingCity: formData.BillingCity ? parseInt(formData.BillingCity) : 0,
+        BillingState: formData.BillingState ? parseInt(formData.BillingState) : 0,
+        BillCountry: formData.BillCountry ? parseInt(formData.BillCountry) : 0,
+      };
+      
       setLoading(true);
       try {
         const response = await fetch('https://api.4pmti.com/enrollment', {
@@ -419,15 +439,14 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
-          body: JSON.stringify({
-            ...formData,
-            isPaid
-          }),
+          body: JSON.stringify(dataToSubmit),
         });
 
-        if (response.ok) {
+        const responseData = await response.json();
+        if (response.ok && responseData.success) {
           setShowSuccess(true);
         } else {
+          console.error('Enrollment failed:', responseData);
           setShowError(true);
         }
       } catch (error) {
@@ -508,7 +527,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       let url = `https://api.4pmti.com/${endpoint}`;
       
       // Add query parameters if both country and location are selected
-      if (!isCourseEnrollment && countryId && locationId) {
+      if (countryId && locationId) {
         url += `?countryId=${countryId}&locationId=${locationId}`;
       }
 
@@ -536,12 +555,12 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   };
 
   useEffect(() => {
-    if (isCourseEnrollment) {
-      fetchItems();
+    if (selectedCountry && selectedLocation) {
+      fetchItems(selectedCountry, selectedLocation);
     } else {
-      setItems([]); // Clear items when switching to class enrollment
+      setItems([]); // Clear items when country/location not selected
     }
-  }, [isCourseEnrollment]);
+  }, [selectedCountry, selectedLocation, isCourseEnrollment]);
 
   // Add a new effect to fetch classes when country and location are selected
   useEffect(() => {
@@ -630,6 +649,28 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       const data = await response.json();
       if (data.success) {
         setStudentInfo(data.data);
+        
+        // Check for null location data and handle it gracefully
+        const student = data.data;
+        setFormData(prev => ({
+          ...prev,
+          name: student.name || "",
+          address: student.address || "",
+          city: student.city?.id?.toString() || "",
+          state: student.state?.id?.toString() || "",
+          country: student.country?.id?.toString() || "52", // Default to US if null
+          phone: student.phone || "",
+          profession: student.profession || "",
+          email: student.email || "",
+          zipCode: student.zipCode || "",
+          companyName: student.companyName || "",
+        }));
+        
+        // Set defaults for country/state selectors
+        if (!student.country) {
+          setSelectedCountry1("52"); // Default to US
+          fetchStates("52");
+        }
       }
     } catch (error) {
       console.error('Error fetching student info:', error);
@@ -646,24 +687,33 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     if (checked && studentInfo) {
       setFormData(prev => ({
         ...prev,
-        BillingName: studentInfo.name,
-        BillingAddress: studentInfo.address,
-        BillingCity: studentInfo.city.id.toString(),
-        BillingState: studentInfo.state.id.toString(),
-        BillCountry: studentInfo.country.id.toString(),
-        BillPhone: studentInfo.phone,
-        BillMail: studentInfo.email,
+        BillingName: studentInfo.name || "",
+        BillingAddress: studentInfo.address || "",
+        BillingCity: studentInfo.city?.id?.toString() || "",
+        BillingState: studentInfo.state?.id?.toString() || "",
+        BillCountry: studentInfo.country?.id?.toString() || "52", // Default to US
+        BillPhone: studentInfo.phone || "",
+        BillMail: studentInfo.email || "",
+        // Also set the student data
+        name: studentInfo.name || "",
+        address: studentInfo.address || "",
+        city: studentInfo.city?.id?.toString() || "",
+        state: studentInfo.state?.id?.toString() || "",
+        country: studentInfo.country?.id?.toString() || "52", // Default to US
+        phone: studentInfo.phone || "",
+        profession: studentInfo.profession || "",
+        email: studentInfo.email || "",
+        zipCode: studentInfo.zipCode || "",
+        companyName: studentInfo.companyName || "",
       }));
       
-      // Fetch states and locations for the student's country and state
-      if (studentInfo.country) {
-        const countryId = studentInfo.country.id.toString();
-        fetchBillingStates(countryId);
-        
-        if (studentInfo.state) {
-          const stateId = studentInfo.state.id.toString();
-          fetchBillingLocations(countryId, stateId);
-        }
+      // Fetch states and locations for the student's country or use default
+      const countryId = studentInfo.country?.id?.toString() || "52";
+      fetchBillingStates(countryId);
+      
+      if (studentInfo.state) {
+        const stateId = studentInfo.state.id.toString();
+        fetchBillingLocations(countryId, stateId);
       }
     }
   };
@@ -712,19 +762,35 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
             value={(formData.courseId)?.toString() || ""}
             onValueChange={handleItemSelect}
             required
+            disabled={!selectedCountry || !selectedLocation}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select Course" />
+              <SelectValue placeholder={
+                !selectedCountry 
+                  ? "Select a country first" 
+                  : !selectedLocation 
+                    ? "Select a location first"
+                    : items.length === 0 
+                      ? "No courses available"
+                      : "Select Course"
+              } />
             </SelectTrigger>
             <SelectContent>
-              {items.map((item) => (
-                <SelectItem 
-                  key={item.id} 
-                  value={item.id.toString()}
-                >
-                  {item.courseName}
+              {items.length > 0 ? (
+                items.map((item) => (
+                  <SelectItem 
+                    key={item.id} 
+                    value={item.id.toString()}
+                    className='text-xs'
+                  >
+                    {item.courseName} - {formatDate(item.startDate || '')} ({item.classTime})
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem disabled value="no-courses">
+                  No courses available for this location
                 </SelectItem>
-              ))}
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -833,6 +899,25 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     }
   };
 
+  useEffect(() => {
+    if (studentInfo) {
+      // Use optional chaining and default values to handle nulls
+      setFormData(prev => ({
+        ...prev,
+        name: studentInfo.name || "",
+        address: studentInfo.address || "",
+        city: studentInfo.city?.id?.toString() || "",
+        state: studentInfo.state?.id?.toString() || "",
+        country: studentInfo.country?.id?.toString() || "52", // Default to US
+        phone: studentInfo.phone || "",
+        profession: studentInfo.profession || "",
+        email: studentInfo.email || "",
+        zipCode: studentInfo.zipCode || "",
+        companyName: studentInfo.companyName || "",
+      }));
+    }
+  }, [studentInfo]);
+
   return (
     <div className="max-w-full mx-auto p-6">
       {studentInfo && (
@@ -851,7 +936,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                 </div>
                 <div>
                   <Label className="text-gray-500">State</Label>
-                  <div>{studentInfo.state.name}</div>
+                  <div>{studentInfo.state?.name || "Not provided"}</div>
                 </div>
                 <div>
                   <Label className="text-gray-500">Last Login</Label>
@@ -876,11 +961,11 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                 </div>
                 <div>
                   <Label className="text-gray-500">Country</Label>
-                  <div>{studentInfo.country.CountryName}</div>
+                  <div>{studentInfo.country?.CountryName || "Not provided"}</div>
                 </div>
                 <div>
                   <Label className="text-gray-500">Company</Label>
-                  <div>{studentInfo.companyName}</div>
+                  <div>{studentInfo.companyName || "Not provided"}</div>
                 </div>
               </div>
             </div>

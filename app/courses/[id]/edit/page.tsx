@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface User {
   id: string;
@@ -69,6 +76,40 @@ export default function EditCourse({ params }: PageProps) {
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [classTypes, setClassTypes] = useState<ClassType[]>([]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('https://api.4pmti.com/category', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const data = await response.json();
+      setCategories(data.data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setCategories([]);
+    }
+  };
+
+  const fetchClassTypes = async () => {
+    try {
+      const response = await fetch('https://api.4pmti.com/classtype', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch class types');
+      const data = await response.json();
+      setClassTypes(data.data || []);
+    } catch (error) {
+      console.error('Error fetching class types:', error);
+      setClassTypes([]);
+    }
+  };
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -108,6 +149,8 @@ export default function EditCourse({ params }: PageProps) {
     };
 
     fetchCourse();
+    fetchCategories();
+    fetchClassTypes();
   }, [resolvedParams, toast, router]);
 
   if (!resolvedParams) {
@@ -134,6 +177,8 @@ export default function EditCourse({ params }: PageProps) {
           extPrice: course?.extPrice,
           isGuestAccess: course?.isGuestAccess,
           isVisible: course?.isVisible,
+          categoryId: course?.category?.id,
+          classType: course?.classType?.id,
         }),
       });
 
@@ -266,6 +311,56 @@ export default function EditCourse({ params }: PageProps) {
                   required
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <Select
+                value={course.category?.id?.toString()}
+                onValueChange={(value) => setCourse({
+                  ...course,
+                  category: { ...course.category, id: Number(value) }
+                })}
+              >
+                <SelectTrigger className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <SelectValue placeholder="Select Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem 
+                      key={category.id} 
+                      value={category.id.toString()}
+                    >
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Class Type</label>
+              <Select
+                value={course.classType?.id?.toString()}
+                onValueChange={(value) => setCourse({
+                  ...course,
+                  classType: { ...course.classType, id: Number(value) }
+                })}
+              >
+                <SelectTrigger className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <SelectValue placeholder="Select Class Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classTypes.map((classType) => (
+                    <SelectItem 
+                      key={classType.id} 
+                      value={classType.id.toString()}
+                    >
+                      {classType.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center space-x-2">

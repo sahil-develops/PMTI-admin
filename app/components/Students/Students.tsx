@@ -42,6 +42,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Check } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 
 interface SuccessModalProps {
@@ -68,6 +69,7 @@ interface StudentData {
   isDelete: boolean;
   active: boolean;
   lastLogin: string;
+  locationId?: string;
 }
 
 interface StudentResponse {
@@ -120,9 +122,17 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
   const [showSuccess, setShowSuccess] = useState(false);
   const [countries, setCountries] = useState<{ id: number; CountryName: string }[]>([]);
   const [states, setStates] = useState<{ id: number; name: string }[]>([]);
-  const [cities, setCities] = useState([]);
+  const [cities, setCities] = useState<{ id: number; location: string }[]>([]);
   const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedState, setSelectedState] = useState("");
+  
+  // Add new states for city search functionality
+  const [filteredCities, setFilteredCities] = useState<any[]>([]);
+  const [citySearchFocused, setCitySearchFocused] = useState(false);
+  const [creatingLocation, setCreatingLocation] = useState(false);
+  const [citySearch, setCitySearch] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { toast } = useToast();
 
   useEffect(() => {
     if (student) {
@@ -153,6 +163,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
       
       setSelectedCountry(countryId);
       setSelectedState(stateId);
+      setCitySearch(cityValue);
     }
   }, [student]);
 
@@ -196,21 +207,56 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
     try {
       const response = await fetch(`https://api.4pmti.com/location?stateId=${stateId}`);
       const data = await response.json();
-      setCities(data.data);
+      const sortedLocations = [...data.data].sort((a, b) => 
+        a.location.localeCompare(b.location)
+      );
+      setCities(sortedLocations);
     } catch (error) {
       console.error('Error fetching cities:', error);
     }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    // Only validate fields that have been modified
+    if (formData.name !== undefined && formData.name.trim() === '') {
+      newErrors.name = "Name is required";
+    }
+    
+    if (formData.email !== undefined && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
+      newErrors.email = "Invalid email address";
+    }
+    
+    // Check if we have a state but no city
+    if (selectedState && !formData.locationId && (formData.city === '' || formData.city === undefined)) {
+      newErrors.city = "Please select or create a city";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!student) return;
     
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
     try {
       await onSave(student.id, formData);
       setShowSuccess(true);
       onClose();
+    } catch (error) {
+      // Error is handled in the onSave function
     } finally {
       setLoading(false);
     }
@@ -218,6 +264,121 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
   const handleInputChange = (field: keyof StudentData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user makes a change
+    if (errors[field]) {
+      setErrors(prev => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    }
+  };
+
+  const handleCountryChange = async (countryId: string) => {
+    setSelectedCountry(countryId);
+    setSelectedState("");
+    setCities([]);
+    setFormData(prev => ({ 
+      ...prev, 
+      country: countryId,
+      state: '',
+      city: '',
+      locationId: ''
+    }));
+    
+    // Fetch states for selected country
+    fetchStates(countryId);
+  };
+
+  const handleStateChange = async (stateId: string) => {
+    setSelectedState(stateId);
+    setFormData(prev => ({ 
+      ...prev, 
+      state: stateId,
+      city: '',
+      locationId: ''
+    }));
+    setCitySearch(""); // Clear city search when state changes
+
+    // Fetch cities for the selected state
+    fetchCities(stateId);
+  };
+
+  const handleCitySearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const searchValue = e.target.value;
+    setCitySearch(searchValue);
+    setFormData(prev => ({
+      ...prev,
+      city: searchValue // Update city value directly
+    }));
+
+    if (searchValue.trim() === '') {
+      setFilteredCities([]);
+    } else {
+      const filtered = cities.filter((city: any) => 
+        city.location.toLowerCase().includes(searchValue.toLowerCase())
+      );
+      setFilteredCities(filtered);
+    }
+  };
+
+  const selectCity = (city: any) => {
+    setCitySearch(city.location);
+    setFormData(prev => ({
+      ...prev,
+      city: city.location,
+      locationId: city.id.toString()
+    }));
+    setFilteredCities([]);
+    setCitySearchFocused(false);
+  };
+
+  const createNewLocation = async () => {
+    if (!selectedCountry || !selectedState || !citySearch.trim()) {
+      return;
+    }
+
+    setCreatingLocation(true);
+    try {
+      const response = await fetch('https://api.4pmti.com/location', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify({
+          country: parseInt(selectedCountry),
+          state: parseInt(selectedState),
+          location: citySearch.trim(),
+          addedBy: localStorage.getItem("userEmail"),
+          updatedBy: localStorage.getItem("userEmail"),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data) {
+          const newLocation = data.data;
+          
+          // Add the new location to the cities list
+          setCities(prev => [...prev, newLocation]);
+          
+          // Update form data with the new location info
+          setFormData(prev => ({
+            ...prev,
+            locationId: newLocation.id.toString(),
+            city: newLocation.location
+          }));
+          
+          setFilteredCities([]);
+          setCitySearchFocused(false);
+        }
+      }
+    } catch (error) {
+      console.error("Error creating location:", error);
+    } finally {
+      setCreatingLocation(false);
+    }
   };
 
   return (
@@ -235,7 +396,11 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
                 id="name"
                 value={formData.name || ''}
                 onChange={(e) => handleInputChange('name', e.target.value)}
+                className={errors.name ? "border-red-500" : ""}
               />
+              {errors.name && (
+                <p className="text-xs text-red-500">{errors.name}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -244,7 +409,11 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
                 type="email"
                 value={formData.email || ''}
                 onChange={(e) => handleInputChange('email', e.target.value)}
+                className={errors.email ? "border-red-500" : ""}
               />
+              {errors.email && (
+                <p className="text-xs text-red-500">{errors.email}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
@@ -254,43 +423,13 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
                 onChange={(e) => handleInputChange('address', e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                value={formData.city || ''}
-                onChange={(e) => handleInputChange('city', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Select
-                value={selectedState}
-                onValueChange={(value) => {
-                  setSelectedState(value);
-                  handleInputChange('state', value);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select State" />
-                </SelectTrigger>
-                <SelectContent>
-                  {states.map((state) => (
-                    <SelectItem key={state.id} value={state.id.toString()}>
-                      {state.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            
+            {/* Country selection */}
             <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
               <Select
                 value={selectedCountry}
-                onValueChange={(value) => {
-                  setSelectedCountry(value);
-                  handleInputChange('country', value);
-                }}
+                onValueChange={handleCountryChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Country" />
@@ -304,6 +443,100 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* State selection */}
+            <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
+              <Select
+                value={selectedState}
+                onValueChange={handleStateChange}
+                disabled={!selectedCountry}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={selectedCountry ? "Select State" : "Select Country First"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.length > 0 ? (
+                    states.map((state) => (
+                      <SelectItem key={state.id} value={state.id.toString()}>
+                        {state.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-states" disabled>
+                      No states available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* City search with dropdown */}
+            <div className="space-y-2 relative">
+              <Label>City</Label>
+              <Input
+                value={citySearch}
+                onChange={handleCitySearch}
+                onFocus={() => setCitySearchFocused(true)}
+                onBlur={() => {
+                  // Delayed blur to allow clicking on the dropdown items
+                  setTimeout(() => setCitySearchFocused(false), 200);
+                }}
+                placeholder={
+                  !selectedCountry 
+                    ? "Select Country First" 
+                    : !selectedState 
+                      ? "Select State First"
+                      : "Type to search or create city"
+                }
+                disabled={!selectedState}
+                className={errors.city ? "border-red-500" : ""}
+              />
+              {errors.city && (
+                <p className="text-xs text-red-500">{errors.city}</p>
+              )}
+              
+              {/* City dropdown */}
+              {citySearchFocused && citySearch && filteredCities.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border max-h-60 overflow-auto">
+                  {filteredCities.map((city) => (
+                    <div 
+                      key={city.id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => selectCity(city)}
+                    >
+                      {city.location}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Create new location button */}
+              {selectedState && 
+                citySearch && 
+                !loading && 
+                filteredCities.length === 0 && 
+                !cities.some((city: any) => city.location.toLowerCase() === citySearch.toLowerCase()) && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="mt-2 w-full text-sm"
+                    onClick={createNewLocation}
+                    disabled={creatingLocation}
+                  >
+                    {creatingLocation ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      `Create "${citySearch}" as new location`
+                    )}
+                  </Button>
+                )
+              }
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="zipCode">Zip Code</Label>
               <Input
@@ -449,20 +682,45 @@ const Students = () => {
 
   const handleEditStudent = async (studentId: number, updatedData: Partial<StudentData>) => {
     try {
+      // Create a payload object that will be sent to the API
+      const payload: any = { ...updatedData };
+      
+      // If we have locationId in the data, use it for the city field and convert to integer
+      if (updatedData.locationId) {
+        payload.city = parseInt(updatedData.locationId);
+        // Remove locationId from payload as it's not needed in the API
+        delete payload.locationId;
+      }
+      
+      // Convert state and country to integers if they exist
+      if (updatedData.state && !isNaN(Number(updatedData.state))) {
+        payload.state = parseInt(updatedData.state);
+      }
+      
+      if (updatedData.country && !isNaN(Number(updatedData.country))) {
+        payload.country = parseInt(updatedData.country);
+      }
+
+      console.log("Sending payload to API:", payload);
+
       const response = await fetch(`https://api.4pmti.com/students/${studentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
-        body: JSON.stringify(updatedData),
+        body: JSON.stringify(payload),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to update student');
+        // Get specific error message if available
+        const errorMessage = data.error || data.message || 'Failed to update student';
+        throw new Error(errorMessage);
       }
 
-      // Update local state
+      // Update local state with the updated data we got back from the API
       setStudents(prevStudents =>
         prevStudents.map(student =>
           student.id === studentId ? { ...student, ...updatedData } : student
@@ -470,11 +728,15 @@ const Students = () => {
       );
 
       setShowSuccess(true);
-    } catch (error) {
+      
+      // Refresh student list to make sure we have the latest data
+      fetchStudents();
+      
+    } catch (error: any) {
       console.error('Error updating student:', error);
       toast({
         title: "Error",
-        description: "Failed to update student",
+        description: error.message || "Failed to update student",
         variant: "destructive",
       });
     }

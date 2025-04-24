@@ -33,6 +33,13 @@ interface Course {
   enrollmentCount:string;
   isDelete: boolean;
   email?: string; // Optional email field for filtering
+  category?: {
+    id: number;
+    name: string;
+    description: string;
+    isDelete: boolean;
+    active: boolean;
+  };
 }
 
 interface ApiResponse {
@@ -206,7 +213,7 @@ const CourseList = () => {
             <tbody className="divide-y">
               {filteredCourses.map((course) => (
                 <tr key={course.id} className="bg-white hover:bg-gray-50">
-                  <td className="px-6 py-4">{!course.isDelete ? 'Active' : 'Inactive'}</td>
+                  <td className="px-6 py-4">{course.category?.name || 'Uncategorized'}</td>
                   <td className="px-6 py-4">{course.courseName}</td>
                   <td className="px-6 py-4">12/15/2024</td>
                   <td className="px-6 py-4">12/17/2024</td>
