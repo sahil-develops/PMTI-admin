@@ -270,14 +270,42 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     setSelectedLocation("");
     setAvailableClasses([]);
     
-    // Find the selected country and its locations
-    const selectedCountryData = countries.find(c => c.id.toString() === countryId);
-    if (selectedCountryData && selectedCountryData.__locations__) {
-      // Filter out deleted locations
-      const activeLocations = selectedCountryData.__locations__.filter(loc => !loc.isDelete);
-      setLocations(activeLocations);
-    } else {
+    // Immediately fetch locations for the selected country
+    if (countryId) {
+      fetchLocationsForCountry(countryId);
+    }
+  };
+
+  const fetchLocationsForCountry = async (countryId: string) => {
+    try {
+      // Set loading state for locations if needed
       setLocations([]);
+      
+      // Make the API call with the country ID
+      const response = await fetch(`https://api.4pmti.com/location/?countryId=${countryId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch locations');
+      
+      const data = await response.json();
+      if (data.success) {
+        // Filter out deleted locations
+        const activeLocations = data.data.filter((loc: { isDelete: boolean }) => !loc.isDelete);
+        setLocations(activeLocations);
+      } else {
+        throw new Error(data.error || 'Failed to fetch locations');
+      }
+    } catch (error) {
+      console.error('Error fetching locations for country:', error);
+      setLocations([]);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load locations. Please try again.",
+      });
     }
   };
 

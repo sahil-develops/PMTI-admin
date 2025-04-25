@@ -29,6 +29,7 @@ import { format, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+import router from "next/router";
 
 
 
@@ -109,7 +110,6 @@ interface SearchParams {
   startFrom: string;
   dateTo: string;
   countryId: string;
-  stateId: string;
   locationId: string;
   instructorId: string;
   courseCategoryId: string;
@@ -326,6 +326,15 @@ const Loader = () => (
   </div>
 );
 
+// Add the missing TableShimmer component
+const TableShimmer = () => (
+  <div className="animate-pulse space-y-2">
+    {Array.from({ length: 5 }).map((_, i) => (
+      <div key={i} className="border-b border-zinc-200 h-16 bg-zinc-50" />
+    ))}
+  </div>
+);
+
 // Alternative version with a pulse effect if you prefer
 
 
@@ -429,15 +438,12 @@ export function ClassTable() {
   const [countries, setCountries] = useState<Country[]>([]);
 
   const [selectedCountry, setSelectedCountry] = useState<string>("52"); // Default to US
-  const [selectedState, setSelectedState] = useState<string>(""); // Add this line
   const [cities, setCities] = useState<Location[]>([]);
-  const [states, setStates] = useState<State[]>([]);
   
   const [searchParams, setSearchParams] = useState<SearchParams>({
     startFrom: "",
     dateTo: "",
     countryId: "52",
-    stateId: "",    // Add this line
     locationId: "",
     instructorId: "",
     courseCategoryId: "",
@@ -516,7 +522,6 @@ useEffect(() => {
 
   useEffect(() => {
     fetchDropdownData();
-fetchStates("52"); // Fetch US states
   }, []);
 
   const [globalSearch, setGlobalSearch] = useState("");
@@ -595,7 +600,6 @@ fetchStates("52"); // Fetch US states
       }
       
       // Add other search parameters
-      if (searchParams.stateId) queryParams.append('stateId', searchParams.stateId);
       if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId);
       if (searchParams.locationId) queryParams.append('locationId', searchParams.locationId);
       if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
@@ -673,16 +677,22 @@ fetchStates("52"); // Fetch US states
     setSearchParams(prev => ({ 
       ...prev, 
       countryId, 
-      stateId: '', 
       locationId: '' 
     }));
     
-    // Reset states and cities
-    setStates([]);
+    // Reset cities
     setCities([]);
     
-    // Fetch states for selected country
-    fetchStates(countryId);
+    // Find and set cities for the selected country
+    if (countries.length > 0) {
+      const selectedCountry = countries.find(country => country.id.toString() === countryId);
+      if (selectedCountry && selectedCountry.__locations__) {
+        const sortedLocations = [...selectedCountry.__locations__]
+          .sort((a, b) => a.location.localeCompare(b.location))
+          .filter(location => !location.isDelete); // Filter out deleted locations
+        setCities(sortedLocations);
+      }
+    }
   };
 
   const handleCityChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -690,165 +700,28 @@ fetchStates("52"); // Fetch US states
     setSearchParams((prev) => ({ ...prev, locationId }));
   };
 
-  // Add function to fetch states
-  const fetchStates = async (countryId: string) => {
-    try {
-      const response = await fetch(
-        `https://api.4pmti.com/state/?countryId=${countryId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch states');
-      }
-
-      const data = await response.json();
-      setStates(data.data);
-    } catch (error) {
-      console.error('Error fetching states:', error);
-    }
-  };
-
-  // Update the handleStateChange function to filter locations
-  const handleStateChange = async (stateId: string) => {
-    setSelectedState(stateId);
-    setSearchParams(prev => ({ ...prev, stateId, locationId: '' }));
-
-    // Find the selected state and its locations from the states array
-    const selectedStateData = states.find(state => state.id.toString() === stateId);
-    
-    if (selectedStateData) {
-      // Sort locations alphabetically and filter out deleted ones if needed
-      const sortedLocations = [...selectedStateData.locations]
-        .sort((a, b) => a.location.localeCompare(b.location));
-      setCities(sortedLocations);
-    } else {
-      setCities([]);
-    }
-  };
-
-  // Loading shimmer component
-  const TableShimmer = () => (
-    <div className="animate-pulse space-y-2">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="border-b border-zinc-200 h-16 bg-zinc-50" />
-      ))}
-    </div>
-  );
-
-  const deleteClassLocally = (classId: number) => {
-    setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
-  };
-
-  const refreshClassTypes = async () => {
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-    };
-    const response = await fetch(
-      `https://api.4pmti.com/classtype`,
-      { headers }
-    );
-    const data = await response.json();
-    setClassTypes(data.data);
-  };
-
-  const router = useRouter();
-
-  const handleSort = (key: string) => {
-    setSortConfig((currentSort) => {
-      if (currentSort.key === key) {
-        return {
-          key,
-          direction: currentSort.direction === 'asc' ? 'desc' : 'asc'
-        };
-      }
-      return { key, direction: 'asc' };
+  // Update handleReset function
+  async function handleReset(event: React.MouseEvent<HTMLButtonElement>): Promise<void> {
+    setSearchParams({
+      startFrom: '',
+      dateTo: '',
+      countryId: '52',
+      locationId: '',
+      instructorId: '',
+      courseCategoryId: '',
+      classTypeId: '',
+      showClass: '',
+      globalSearch: ''
     });
+    // ... rest of reset function
+  }
 
-    setClasses(prevClasses => {
-      const sortedClasses = [...prevClasses].sort((a, b) => {
-        let aValue: any;
-        let bValue: any;
-
-        switch (key) {
-          case 'category':
-            aValue = a.classType?.category?.name;
-            bValue = b.classType?.category?.name;
-            break;
-          case 'location':
-            aValue = a.location?.location;
-            bValue = b.location?.location;
-            break;
-          case 'instructor':
-            // @ts-ignore
-            aValue = a.instructor?.name;
-            // @ts-ignore
-            bValue = b.instructor?.name;
-            break;
-          default:
-            // @ts-ignore
-            aValue = a[key];
-            // @ts-ignore
-            bValue = b[key];
-        }
-
-        // Handle null/undefined values
-        if (!aValue) return 1;
-        if (!bValue) return -1;
-
-        // Compare the values
-        if (typeof aValue === 'string') {
-          const comparison = aValue.localeCompare(bValue);
-          return sortConfig.direction === 'asc' ? comparison : -comparison;
-        }
-
-        const comparison = aValue > bValue ? 1 : -1;
-        return sortConfig.direction === 'asc' ? comparison : -comparison;
-      });
-
-      return sortedClasses;
-    });
+  // Update this function to properly refresh data
+  const refreshClassData = () => {
+    handleSearch(); // Call the search function to fetch fresh data with current filters
   };
-
-  const SortableTableHeader = ({ children, sortKey }: { children: React.ReactNode; sortKey: string }) => (
-    <th 
-      className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap cursor-pointer hover:bg-zinc-100"
-      onClick={() => handleSort(sortKey)}
-    >
-      <div className="flex items-center gap-1">
-        {children}
-        {sortConfig.key === sortKey && (
-          <span className="text-xs">
-            {sortConfig.direction === 'asc' ? '↑' : '↓'}
-          </span>
-        )}
-      </div>
-    </th>
-  );
-
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedClasses(classes.map(c => c.id));
-    } else {
-      setSelectedClasses([]);
-    }
-  };
-
-  const handleSelectClass = (classId: number) => {
-    setSelectedClasses(prev => {
-      if (prev.includes(classId)) {
-        return prev.filter(id => id !== classId);
-      } else {
-        return [...prev, classId];
-      }
-    });
-  };
-
+  
+  // Add the missing handleBulkDelete function
   const handleBulkDelete = async () => {
     try {
       setIsDeleting(true);
@@ -885,45 +758,36 @@ fetchStates("52"); // Fetch US states
     }
   };
 
-  // Add this function after the handleSort function
-  const filterClasses = (classes: ClassData[], searchTerm: string) => {
-    if (!searchTerm) return classes;
-    
-    const searchLower = searchTerm.toLowerCase();
-    return classes.filter(classItem => {
-      return (
-        classItem.title?.toLowerCase().includes(searchLower) ||
-        classItem.category?.name?.toLowerCase().includes(searchLower) ||
-        classItem.location?.location?.toLowerCase().includes(searchLower) ||
-        // @ts-ignore
-        classItem.instructor?.name?.toLowerCase().includes(searchLower) ||
-        classItem.status?.toLowerCase().includes(searchLower)
-      );
+  // Add this function to handle the "select all" checkbox
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      // If the checkbox is checked, select all visible classes
+      setSelectedClasses(classes.map(c => c.id));
+    } else {
+      // If the checkbox is unchecked, clear all selections
+      setSelectedClasses([]);
+    }
+  };
+
+  // Make sure you also have the handleSelectClass function
+  const handleSelectClass = (classId: number) => {
+    setSelectedClasses(prev => {
+      if (prev.includes(classId)) {
+        // If the class is already selected, remove it from selections
+        return prev.filter(id => id !== classId);
+      } else {
+        // If the class is not selected, add it to selections
+        return [...prev, classId];
+      }
     });
   };
 
-  // Update handleReset function
-  async function handleReset(event: React.MouseEvent<HTMLButtonElement>): Promise<void> {
-    setSearchParams({
-      startFrom: '',
-      dateTo: '',
-      countryId: '52',
-      stateId: '',
-      locationId: '',
-      instructorId: '',
-      courseCategoryId: '',
-      classTypeId: '',
-      showClass: '',
-      globalSearch: ''
-    });
-    // ... rest of reset function
-  }
-
-  // Update this function to properly refresh data
-  const refreshClassData = () => {
-    handleSearch(); // Call the search function to fetch fresh data with current filters
+  // Add this function to handle local deletion of a class
+  const deleteClassLocally = (classId: number) => {
+    setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
+    setOriginalClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
   };
-  
+
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       {error && (
@@ -1041,108 +905,72 @@ fetchStates("52"); // Fetch US states
         </div>
 
         <div className="flex flex-col gap-2">
-  <Label>Country</Label>
-  {isLoadingDropdowns ? (
-    <Loader />
-  ) : (
-    <Select
-      value={searchParams.countryId}
-      onValueChange={handleCountryChange}
-    >
-      <SelectTrigger>
-        <SelectValue placeholder="Select Country" />
-      </SelectTrigger>
-      <SelectContent>
-        {countries.map((country) => (
-          <SelectItem 
-            key={country.id} 
-            value={country.id.toString()}
-          >
-            {country.CountryName}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )}
-</div>
-
-{/* State Dropdown */}
-<div className="flex flex-col gap-2">
-  <Label>State</Label>
-  {isLoadingDropdowns ? (
-    <Loader />
-  ) : (
-    <Select
-      value={searchParams.stateId}
-      onValueChange={handleStateChange}
-      disabled={!searchParams.countryId}
-    >
-      <SelectTrigger>
-        <SelectValue placeholder={searchParams.countryId ? "Select State" : "Select Country First"} />
-      </SelectTrigger>
-      <SelectContent>
-        {states.length > 0 ? (
-          states.map((state) => (
-            <SelectItem 
-              key={state.id} 
-              value={state.id.toString()}
+          <Label>Country</Label>
+          {isLoadingDropdowns ? (
+            <Loader />
+          ) : (
+            <Select
+              value={searchParams.countryId}
+              onValueChange={handleCountryChange}
             >
-              {state.name}
-            </SelectItem>
-          ))
-        ) : (
-          <SelectItem value="no-states" disabled>
-            No states available
-          </SelectItem>
-        )}
-      </SelectContent>
-    </Select>
-  )}
-</div>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Country" />
+              </SelectTrigger>
+              <SelectContent>
+                {countries.map((country) => (
+                  <SelectItem 
+                    key={country.id} 
+                    value={country.id.toString()}
+                  >
+                    {country.CountryName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
 
-       {/* Location Dropdown */}
-<div className="flex flex-col gap-2">
-  <Label>Location</Label>
-  {isLoadingDropdowns ? (
-    <Loader />
-  ) : (
-    <Select
-      value={searchParams.locationId}
-      onValueChange={(value) => {
-        setSearchParams(prev => ({ ...prev, locationId: value }));
-      }}
-      disabled={!searchParams.stateId}
-    >
-      <SelectTrigger>
-        <SelectValue placeholder={
-          !searchParams.countryId 
-            ? "Select Country First" 
-            : !searchParams.stateId 
-              ? "Select State First"
-              : "Select Location"
-        } />
-      </SelectTrigger>
-      <SelectContent>
-        {cities && cities.length > 0 ? (
-          cities
-            .filter(city => !city.isDelete) // Only show active locations
-            .map((city) => (
-              <SelectItem 
-                key={city.id} 
-                value={city.id.toString()}
-              >
-                {city.location}
-              </SelectItem>
-            ))
-        ) : (
-          <SelectItem value="no-locations" disabled>
-            No locations available
-          </SelectItem>
-        )}
-      </SelectContent>
-    </Select>
-  )}
-</div>
+        {/* Location Dropdown */}
+        <div className="flex flex-col gap-2">
+          <Label>Location</Label>
+          {isLoadingDropdowns ? (
+            <Loader />
+          ) : (
+            <Select
+              value={searchParams.locationId}
+              onValueChange={(value) => {
+                setSearchParams(prev => ({ ...prev, locationId: value }));
+              }}
+              disabled={!searchParams.countryId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={
+                  !searchParams.countryId 
+                    ? "Select Country First"
+                    : "Select Location"
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                {cities && cities.length > 0 ? (
+                  cities
+                    .filter(city => !city.isDelete) // Only show active locations
+                    .map((city) => (
+                      <SelectItem 
+                        key={city.id} 
+                        value={city.id.toString()}
+                      >
+                        {city.location}
+                      </SelectItem>
+                    ))
+                ) : (
+                  <SelectItem value="no-locations" disabled>
+                    No locations available
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
 
         <div className="flex flex-col gap-2">
           <Label>Instructor</Label>
@@ -1231,27 +1059,27 @@ fetchStates("52"); // Fetch US states
         )}
 
         <div className="flex flex-col gap-2">
-  <Label>Show Class</Label>
-  <Select
-    value={searchParams.showClass}
-    onValueChange={(value) => {
-      // Only update the searchParams without making an API call
-      setSearchParams((prev) => ({ ...prev, showClass: value }));
-    }}
-  >
-    <SelectTrigger>
-      <SelectValue placeholder="Select Status" />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="all">All Classes</SelectItem>
-      <SelectItem value="active">Active Classes</SelectItem>
-      <SelectItem value="inactive">Inactive Classes</SelectItem>
-      <SelectItem value="cancelled">Cancelled Classes</SelectItem>
-      <SelectItem value="corporate">Corporate Classes</SelectItem>
-      <SelectItem value="non-corporate">Non-Corporate Classes</SelectItem>
-    </SelectContent>
-  </Select>
-</div>
+          <Label>Show Class</Label>
+          <Select
+            value={searchParams.showClass}
+            onValueChange={(value) => {
+              // Only update the searchParams without making an API call
+              setSearchParams((prev) => ({ ...prev, showClass: value }));
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Classes</SelectItem>
+              <SelectItem value="active">Active Classes</SelectItem>
+              <SelectItem value="inactive">Inactive Classes</SelectItem>
+              <SelectItem value="cancelled">Cancelled Classes</SelectItem>
+              <SelectItem value="corporate">Corporate Classes</SelectItem>
+              <SelectItem value="non-corporate">Non-Corporate Classes</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Action Buttons */}
@@ -1286,7 +1114,11 @@ fetchStates("52"); // Fetch US states
                 
                 if (searchTerm) {
                   // Filter classes locally when there's a search term
-                  const filteredClasses = filterClasses(classes, searchTerm);
+                  const filteredClasses = classes.filter(classItem => 
+                    classItem.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    classItem.instructor?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    classItem.location?.location?.toLowerCase().includes(searchTerm.toLowerCase())
+                  );
                   setClasses(filteredClasses);
                 } else {
                   // When search is cleared, call handleSearch instead of direct fetch
@@ -1328,14 +1160,14 @@ fetchStates("52"); // Fetch US states
                     className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500"
                   />
                 </th>
-                <SortableTableHeader sortKey="category">Category</SortableTableHeader>
-                <SortableTableHeader sortKey="title">Title</SortableTableHeader>
-                <SortableTableHeader sortKey="location">Location</SortableTableHeader>
-                <SortableTableHeader sortKey="startDate">Start Date</SortableTableHeader>
-                <SortableTableHeader sortKey="endDate">End Date</SortableTableHeader>
-                <SortableTableHeader sortKey="instructor">Instructor</SortableTableHeader>
-                <SortableTableHeader sortKey="status">Status</SortableTableHeader>
-                <SortableTableHeader sortKey="enrolledStudents">Enrolled</SortableTableHeader>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Category</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Title</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Location</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Start Date</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">End Date</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Instructor</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Enrolled</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Left</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Actions</th>
               </tr>
