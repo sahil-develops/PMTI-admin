@@ -402,7 +402,7 @@ export function ClassTable() {
 
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
 
   interface Instructor {
@@ -569,7 +569,10 @@ useEffect(() => {
     fetchInitialClasses();
   }, []); // Empty dependency array for initial load only
 
-  // Add this function to handle pagination
+  // Add this new state for items per page options
+  const itemsPerPageOptions = [5, 10, 20, 50];
+
+  // Update the paginateData function to use itemsPerPage state
   const paginateData = (data: ClassData[]) => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -786,6 +789,13 @@ useEffect(() => {
   const deleteClassLocally = (classId: number) => {
     setClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
     setOriginalClasses((prevClasses) => prevClasses.filter((c) => c.id !== classId));
+  };
+
+  // Add this function to handle items per page change
+  const handleItemsPerPageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = parseInt(event.target.value, 10);
+    setItemsPerPage(value);
+    setCurrentPage(1); // Reset to the first page when items per page changes
   };
 
   return (
@@ -1086,22 +1096,31 @@ useEffect(() => {
       <div className="flex justify-between w-full items-center mb-6">
         <div className="flex items-center w-full justify-between gap-4">
           {/* Global Search */}
-         <div className="flex items-center gap-4">
-
-
-          <button
-            onClick={handleSearch}
-            className="bg-zinc-800 text-white px-6 py-2 rounded hover:bg-zinc-700"
+          <div className="flex items-center gap-4">
+            <label htmlFor="itemsPerPage" className="text-sm">Rows per page:</label>
+            <select
+              id="itemsPerPage"
+              value={itemsPerPage}
+              onChange={handleItemsPerPageChange}
+              className="border border-zinc-300 rounded px-2 py-1"
             >
-            Search
-          </button>
-          <button
-            onClick={handleReset}
-            className="border border-zinc-300 px-6 py-2 rounded hover:bg-zinc-50"
+              {itemsPerPageOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleSearch}
+              className="bg-zinc-800 text-white px-6 py-2 rounded hover:bg-zinc-700"
             >
-            Reset
-          </button>
-            </div>
+              Search
+            </button>
+            <button
+              onClick={handleReset}
+              className="border border-zinc-300 px-6 py-2 rounded hover:bg-zinc-50"
+            >
+              Reset
+            </button>
+          </div>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" size={16} />
             <Input
