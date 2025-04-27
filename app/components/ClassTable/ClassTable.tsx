@@ -26,10 +26,10 @@ import { useToast } from "@/hooks/use-toast";
 import ClassTypeDropdown1 from "@/app/components/DropDown/ClassTypeDropdown1";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, startOfDay } from "date-fns";
+
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import router from "next/router";
 
 
 
@@ -458,6 +458,13 @@ export function ClassTable() {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 // Effect to set initial US locations
 useEffect(() => {
   if (countries.length > 0) {
@@ -810,7 +817,7 @@ useEffect(() => {
           Classes
         </p>
         <button
-          onClick={() => router.push("/addclass")}
+          onClick={() => isClient && router.push("/addclass")}
           className="flex items-center gap-2 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
         >
           <Plus size={20} />
