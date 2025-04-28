@@ -429,6 +429,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         BillingCity: formData.BillingCity ? parseInt(formData.BillingCity) : 0,
         BillingState: formData.BillingState ? parseInt(formData.BillingState) : 0,
         BillCountry: formData.BillCountry ? parseInt(formData.BillCountry) : 0,
+        // Add Location ID
+        Location: studentInfo?.city?.id ? parseInt(studentInfo.city.id.toString()) : parseInt(formData.city || "0"),
       };
       
       setLoading(true);
