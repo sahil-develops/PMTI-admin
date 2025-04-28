@@ -229,7 +229,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
     formData.append('file', file);
     
     try {
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/upload', {
+      const response = await fetch('https://api.4pmti.com/upload', {
         method: 'POST',
         body: formData,
       });
@@ -1971,7 +1971,7 @@ const Index = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/blog', {
+      const response = await fetch('https://api.4pmti.com/blog', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2021,7 +2021,7 @@ const Index = () => {
     formData.append('file', file);
   
     try {
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/upload', {
+      const response = await fetch('https://api.4pmti.com/upload', {
         method: 'POST',
         body: formData,
       });

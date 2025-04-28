@@ -86,7 +86,7 @@ const EditAdmin = ({ params }: { params: { id: string } }) => {
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/admin/${params.id}`, {
+        const response = await fetch(`https://api.4pmti.com/admin/${params.id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
@@ -126,7 +126,7 @@ const EditAdmin = ({ params }: { params: { id: string } }) => {
     const fetchCountries = async () => {
       setLoadingCountries(true);
       try {
-        const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country', {
+        const response = await fetch('https://api.4pmti.com/country', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
@@ -155,7 +155,7 @@ const EditAdmin = ({ params }: { params: { id: string } }) => {
     setShowError(false);
 
     try {
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/admin/${params.id}`, {
+      const response = await fetch(`https://api.4pmti.com/admin/${params.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

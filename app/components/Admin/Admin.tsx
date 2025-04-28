@@ -114,7 +114,7 @@ const Admin = () => {
   useEffect(() => {
     const fetchAdmins = async () => {
       try {
-        const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/admin', {
+        const response = await fetch('https://api.4pmti.com/admin', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
@@ -143,7 +143,7 @@ const Admin = () => {
     const fetchCountries = async () => {
       setLoadingCountries(true);
       try {
-        const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country', {
+        const response = await fetch('https://api.4pmti.com/country', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }

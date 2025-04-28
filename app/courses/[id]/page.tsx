@@ -149,7 +149,7 @@ export default function CourseDetails({ params }: PageProps) {
     const fetchCourse = async () => {
       try {
         const { id } = await params;
-        const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/course/${id}`, {
+        const response = await fetch(`https://api.4pmti.com/course/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },

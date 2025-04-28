@@ -78,9 +78,9 @@ export default function AddPromotionForm() {
         };
 
         const [countriesRes, categoriesRes, classTypesRes] = await Promise.all([
-          fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country`, { headers }),
-          fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/category`, { headers }),
-          fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/classtype`, { headers })
+          fetch(`https://api.4pmti.com/country`, { headers }),
+          fetch(`https://api.4pmti.com/category`, { headers }),
+          fetch(`https://api.4pmti.com/classtype`, { headers })
         ]);
 
         const [countriesData, categoriesData, classTypesData] = await Promise.all([
@@ -150,7 +150,7 @@ export default function AddPromotionForm() {
     formData.append('file', file);
 
     try {
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/upload', {
+      const response = await fetch('https://api.4pmti.com/upload', {
         method: 'POST',
         body: formData,
       });
@@ -271,7 +271,7 @@ export default function AddPromotionForm() {
         attachedFilePath: uploadedImageUrl || ''
       };
 
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/promotions`, {
+      const response = await fetch(`https://api.4pmti.com/promotions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,

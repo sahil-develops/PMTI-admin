@@ -81,7 +81,7 @@ export default function EditCourse({ params }: PageProps) {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/category', {
+      const response = await fetch('https://api.4pmti.com/category', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -97,7 +97,7 @@ export default function EditCourse({ params }: PageProps) {
 
   const fetchClassTypes = async () => {
     try {
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/classtype', {
+      const response = await fetch('https://api.4pmti.com/classtype', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -115,7 +115,7 @@ export default function EditCourse({ params }: PageProps) {
     const fetchCourse = async () => {
       setIsFetching(true);
       try {
-        const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/course/${resolvedParams.id}`, {
+        const response = await fetch(`https://api.4pmti.com/course/${resolvedParams.id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -162,7 +162,7 @@ export default function EditCourse({ params }: PageProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/course/${resolvedParams.id}`, {
+      const response = await fetch(`https://api.4pmti.com/course/${resolvedParams.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

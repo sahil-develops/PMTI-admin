@@ -209,7 +209,7 @@ export default function EditClass({ params }: PageProps) {
   useEffect(() => {
     const fetchClass = async () => {
       try {
-        const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class/${id}`, {
+        const response = await fetch(`https://api.4pmti.com/class/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -250,7 +250,7 @@ export default function EditClass({ params }: PageProps) {
   useEffect(() => {
     const fetchInstructors = async () => {
       try {
-        const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/instructor', {
+        const response = await fetch('https://api.4pmti.com/instructor', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -357,7 +357,7 @@ export default function EditClass({ params }: PageProps) {
 
       console.log("Submitting payload:", payload);
 
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class/${id}`, {
+      const response = await fetch(`https://api.4pmti.com/class/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

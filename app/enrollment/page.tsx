@@ -97,7 +97,7 @@ export default function EnrollmentPage() {
     try {
       setIsSubmitting(true)
       // Add your API call here
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/enrollment`, {
+      const response = await fetch(`https://api.4pmti.com/enrollment`, {
         method: 'POST',
         
         headers: {

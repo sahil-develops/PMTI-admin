@@ -140,7 +140,7 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/students/${studentId}`, {
+      const response = await fetch(`https://api.4pmti.com/students/${studentId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -286,45 +286,85 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
             </div>
 
             {/* Enrollment Information Section */}
-            {studentData.enrollments && studentData.enrollments.length > 0 && (
-              <div>
-                <h3 className="text-lg font-medium mb-4">Enrollment History</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left font-medium text-gray-500">Type</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-500">Date</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-500">Status</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-500">Progress</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-500">Price</th>
-                        <th className="px-4 py-2 text-left font-medium text-gray-500">Payment</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {studentData.enrollments.map((enrollment: any) => (
-                        <tr key={enrollment.ID} className="hover:bg-gray-50">
-                          <td className="px-4 py-2">{enrollment.enrollmentType}</td>
-                          <td className="px-4 py-2">{new Date(enrollment.EnrollmentDate).toLocaleDateString()}</td>
-                          <td className="px-4 py-2">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              enrollment.status 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {enrollment.status ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2 capitalize">{enrollment.enrollmentProgress}</td>
-                          <td className="px-4 py-2">${parseFloat(enrollment.Price).toFixed(2)}</td>
-                          <td className="px-4 py-2">{enrollment.PaymentMode}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+     {/* Enrollment Information Section */}
+{studentData.enrollments && studentData.enrollments.length > 0 && (
+  <div>
+    <h3 className="text-lg font-medium mb-4">Enrollment History</h3>
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Title</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Course Category</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Class Type</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Instructor</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Start Date</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">End Date</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Country</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Location</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Progress</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Status</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200">
+          {studentData.enrollments.map((enrollment: any) => (
+            <tr key={enrollment.ID} className="hover:bg-gray-50">
+              <td className="px-4 py-2">
+                {enrollment.class ? enrollment.class.title : (enrollment.course ? enrollment.course.title : 'N/A')}
+              </td>
+              <td className="px-4 py-2">
+                {enrollment.class && enrollment.class.courseCategory ? 
+                  enrollment.class.courseCategory.name : 
+                  (enrollment.course && enrollment.course.courseCategory ? 
+                    enrollment.course.courseCategory.name : 'N/A')}
+              </td>
+              <td className="px-4 py-2">
+                {enrollment.class ? 'In-Person' : (enrollment.course ? 'Online' : enrollment.enrollmentType)}
+              </td>
+              <td className="px-4 py-2">
+                {enrollment.class && enrollment.class.instructor ? 
+                  enrollment.class.instructor.name : 
+                  (enrollment.course && enrollment.course.instructor ? 
+                    enrollment.course.instructor.name : 'N/A')}
+              </td>
+              <td className="px-4 py-2">
+                {enrollment.class && enrollment.class.startDate ? 
+                  new Date(enrollment.class.startDate).toLocaleDateString() : 
+                  (enrollment.course && enrollment.course.startDate ? 
+                    new Date(enrollment.course.startDate).toLocaleDateString() : 'N/A')}
+              </td>
+              <td className="px-4 py-2">
+                {enrollment.class && enrollment.class.endDate ? 
+                  new Date(enrollment.class.endDate).toLocaleDateString() : 
+                  (enrollment.course && enrollment.course.endDate ? 
+                    new Date(enrollment.course.endDate).toLocaleDateString() : 'N/A')}
+              </td>
+              <td className="px-4 py-2">
+                {enrollment.class && enrollment.class.country ? 
+                  (typeof enrollment.class.country === 'object' ? 
+                    enrollment.class.country.CountryName : enrollment.class.country) : 'N/A'}
+              </td>
+              <td className="px-4 py-2">
+                {enrollment.class && enrollment.class.address ? enrollment.class.address : 'N/A'}
+              </td>
+              <td className="px-4 py-2 capitalize">{enrollment.enrollmentProgress}</td>
+              <td className="px-4 py-2">
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                  enrollment.status 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {enrollment.status ? 'Active' : 'Inactive'}
+                </span>
+              </td>
+              <td className="px-4 py-2">${parseFloat(enrollment.Price).toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
           </div>
         ) : (
           <div className="p-4 text-center">No student data available</div>
@@ -416,7 +456,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
   const fetchCountries = async () => {
     try {
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country`);
+      const response = await fetch(`https://api.4pmti.com/country`);
       const data = await response.json();
       setCountries(data.data);
     } catch (error) {
@@ -426,7 +466,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
   const fetchStates = async (countryId: string) => {
     try {
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/state/?countryId=${countryId}`);
+      const response = await fetch(`https://api.4pmti.com/state/?countryId=${countryId}`);
       const data = await response.json();
       setStates(data.data);
     } catch (error) {
@@ -436,7 +476,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
   const fetchCities = async (stateId: string) => {
     try {
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/location?stateId=${stateId}`);
+      const response = await fetch(`https://api.4pmti.com/location?stateId=${stateId}`);
       const data = await response.json();
       const sortedLocations = [...data.data].sort((a, b) => 
         a.location.localeCompare(b.location)
@@ -571,7 +611,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
     setCreatingLocation(true);
     try {
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/location', {
+      const response = await fetch('https://api.4pmti.com/location', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -856,7 +896,7 @@ const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const fetchStudents = async () => {
     try {
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/students`, {
+      const response = await fetch(`https://api.4pmti.com/students`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -936,7 +976,7 @@ const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
       console.log("Sending payload to API:", payload);
 
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/students/${studentId}`, {
+      const response = await fetch(`https://api.4pmti.com/students/${studentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

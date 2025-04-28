@@ -219,7 +219,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       try {
         const unwrappedParams = await params;
         const response = await fetch(
-          `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class/${unwrappedParams.id}/detail`,
+          `https://api.4pmti.com/class/${unwrappedParams.id}/detail`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -250,7 +250,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
   const fetchCountries = async () => {
     try {
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country', {
+      const response = await fetch('https://api.4pmti.com/country', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -282,7 +282,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       setLocations([]);
       
       // Make the API call with the country ID
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/location/?countryId=${countryId}`, {
+      const response = await fetch(`https://api.4pmti.com/location/?countryId=${countryId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -324,7 +324,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       setError(null);
 
       const response = await fetch(
-        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class?page=${page}&limit=10&countryId=${selectedCountry}&locationId=${selectedLocation}`,
+        `https://api.4pmti.com/class?page=${page}&limit=10&countryId=${selectedCountry}&locationId=${selectedLocation}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -450,7 +450,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
         })
       };
 
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/enrollment/reschedule', {
+      const response = await fetch('https://api.4pmti.com/enrollment/reschedule', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -489,7 +489,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
         try {
           const unwrappedParams = await params;
           const updatedResponse = await fetch(
-            `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class/${unwrappedParams.id}/detail`,
+            `https://api.4pmti.com/class/${unwrappedParams.id}/detail`,
             {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("accessToken")}`,

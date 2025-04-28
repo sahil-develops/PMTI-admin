@@ -201,7 +201,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const fetchStates = async (countryId: string) => {
     try {
       const response = await fetch(
-        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/state/?countryId=${countryId}`,
+        `https://api.4pmti.com/state/?countryId=${countryId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -258,7 +258,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
 
     try {
       const response = await fetch(
-        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/location?countryId=${selectedCountry1}&stateId=${stateId}`,
+        `https://api.4pmti.com/location?countryId=${selectedCountry1}&stateId=${stateId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -433,7 +433,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       
       setLoading(true);
       try {
-        const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/enrollment', {
+        const response = await fetch('https://api.4pmti.com/enrollment', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -524,7 +524,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const fetchItems = async (countryId?: string, locationId?: string) => {
     try {
       const endpoint = isCourseEnrollment ? 'course' : 'class';
-      let url = `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/${endpoint}`;
+      let url = `https://api.4pmti.com/${endpoint}`;
       
       // Add query parameters if both country and location are selected
       if (countryId && locationId) {
@@ -574,7 +574,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
 
   const fetchCountries = async () => {
     try {
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country', {
+      const response = await fetch('https://api.4pmti.com/country', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -616,7 +616,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
 
   const fetchLocations = async (countryId: string) => {
     try {
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/location?countryId=${countryId}`, {
+      const response = await fetch(`https://api.4pmti.com/location?countryId=${countryId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -641,7 +641,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
 
   const fetchStudentInfo = async () => {
     try {
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/students/${params.id}`, {
+      const response = await fetch(`https://api.4pmti.com/students/${params.id}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -723,7 +723,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
    // Add class fetching function
    const fetchClasses = async () => {
     try {
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class', {
+      const response = await fetch('https://api.4pmti.com/class', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -843,7 +843,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const fetchBillingStates = async (countryId: string) => {
     try {
       const response = await fetch(
-        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/state/?countryId=${countryId}`,
+        `https://api.4pmti.com/state/?countryId=${countryId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -871,7 +871,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const fetchBillingLocations = async (countryId: string, stateId: string) => {
     try {
       const response = await fetch(
-        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/location?countryId=${countryId}&stateId=${stateId}`,
+        `https://api.4pmti.com/location?countryId=${countryId}&stateId=${stateId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,

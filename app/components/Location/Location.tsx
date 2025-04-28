@@ -63,7 +63,7 @@ export default function LocationPage() {
 
   const fetchCountries = async () => {
     try {
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country', {
+      const response = await fetch('https://api.4pmti.com/country', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
@@ -81,7 +81,7 @@ export default function LocationPage() {
   const fetchLocations = async () => {
     try {
       setLoading(true)
-      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/location', {
+      const response = await fetch('https://api.4pmti.com/location', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
@@ -112,7 +112,7 @@ export default function LocationPage() {
     setUpdatingLocations(prev => [...prev, location.id])
     
     try {
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/location/${location.id}`, {
+      const response = await fetch(`https://api.4pmti.com/location/${location.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

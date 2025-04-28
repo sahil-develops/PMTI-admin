@@ -116,7 +116,7 @@ const AddStudent = () => {
         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
       };
 
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country`, { headers });
+      const response = await fetch(`https://api.4pmti.com/country`, { headers });
       
       if (!response.ok) {
         throw new Error('Failed to fetch countries');
@@ -165,7 +165,7 @@ const AddStudent = () => {
   const fetchStates = async (countryId: string) => {
     try {
       const response = await fetch(
-        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/state/?countryId=${countryId}`,
+        `https://api.4pmti.com/state/?countryId=${countryId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -284,7 +284,7 @@ const AddStudent = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/auth/signup/student`, {
+      const response = await axios.post(`https://api.4pmti.com/auth/signup/student`, {
         name: formData.name,
         address: formData.address,
         country: parseInt(formData.countryId),

@@ -165,7 +165,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       try {
         const unwrappedParams = await params;
         const response = await fetch(
-          `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class/${unwrappedParams.id}/detail`,
+          `https://api.4pmti.com/class/${unwrappedParams.id}/detail`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,

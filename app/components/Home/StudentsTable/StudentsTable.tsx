@@ -157,7 +157,7 @@ const StudentTable = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/students`);
+      const response = await fetch(`https://api.4pmti.com/students`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -191,7 +191,7 @@ const StudentTable = () => {
 
     try {
       setDeletingId(selectedStudent.id);
-      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/students/${selectedStudent.id}`, {
+      const response = await fetch(`https://api.4pmti.com/students/${selectedStudent.id}`, {
         method: 'DELETE',
       });
 

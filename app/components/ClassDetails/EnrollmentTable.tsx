@@ -119,7 +119,7 @@ const CompactInput = ({
 );
 
 const updateEnrollment = async (studentId: number, payload: UpdatePayload) => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.4pmti.com';
   
   try {
     const response = await fetch(`${baseUrl}/enrollment/${studentId}`, {
