@@ -45,6 +45,13 @@ import { Check } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
 
+
+interface ViewStudentModalProps {
+  studentId: number | null;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 interface SuccessModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -111,12 +118,236 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose }) => {
   );
 };
 
+
+// Add this component right after the EditStudentModal component
+
+const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
+  studentId,
+  isOpen,
+  onClose,
+}) => {
+  const [studentData, setStudentData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen && studentId) {
+      fetchStudentDetails();
+    }
+  }, [isOpen, studentId]);
+
+  const fetchStudentDetails = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/students/${studentId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch student details');
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        setStudentData(data.data);
+      } else {
+        setError(data.error || data.message || 'Failed to fetch student details');
+      }
+    } catch (error: any) {
+      console.error('Error fetching student details:', error);
+      setError(error.message || 'Failed to fetch student details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to safely get location info
+  const getLocationInfo = (student: any) => {
+    let cityName = 'N/A';
+    let stateName = 'N/A';
+    let countryName = 'N/A';
+
+    if (student?.city && typeof student.city === 'object' && student.city !== null) {
+      const cityObj = student.city as any;
+      cityName = cityObj.location || 'N/A';
+    } else if (typeof student?.city === 'string' && student.city) {
+      cityName = student.city;
+    }
+
+    if (student?.state && typeof student.state === 'object' && student.state !== null) {
+      const stateObj = student.state as any;
+      stateName = stateObj.name || 'N/A';
+    } else if (typeof student?.state === 'string' && student.state) {
+      stateName = student.state;
+    }
+
+    if (student?.country && typeof student.country === 'object' && student.country !== null) {
+      const countryObj = student.country as any;
+      countryName = countryObj.CountryName || 'N/A';
+    } else if (typeof student?.country === 'string' && student.country) {
+      countryName = student.country;
+    }
+
+    return { cityName, stateName, countryName };
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Student Details</DialogTitle>
+        </DialogHeader>
+        
+        {loading ? (
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <div className="p-4 text-center text-red-500">{error}</div>
+        ) : studentData ? (
+          <div className="space-y-6">
+            {/* Personal Information Section */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Personal Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Student ID</p>
+                  <p>{studentData.student.uid || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Name</p>
+                  <p>{studentData.student.name || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Email</p>
+                  <p>{studentData.student.email || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Phone</p>
+                  <p>{studentData.student.phone || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Company</p>
+                  <p>{studentData.student.companyName || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Profession</p>
+                  <p>{studentData.student.profession || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Status</p>
+                  <p>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      studentData.student.active 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {studentData.student.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Last Login</p>
+                  <p>{studentData.student.lastLogin ? new Date(studentData.student.lastLogin).toLocaleString() : 'Never'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Address Information Section */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Address Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Address</p>
+                  <p>{studentData.student.address || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Location</p>
+                  <p>
+                    {getLocationInfo(studentData.student).cityName !== 'N/A' 
+                      ? `${getLocationInfo(studentData.student).cityName}, ` 
+                      : ''}
+                    {getLocationInfo(studentData.student).stateName !== 'N/A' 
+                      ? `${getLocationInfo(studentData.student).stateName}, ` 
+                      : ''}
+                    {getLocationInfo(studentData.student).countryName !== 'N/A' 
+                      ? getLocationInfo(studentData.student).countryName 
+                      : 'N/A'}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Zip Code</p>
+                  <p>{studentData.student.zipCode || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Enrollment Information Section */}
+            {studentData.enrollments && studentData.enrollments.length > 0 && (
+              <div>
+                <h3 className="text-lg font-medium mb-4">Enrollment History</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-medium text-gray-500">Type</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-500">Date</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-500">Status</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-500">Progress</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-500">Price</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-500">Payment</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {studentData.enrollments.map((enrollment: any) => (
+                        <tr key={enrollment.ID} className="hover:bg-gray-50">
+                          <td className="px-4 py-2">{enrollment.enrollmentType}</td>
+                          <td className="px-4 py-2">{new Date(enrollment.EnrollmentDate).toLocaleDateString()}</td>
+                          <td className="px-4 py-2">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              enrollment.status 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {enrollment.status ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 capitalize">{enrollment.enrollmentProgress}</td>
+                          <td className="px-4 py-2">${parseFloat(enrollment.Price).toFixed(2)}</td>
+                          <td className="px-4 py-2">{enrollment.PaymentMode}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-4 text-center">No student data available</div>
+        )}
+        
+        <DialogFooter>
+          <Button onClick={onClose}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
 const EditStudentModal: React.FC<EditStudentModalProps> = ({
   student,
   isOpen,
   onClose,
   onSave,
 }) => {
+  // Add these state variables in your Students component
+
+
   const [formData, setFormData] = useState<Partial<StudentData>>({});
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -387,8 +618,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
         <DialogHeader>
           <DialogTitle>Edit Student</DialogTitle>
         </DialogHeader>
-
-      
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -604,7 +833,9 @@ const Students = () => {
   const [professionFilter, setProfessionFilter] = useState("all");
   const [editingStudent, setEditingStudent] = useState<StudentData | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
+// Add these state variables in your Students component
+const [viewingStudentId, setViewingStudentId] = useState<number | null>(null);
+const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const uniqueStates = Array.from(new Set(
     students.map(student => {
       if (student.state && typeof student.state === 'string') {
@@ -793,6 +1024,8 @@ const Students = () => {
             <div className="h-4 bg-gray-200 rounded w-3/4"></div>
           </div>
         ))}
+
+
       </div>
     );
   }
@@ -921,6 +1154,15 @@ const Students = () => {
                                 Edit Student
                               </DropdownMenuItem>
                               <DropdownMenuItem
+  onClick={() => {
+    setViewingStudentId(student.id);
+    setIsViewModalOpen(true);
+  }}
+>
+  <Search className="mr-2 h-4 w-4" />
+  View Details
+</DropdownMenuItem>
+                              <DropdownMenuItem
                                 onClick={() => {
                                router.push(`students/classEnrollment/${student.id}`);
                                 }}
@@ -948,7 +1190,14 @@ const Students = () => {
           </div>
         </div>
       </CardContent>
-
+      <ViewStudentModal
+        studentId={viewingStudentId}
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setViewingStudentId(null);
+  }}
+/>
       {/* Edit Student Modal */}
       <EditStudentModal
         student={editingStudent}
