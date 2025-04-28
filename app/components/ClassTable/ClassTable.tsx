@@ -342,13 +342,12 @@ const TableShimmer = () => (
 const formatDateFromAPI = (dateString: string): string => {
   if (!dateString) return "N/A";
   try {
-    // Create a date object without converting to UTC
-    // Add 'T00:00:00' to ensure consistent local date interpretation
-    const date = new Date(`${dateString.split('T')[0]}T00:00:00`);
+    // Create a date object in local timezone
+    const date = new Date(dateString.split('T')[0]);
     
-    // Format the date components from the local date
+    // Format the date using local timezone
     const month = date.toLocaleString('default', { month: 'long' });
-    const day = date.getDate().toString().padStart(2, '0');
+    const day = date.getDate();
     const year = date.getFullYear().toString().slice(-2);
     return `${month} ${day}, ${year}`;
   } catch (error) {
@@ -361,12 +360,12 @@ const formatDateFromAPI = (dateString: string): string => {
 const formatDate = (dateString: string): string => {
   if (!dateString) return "N/A";
   try {
-    // Create a date object without converting to UTC
-    const date = new Date(`${dateString.split('T')[0]}T00:00:00`);
+    // Create a date object in local timezone
+    const date = new Date(dateString.split('T')[0]);
     
-    // Format the date components from the local date
+    // Format the date using local timezone
     const month = date.toLocaleString('default', { month: 'long' });
-    const day = date.getDate().toString().padStart(2, '0');
+    const day = date.getDate();
     const year = date.getFullYear().toString().slice(-2);
     return `${month} ${day}, ${year}`;
   } catch (error) {
@@ -586,7 +585,7 @@ useEffect(() => {
     return data.slice(startIndex, endIndex);
   };
 
-  // Update the handleSearch function to use normalized dates
+  // Update the handleSearch function to handle dates properly
   const handleSearch = async () => {
     try {
       setLoading(true);
@@ -600,13 +599,17 @@ useEffect(() => {
       
       // Add date parameters without time components
       if (searchParams.startFrom) {
-        // Keep date as is without any timezone adjustments
-        queryParams.append('startFrom', searchParams.startFrom);
+        // Format date as YYYY-MM-DD to preserve local date
+        const startDate = new Date(searchParams.startFrom);
+        const formattedStartDate = startDate.toLocaleDateString('en-CA'); // Uses YYYY-MM-DD format
+        queryParams.append('startFrom', formattedStartDate);
       }
       
       if (searchParams.dateTo) {
-        // Keep date as is without any timezone adjustments
-        queryParams.append('dateTo', searchParams.dateTo);
+        // Format date as YYYY-MM-DD to preserve local date
+        const endDate = new Date(searchParams.dateTo);
+        const formattedEndDate = endDate.toLocaleDateString('en-CA'); // Uses YYYY-MM-DD format
+        queryParams.append('dateTo', formattedEndDate);
       }
       
       // Add other search parameters
@@ -805,9 +808,27 @@ useEffect(() => {
     setCurrentPage(1); // Reset to the first page when items per page changes
   };
 
+  // Update the date selection handlers
+  const handleStartDateChange = (date: Date | undefined) => {
+    if (date) {
+      // Create date string in YYYY-MM-DD format using local timezone
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
+      setSearchParams(prev => ({
+        ...prev,
+        startFrom: dateString,
+        dateTo: prev.dateTo && new Date(prev.dateTo) < date ? "" : prev.dateTo
+      }));
+    }
+  };
+
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       {error && (
+      
         <Alert message={error} type="error" onClose={() => setError(null)} />
       )}
 
@@ -850,21 +871,7 @@ useEffect(() => {
               <CalendarComponent
                 mode="single"
                 selected={searchParams.startFrom ? new Date(`${searchParams.startFrom}T00:00:00`) : undefined}
-                onSelect={(date) => {
-                  if (date) {
-                    // Format date as YYYY-MM-DD without timezone adjustment
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const formattedDate = `${year}-${month}-${day}`;
-                    
-                    setSearchParams((prev) => ({
-                      ...prev,
-                      startFrom: formattedDate,
-                      dateTo: prev.dateTo && new Date(prev.dateTo + 'T00:00:00') < date ? "" : prev.dateTo
-                    }));
-                  }
-                }}
+                onSelect={handleStartDateChange}
                 initialFocus
               />
             </PopoverContent>

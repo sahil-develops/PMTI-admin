@@ -225,7 +225,7 @@ const ClassForm = () => {
   const [loadingInstructors, setLoadingInstructors] = useState(false);
 
   const [states, setStates] = useState<State[]>([]);
-const [loadingStates, setLoadingStates] = useState(false);
+  const [loadingStates, setLoadingStates] = useState(false);
   const {
     register,
     handleSubmit,
@@ -295,46 +295,15 @@ const [loadingStates, setLoadingStates] = useState(false);
   }, []);
 
   useEffect(() => {
-  const fetchStates = async () => {
     const countryId = watch('countryId');
-    if (!countryId) return;
-
-    setLoadingStates(true);
-    try {
-      const response = await fetch(`https://api.4pmti.com/state?countryId=${countryId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch states');
-      }
-
-      const result = await response.json();
-      if (result.success && result.data) {
-        setStates(result.data);
-      }
-    } catch (error) {
-      console.error('Error fetching states:', error);
-    } finally {
-      setLoadingStates(false);
+    const selectedCountry = countries.find(country => country.id === Number(countryId));
+    if (selectedCountry) {
+      const activeLocations = selectedCountry.__locations__.filter(loc => loc.isDelete === false);
+      setLocations(activeLocations);
+    } else {
+      setLocations([]);
     }
-  };
-
-  fetchStates();
-}, [watch('countryId')]);
-
-useEffect(() => {
-  const stateId = watch('stateId');
-  const selectedState = states.find(state => state.id === Number(stateId));
-  if (selectedState) {
-    const activeLocations = selectedState.locations.filter(loc => loc.isDelete === false);
-    setLocations(activeLocations);
-  } else {
-    setLocations([]);
-  }
-}, [watch('stateId'), states]);
+  }, [watch('countryId'), countries]);
 
   // Add a helper function to extract duration from class type name
   const extractDuration = (classTypeName: string): number => {
@@ -452,17 +421,6 @@ useEffect(() => {
 
     fetchCountries();
   }, []);
-
-  useEffect(() => {
-    const countryId = watch('countryId');
-    const selectedCountry = countries.find(country => country.id === Number(countryId));
-    if (selectedCountry) {
-      const activeLocations = selectedCountry.__locations__.filter(loc => loc.isDelete === false);
-      setLocations(activeLocations);
-    } else {
-      setLocations([]);
-    }
-  }, [watch('countryId'), countries]);
 
   useEffect(() => {
     const fetchInstructors = async () => {
@@ -867,7 +825,7 @@ const onSubmit = async (data: ClassFormData) => {
                     setValue("countryId", Number(value));
                     setValue("locationId", 0); // Reset location when country changes
                   }}
-                  defaultValue={watch("countryId")?.toString()}
+                  defaultValue="52" // Set United States as default
                 >
                   <SelectTrigger 
                     className={`mt-1 bg-white w-full ${
@@ -895,44 +853,6 @@ const onSubmit = async (data: ClassFormData) => {
                   <p className="mt-1 text-sm text-red-500">{errors.countryId.message}</p>
                 )}
               </div>
-  <div>
-    <label className="block text-sm font-medium text-gray-700">
-      State <span className="text-red-500">*</span>
-    </label>
-    <Select
-      onValueChange={(value) => {
-        setValue("stateId", Number(value));
-        setValue("locationId", 0); // Reset location when state changes
-      }}
-      defaultValue={watch("stateId")?.toString()}
-      disabled={!watch('countryId') || states.length === 0}
-    >
-      <SelectTrigger 
-        className={`mt-1 bg-white w-full ${
-          errors.stateId ? 'border-red-500' : 'border-gray-300'
-        }`}
-      >
-        {loadingStates ? (
-          <LoadingSpinner />
-        ) : (
-          <SelectValue placeholder="Select a state" className="bg-white" />
-        )}
-      </SelectTrigger>
-      <SelectContent>
-        {states.map((state) => (
-          <SelectItem 
-            key={state.id} 
-            value={state.id.toString()}
-          >
-            {state.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-    {errors.stateId && (
-      <p className="mt-1 text-sm text-red-500">{errors.stateId.message}</p>
-    )}
-  </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">

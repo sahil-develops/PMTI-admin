@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, MoreVertical, Edit2, FileInput } from 'lucide-react';
+import { Search, Plus, MoreVertical, Edit2, FileInput, Trash2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -93,6 +93,13 @@ interface EditStudentModalProps {
   onSave: (studentId: number, data: Partial<StudentData>) => Promise<void>;
 }
 
+interface DeleteConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  studentName: string;
+}
+
 const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose }) => {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
@@ -118,8 +125,33 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, onClose }) => {
   );
 };
 
-
-// Add this component right after the EditStudentModal component
+const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  studentName,
+}) => {
+  return (
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete {studentName}'s account and all associated data. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={onConfirm}>
+            Delete
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
 
 const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
   studentId,
@@ -873,9 +905,12 @@ const Students = () => {
   const [professionFilter, setProfessionFilter] = useState("all");
   const [editingStudent, setEditingStudent] = useState<StudentData | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-// Add these state variables in your Students component
-const [viewingStudentId, setViewingStudentId] = useState<number | null>(null);
-const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingStudentId, setViewingStudentId] = useState<number | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [deletingStudent, setDeletingStudent] = useState<StudentData | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const uniqueStates = Array.from(new Set(
     students.map(student => {
       if (student.state && typeof student.state === 'string') {
@@ -1015,7 +1050,6 @@ const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     }
   };
 
-
   const handleAddStudent = () => {
     router.push('/students/add');
   };
@@ -1054,6 +1088,50 @@ const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     }
 
     return { cityName, stateName, countryName };
+  };
+
+  const handleDeleteStudent = async () => {
+    if (!deletingStudent) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`https://api.4pmti.com/students/${deletingStudent.id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || data.message || 'Failed to delete student');
+      }
+
+      // Update local state to remove the deleted student
+      setStudents(prevStudents => 
+        prevStudents.filter(student => student.id !== deletingStudent.id)
+      );
+      setFilteredStudents(prevFiltered => 
+        prevFiltered.filter(student => student.id !== deletingStudent.id)
+      );
+
+      toast({
+        title: "Success",
+        description: `${deletingStudent.name} has been successfully deleted.`,
+        variant: "default",
+      });
+    } catch (error: any) {
+      console.error('Error deleting student:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete student",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+      setDeletingStudent(null);
+    }
   };
 
   if (isLoading) {
@@ -1139,7 +1217,7 @@ const [isViewModalOpen, setIsViewModalOpen] = useState(false);
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">ID</th>
+                    {/* <th className="px-4 py-3 text-left font-medium text-gray-500">ID</th> */}
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Email</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Company</th>
@@ -1155,7 +1233,7 @@ const [isViewModalOpen, setIsViewModalOpen] = useState(false);
                     const { cityName, stateName } = getLocationInfo(student);
                     return (
                       <tr key={student.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-gray-900">{student.id}</td>
+                        {/* <td className="px-4 py-3 text-gray-900">{student.id}</td> */}
                         <td className="px-4 py-3 text-gray-900">{student.name}</td>
                         <td className="px-4 py-3 text-gray-500">{student.email}</td>
                         <td className="px-4 py-3 text-gray-500">{student.companyName || 'N/A'}</td>
@@ -1218,6 +1296,16 @@ const [isViewModalOpen, setIsViewModalOpen] = useState(false);
                                 <FileInput className="mr-2 h-4 w-4" />
                           Course  Enrollment
                               </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => {
+                                  setDeletingStudent(student);
+                                  setIsDeleteModalOpen(true);
+                                }}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Student
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </td>
@@ -1251,6 +1339,15 @@ const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   <SuccessModal 
         isOpen={showSuccess} 
         onClose={() => setShowSuccess(false)} 
+      />
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeletingStudent(null);
+        }}
+        onConfirm={handleDeleteStudent}
+        studentName={deletingStudent?.name || ''}
       />
     </Card>
   );
