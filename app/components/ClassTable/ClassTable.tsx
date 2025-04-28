@@ -811,16 +811,14 @@ useEffect(() => {
   // Update the date selection handlers
   const handleStartDateChange = (date: Date | undefined) => {
     if (date) {
-      // Create date string in YYYY-MM-DD format using local timezone
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const dateString = `${year}-${month}-${day}`;
+      // Create a new date at midnight in local timezone
+      const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const formattedDate = format(localDate, 'yyyy-MM-dd');
       
       setSearchParams(prev => ({
         ...prev,
-        startFrom: dateString,
-        dateTo: prev.dateTo && new Date(prev.dateTo) < date ? "" : prev.dateTo
+        startFrom: formattedDate,
+        dateTo: prev.dateTo && new Date(prev.dateTo) < localDate ? "" : prev.dateTo
       }));
     }
   };
@@ -861,7 +859,7 @@ useEffect(() => {
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {searchParams.startFrom ? (
-                  format(new Date(searchParams.startFrom), "PPP")
+                  format(new Date(searchParams.startFrom), "MMMM d, yyyy")
                 ) : (
                   <span>Pick a date</span>
                 )}
@@ -870,7 +868,7 @@ useEffect(() => {
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarComponent
                 mode="single"
-                selected={searchParams.startFrom ? new Date(`${searchParams.startFrom}T00:00:00`) : undefined}
+                selected={searchParams.startFrom ? new Date(searchParams.startFrom) : undefined}
                 onSelect={handleStartDateChange}
                 initialFocus
               />
@@ -893,7 +891,7 @@ useEffect(() => {
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {searchParams.dateTo ? (
-                  format(new Date(searchParams.dateTo), "PPP")
+                  format(new Date(searchParams.dateTo), "MMMM d, yyyy")
                 ) : (
                   <span>
                     {!searchParams.startFrom ? "Select start date first" : "Pick a date"}
@@ -904,14 +902,12 @@ useEffect(() => {
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarComponent
                 mode="single"
-                selected={searchParams.dateTo ? new Date(`${searchParams.dateTo}T00:00:00`) : undefined}
+                selected={searchParams.dateTo ? new Date(searchParams.dateTo) : undefined}
                 onSelect={(date) => {
                   if (date) {
-                    // Format date as YYYY-MM-DD without timezone adjustment
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const formattedDate = `${year}-${month}-${day}`;
+                    // Create a new date at midnight in local timezone
+                    const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                    const formattedDate = format(localDate, 'yyyy-MM-dd');
                     
                     setSearchParams((prev) => ({
                       ...prev,
@@ -920,7 +916,9 @@ useEffect(() => {
                   }
                 }}
                 disabled={(date) => {
-                  return date < (searchParams.startFrom ? new Date(`${searchParams.startFrom}T00:00:00`) : new Date());
+                  if (!searchParams.startFrom) return true;
+                  const startDate = new Date(searchParams.startFrom);
+                  return date < startDate;
                 }}
                 initialFocus
               />
