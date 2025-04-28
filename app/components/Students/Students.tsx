@@ -387,6 +387,8 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
         <DialogHeader>
           <DialogTitle>Edit Student</DialogTitle>
         </DialogHeader>
+
+      
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
