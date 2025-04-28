@@ -45,7 +45,7 @@ const CreateClassTypeForm: React.FC<CreateClassTypeFormProps> = ({ onCancel, onS
     setIsLoading(true);
 
     try {
-      const response = await fetch(`https://api.4pmti.com/classtype`, {
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/classtype`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

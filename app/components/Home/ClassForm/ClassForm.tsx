@@ -270,7 +270,7 @@ const [loadingStates, setLoadingStates] = useState(false);
     const fetchCategories = async () => {
       setLoadingCategories(true);
       try {
-        const response = await fetch('https://api.4pmti.com/category', {
+        const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/category', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
@@ -301,7 +301,7 @@ const [loadingStates, setLoadingStates] = useState(false);
 
     setLoadingStates(true);
     try {
-      const response = await fetch(`https://api.4pmti.com/state?countryId=${countryId}`, {
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/state?countryId=${countryId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         }
@@ -347,7 +347,7 @@ useEffect(() => {
     const fetchClassTypes = async () => {
       setLoadingClassTypes(true);
       try {
-        const response = await fetch('https://api.4pmti.com/classtype', {
+        const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/classtype', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
@@ -429,7 +429,7 @@ useEffect(() => {
     const fetchCountries = async () => {
       setLoadingCountries(true);
       try {
-        const response = await fetch('https://api.4pmti.com/country', {
+        const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
@@ -468,7 +468,7 @@ useEffect(() => {
     const fetchInstructors = async () => {
       setLoadingInstructors(true);
       try {
-        const response = await fetch('https://api.4pmti.com/instructor', {
+        const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/instructor', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
@@ -564,7 +564,7 @@ const onSubmit = async (data: ClassFormData) => {
       coverImage: coverImageUrl
     };
 
-    const response = await fetch(`https://api.4pmti.com/class`, {
+    const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -641,7 +641,7 @@ const onSubmit = async (data: ClassFormData) => {
     formData.append('file', file);
 
     try {
-      const response = await fetch('https://api.4pmti.com/upload', {
+      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/upload', {
         method: 'POST',
         body: formData,
       });

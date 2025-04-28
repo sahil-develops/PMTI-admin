@@ -94,7 +94,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
      // Add this function with your other fetch functions
   const fetchCategories = async () => {
     try {
-      const response = await fetch('https://api.4pmti.com/category', {
+      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/category', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -111,7 +111,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
   // Function to fetch class types
   const fetchClassTypes = async () => {
     try {
-      const response = await fetch('https://api.4pmti.com/classtype', {
+      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/classtype', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -172,7 +172,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
     formData.append('file', file);
 
     try {
-      const response = await fetch('https://api.4pmti.com/upload', {
+      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/upload', {
         method: 'POST',
         body: formData,
       });
@@ -210,7 +210,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
         coverImage: coverImageUrl              // Add the cover image URL
       };
 
-      const response = await fetch(`https://api.4pmti.com/course`, {
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/course`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

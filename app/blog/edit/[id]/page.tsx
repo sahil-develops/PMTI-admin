@@ -60,7 +60,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
           throw new Error('Authentication token not found');
         }
 
-        const response = await fetch(`https://api.4pmti.com/blog/${params.id}`, {
+        const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/blog/${params.id}`, {
           headers: {
             'Authorization': `Bearer ${authToken}`
           }
@@ -105,7 +105,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch('https://api.4pmti.com/upload', {
+        const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/upload', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -151,7 +151,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
         cover_image: editedCoverImage
       };
       
-      const response = await fetch(`https://api.4pmti.com/blog/${params.id}`, {
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/blog/${params.id}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${authToken}`,

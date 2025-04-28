@@ -95,7 +95,7 @@ const SignIn = () => {
   const fetchCountries = async () => {
     setIsLoadingCountries(true);
     try {
-      const response = await fetch('https://api.4pmti.com/country');
+      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country');
       if (!response.ok) throw new Error('Failed to fetch countries');
       const data = await response.json();
       setCountries(data.data);
@@ -143,7 +143,7 @@ const SignIn = () => {
     setError(null);
 
     try {
-      const response = await fetch(`https://api.4pmti.com/auth/signup/admin`, {
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/auth/signup/admin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ const SignIn = () => {
     setError(null);
 
     try {
-      const response = await fetch(`https://api.4pmti.com/auth/login`, {
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

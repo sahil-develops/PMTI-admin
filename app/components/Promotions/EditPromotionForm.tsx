@@ -55,7 +55,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://api.4pmti.com/promotions/${id}`,
+        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/promotions/${id}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -97,7 +97,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
 
     try {
       const response = await fetch(
-        `https://api.4pmti.com/promotions/${id}`,
+        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/promotions/${id}`,
         {
           method: 'PATCH',
           headers: {

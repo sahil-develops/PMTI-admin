@@ -108,7 +108,7 @@ const ActionDropdown = ({
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `https://api.4pmti.com/promotions/${promotionId}`,
+        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/promotions/${promotionId}`,
         {
           method: 'DELETE',
           headers: {
@@ -291,7 +291,7 @@ export default function PromotionsPage() {
   const fetchPromotions = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`https://api.4pmti.com/promotions`, {
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/promotions`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

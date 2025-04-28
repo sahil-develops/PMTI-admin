@@ -78,7 +78,7 @@ const AddAdmin = () => {
     const fetchCountries = async () => {
       setLoadingCountries(true);
       try {
-        const response = await fetch('https://api.4pmti.com/country', {
+        const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
@@ -107,7 +107,7 @@ const AddAdmin = () => {
     setShowError(false);
 
     try {
-      const response = await fetch('https://api.4pmti.com/auth/signup/admin', {
+      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/auth/signup/admin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

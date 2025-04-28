@@ -99,7 +99,7 @@ const CourseList = () => {
     const fetchCourses = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`https://api.4pmti.com/course`, {
+        const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/course`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },

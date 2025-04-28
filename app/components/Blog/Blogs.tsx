@@ -82,7 +82,7 @@ export default function Blogs() {
         const userId = userData.data.id;
         
         // Fetch blog posts
-        const response = await fetch(`https://api.4pmti.com/blog?userId=${userId}`);
+        const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/blog?userId=${userId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch blog posts');
         }
@@ -159,7 +159,7 @@ export default function Blogs() {
       const authToken = userDataString;
       
       // Delete the blog post
-      const response = await fetch(`https://api.4pmti.com/blog/${postToDelete.id}`, {
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/blog/${postToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${authToken}`,

@@ -73,8 +73,6 @@ interface FormData {
   password: string;
   countryId: string;
   stateId: string;
-  locationId: string;
-  citySearch: string;
 }
 
 const AddStudent = () => {
@@ -87,11 +85,6 @@ const AddStudent = () => {
   const [countries, setCountries] = useState<Country[]>([]);
   const [states, setStates] = useState<State[]>([]);
   const [cities, setCities] = useState<Location[]>([]);
-
-  // Add these new states
-  const [filteredCities, setFilteredCities] = useState<Location[]>([]);
-  const [citySearchFocused, setCitySearchFocused] = useState(false);
-  const [creatingLocation, setCreatingLocation] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -108,8 +101,6 @@ const AddStudent = () => {
     password: "",
     countryId: "52", // Default to US
     stateId: "",
-    locationId: "",
-    citySearch: "", // Initialize the new field
   });
 
   // Initial data fetch
@@ -125,7 +116,7 @@ const AddStudent = () => {
         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
       };
 
-      const response = await fetch(`https://api.4pmti.com/country`, { headers });
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country`, { headers });
       
       if (!response.ok) {
         throw new Error('Failed to fetch countries');
@@ -174,7 +165,7 @@ const AddStudent = () => {
   const fetchStates = async (countryId: string) => {
     try {
       const response = await fetch(
-        `https://api.4pmti.com/state/?countryId=${countryId}`,
+        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/state/?countryId=${countryId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -203,7 +194,6 @@ const AddStudent = () => {
       ...prev, 
       countryId, 
       stateId: '', 
-      locationId: '',
       country: countries.find(c => c.id.toString() === countryId)?.CountryName || '',
       state: '',
       city: ''
@@ -222,47 +212,8 @@ const AddStudent = () => {
     setFormData(prev => ({ 
       ...prev, 
       stateId, 
-      locationId: '',
       state: selectedState?.name || '',
       city: ''
-    }));
-
-    try {
-      const response = await fetch(
-        `https://api.4pmti.com/location?countryId=${formData.countryId}&stateId=${stateId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch locations');
-      }
-
-      const data = await response.json();
-      const sortedLocations = [...data.data].sort((a, b) => 
-        a.location.localeCompare(b.location)
-      );
-      setCities(sortedLocations);
-    } catch (error) {
-      console.error('Error fetching locations:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load cities",
-        variant: "destructive",
-      });
-      setCities([]);
-    }
-  };
-
-  const handleLocationChange = (locationId: string) => {
-    const selectedLocation = cities.find(c => c.id.toString() === locationId);
-    setFormData(prev => ({ 
-      ...prev, 
-      locationId,
-      city: selectedLocation?.location || ''
     }));
   };
 
@@ -281,116 +232,6 @@ const AddStudent = () => {
     }
   };
 
-  const handleCitySearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const searchValue = e.target.value;
-    setFormData(prev => ({
-      ...prev,
-      citySearch: searchValue,
-      locationId: '', // Clear location ID when searching
-      city: searchValue // Update city value as well
-    }));
-
-    if (searchValue.trim() === '') {
-      setFilteredCities([]);
-    } else {
-      const filtered = cities.filter(city => 
-        city.location.toLowerCase().includes(searchValue.toLowerCase())
-      );
-      setFilteredCities(filtered);
-    }
-
-    // Clear error when user starts typing
-    if (errors.city) {
-      setErrors(prev => ({
-        ...prev,
-        city: ""
-      }));
-    }
-  };
-
-  const selectCity = (city: Location) => {
-    setFormData(prev => ({
-      ...prev,
-      locationId: city.id.toString(),
-      city: city.location,
-      citySearch: city.location
-    }));
-    setFilteredCities([]);
-    setCitySearchFocused(false);
-  };
-
-  const createNewLocation = async () => {
-    if (!formData.countryId || !formData.stateId || !formData.citySearch.trim()) {
-      toast({
-        title: "Error",
-        description: "Country, state and city are required to create a new location",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setCreatingLocation(true);
-    try {
-      const response = await axios.post('https://api.4pmti.com/location', {
-        country: parseInt(formData.countryId),
-        state: parseInt(formData.stateId),
-        location: formData.citySearch.trim(),
-        addedBy: localStorage.getItem("userEmail"),
-        updatedBy: localStorage.getItem("userEmail"),
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      });
-
-      if (response.status === 201 || response.status === 200) {
-        toast({
-          title: "Success",
-          description: "Location created successfully! You can now proceed.",
-        });
-        
-        // Get the new location data from the response
-        if (response.data?.data) {
-          const newLocation = response.data.data;
-          
-          // Create a new location object in the format our component uses
-          const locationObject: Location = {
-            id: newLocation.id, // This is the ID we need (like 88 in your example)
-            location: newLocation.location,
-            addedBy: newLocation.addedBy || "",
-            updatedBy: newLocation.updatedBy || "",
-            isDelete: newLocation.isDelete || false,
-            createdAt: newLocation.createdAt,
-            updateAt: newLocation.updateAt
-          };
-          
-          // Add the new location to the cities list
-          setCities(prev => [...prev, locationObject]);
-          
-          // Update form data with the new location info
-          setFormData(prev => ({
-            ...prev,
-            locationId: newLocation.id.toString(), // Use the ID directly
-            city: newLocation.location
-          }));
-          
-          // Close the dropdown and clear filtered results
-          setFilteredCities([]);
-          setCitySearchFocused(false);
-        }
-      }
-    } catch (error) {
-      console.error("Error creating location:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create new location",
-        variant: "destructive",
-      });
-    } finally {
-      setCreatingLocation(false);
-    }
-  };
-
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -400,7 +241,7 @@ const AddStudent = () => {
     if (formData.address.length < 5) {
       newErrors.address = "Address must be at least 5 characters";
     }
-    if (!formData.locationId) {
+    if (!formData.city || formData.city.length < 2) {
       newErrors.city = "City is required";
     }
     if (!formData.stateId) {
@@ -436,19 +277,19 @@ const AddStudent = () => {
       toast({
         title: "Error",
         description: "Please check the form for errors",
-        variant: "destructive",
+      variant: "destructive",
       });
       return;
     }
 
     setLoading(true);
     try {
-      const response = await axios.post(`https://api.4pmti.com/auth/signup/student`, {
+      const response = await axios.post(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/auth/signup/student`, {
         name: formData.name,
         address: formData.address,
         country: parseInt(formData.countryId),
         state: parseInt(formData.stateId),
-        city: parseInt(formData.locationId),
+        city: formData.city,
         zipCode: formData.zipCode,
         phone: formData.phone,
         companyName: formData.companyName,
@@ -485,8 +326,6 @@ const AddStudent = () => {
           password: "",
           countryId: "52",
           stateId: "",
-          locationId: "",
-          citySearch: "",
         });
       }
     } catch (error: any) {
@@ -639,77 +478,20 @@ const AddStudent = () => {
 )}
 </div>
 
-<div className="space-y-2 relative">
-  <Label>City</Label>
-  {isLoadingDropdowns ? (
-    <Loader />
-  ) : (
-    <>
-      <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input
-          id="citySearch"
-          name="citySearch"
-          value={formData.citySearch}
-          onChange={handleCitySearch}
-          onFocus={() => setCitySearchFocused(true)}
-          onBlur={() => {
-            // Delayed blur to allow clicking on the dropdown items
-            setTimeout(() => setCitySearchFocused(false), 200);
-          }}
-          className="pl-9 h-9"
-          placeholder={
-            !formData.countryId 
-              ? "Select Country First" 
-              : !formData.stateId 
-                ? "Select State First"
-                : "Type to search or create city"
-          }
-          disabled={!formData.stateId}
-        />
-      </div>
-      
-      {citySearchFocused && formData.citySearch && filteredCities.length > 0 && (
-        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border max-h-60 overflow-auto">
-          {filteredCities.map((city) => (
-            <div 
-              key={city.id}
-              className={`p-2 hover:bg-gray-100 cursor-pointer ${city.isDelete ? 'text-zinc-400' : ''}`}
-              onClick={() => selectCity(city)}
-            >
-              {city.location}
-              {city.isDelete && ' (Inactive)'}
-            </div>
-          ))}
-        </div>
-      )}
-      
-      {/* Only show Create button if we have a city search term, no matching results, and we haven't yet created this location */}
-      {formData.stateId && 
-        formData.citySearch && 
-        !loading && 
-        filteredCities.length === 0 && 
-        !cities.some(city => city.location.toLowerCase() === formData.citySearch.toLowerCase()) && (
-          <Button 
-            type="button" 
-            variant="outline" 
-            className="mt-2 w-full text-sm"
-            onClick={createNewLocation}
-            disabled={creatingLocation}
-          >
-            {creatingLocation ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              `Create "${formData.citySearch}" as new location`
-            )}
-          </Button>
-        )
-      }
-    </>
-  )}
+<div className="space-y-2">
+  <Label htmlFor="city">City</Label>
+  <div className="relative">
+    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+    <Input
+      id="city"
+      name="city"
+      value={formData.city}
+      onChange={handleChange}
+      className="pl-9 h-9"
+      placeholder="City"
+      disabled={!formData.stateId}
+    />
+  </div>
   {errors.city && (
     <p className="text-xs text-red-500">{errors.city}</p>
   )}

@@ -99,7 +99,7 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
     formData.append('file', file);
     
     try {
-      const response = await fetch('https://api.4pmti.com/upload', {
+      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/upload', {
         method: 'POST',
         body: formData,
       });

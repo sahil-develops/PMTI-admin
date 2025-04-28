@@ -174,7 +174,7 @@ const ActionDropdown = ({
     
     try {
       const response = await fetch(
-        `https://api.4pmti.com/class/${classId}`,
+        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class/${classId}`,
         {
           method: "DELETE",
           headers: {
@@ -487,10 +487,10 @@ useEffect(() => {
 
       const [instructorsRes, categoriesRes, classTypesRes, countriesRes] =
         await Promise.all([
-          fetch(`https://api.4pmti.com/instructor`, { headers }),
-          fetch(`https://api.4pmti.com/category`, { headers }),
-          fetch(`https://api.4pmti.com/classtype`, { headers }),
-          fetch(`https://api.4pmti.com/country`, { headers }),
+          fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/instructor`, { headers }),
+          fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/category`, { headers }),
+          fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/classtype`, { headers }),
+          fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country`, { headers }),
         ]);
 
       const [instructorsData, categoriesData, classTypesData, countriesData] =
@@ -550,7 +550,7 @@ useEffect(() => {
       try {
         setLoading(true);
         const response = await fetch(
-          `https://api.4pmti.com/class`,
+          `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -637,7 +637,7 @@ useEffect(() => {
       }
 
       const response = await fetch(
-        `https://api.4pmti.com/class?${queryParams.toString()}`,
+        `https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class?${queryParams.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -735,7 +735,7 @@ useEffect(() => {
   const handleBulkDelete = async () => {
     try {
       setIsDeleting(true);
-      const response = await fetch('https://api.4pmti.com/class/bulk', {
+      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/class/bulk', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

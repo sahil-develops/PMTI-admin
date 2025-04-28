@@ -185,7 +185,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
   const fetchCountries = async () => {
     try {
-      const response = await fetch(`https://api.4pmti.com/country`);
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/country`);
       const data = await response.json();
       setCountries(data.data);
     } catch (error) {
@@ -195,7 +195,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
   const fetchStates = async (countryId: string) => {
     try {
-      const response = await fetch(`https://api.4pmti.com/state/?countryId=${countryId}`);
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/state/?countryId=${countryId}`);
       const data = await response.json();
       setStates(data.data);
     } catch (error) {
@@ -205,7 +205,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
   const fetchCities = async (stateId: string) => {
     try {
-      const response = await fetch(`https://api.4pmti.com/location?stateId=${stateId}`);
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/location?stateId=${stateId}`);
       const data = await response.json();
       const sortedLocations = [...data.data].sort((a, b) => 
         a.location.localeCompare(b.location)
@@ -340,7 +340,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
     setCreatingLocation(true);
     try {
-      const response = await fetch('https://api.4pmti.com/location', {
+      const response = await fetch('https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/location', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -623,7 +623,7 @@ const Students = () => {
 
   const fetchStudents = async () => {
     try {
-      const response = await fetch(`https://api.4pmti.com/students`, {
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/students`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -703,7 +703,7 @@ const Students = () => {
 
       console.log("Sending payload to API:", payload);
 
-      const response = await fetch(`https://api.4pmti.com/students/${studentId}`, {
+      const response = await fetch(`https://61ab-2405-201-a40c-488f-c543-4559-5d8c-8c9b.ngrok-free.app/students/${studentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
