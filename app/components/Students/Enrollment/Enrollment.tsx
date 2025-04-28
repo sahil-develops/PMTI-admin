@@ -648,10 +648,16 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       });
       const data = await response.json();
       if (data.success) {
-        setStudentInfo(data.data);
-        
-        // Check for null location data and handle it gracefully
-        const student = data.data;
+        // Update studentInfo with the API response data
+        const student = data.data.student;
+        setStudentInfo({
+          ...student,
+          // Provide default values for null fields
+          city: student.city || { id: 0, location: '', addedBy: '', updatedBy: '', isDelete: false, createdAt: '', updateAt: '' },
+          state: student.state || { id: 0, name: '' },
+        });
+
+        // Update form data with student information
         setFormData(prev => ({
           ...prev,
           name: student.name || "",
@@ -664,13 +670,12 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
           email: student.email || "",
           zipCode: student.zipCode || "",
           companyName: student.companyName || "",
+          downloadedInfoPac: student.downloadedInfoPac || false,
         }));
-        
-        // Set defaults for country/state selectors
-        if (!student.country) {
-          setSelectedCountry1("52"); // Default to US
-          fetchStates("52");
-        }
+
+        // Set default country and fetch states
+        setSelectedCountry1(student.country?.id?.toString() || "52");
+        fetchStates(student.country?.id?.toString() || "52");
       }
     } catch (error) {
       console.error('Error fetching student info:', error);
@@ -927,24 +932,24 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
               <h2 className="text-xl font-semibold mb-4">Student Information</h2>
               <div className="space-y-4">
                 <div>
+                  <Label className="text-gray-500">Student ID</Label>
+                  <div>{studentInfo.uid}</div>
+                </div>
+                <div>
                   <Label className="text-gray-500">Name</Label>
                   <div>{studentInfo.name}</div>
                 </div>
                 <div>
                   <Label className="text-gray-500">Address</Label>
-                  <div>{studentInfo.address}</div>
+                  <div>{studentInfo.address || "Not provided"}</div>
                 </div>
                 <div>
-                  <Label className="text-gray-500">State</Label>
-                  <div>{studentInfo.state?.name || "Not provided"}</div>
+                  <Label className="text-gray-500">Company</Label>
+                  <div>{studentInfo.companyName || "Not provided"}</div>
                 </div>
                 <div>
-                  <Label className="text-gray-500">Last Login</Label>
-                  <div>Not Logged in yet</div>
-                </div>
-                <div>
-                  <Label className="text-gray-500">Social Security Number</Label>
-                  <div>See Terms for Privacy</div>
+                  <Label className="text-gray-500">Profession</Label>
+                  <div>{studentInfo.profession || "Not provided"}</div>
                 </div>
               </div>
             </div>
@@ -956,16 +961,20 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <div>{studentInfo.email}</div>
                 </div>
                 <div>
-                  <Label className="text-gray-500">Tel No.</Label>
-                  <div>{studentInfo.phone}</div>
+                  <Label className="text-gray-500">Phone Number</Label>
+                  <div>{studentInfo.phone || "Not provided"}</div>
                 </div>
                 <div>
                   <Label className="text-gray-500">Country</Label>
                   <div>{studentInfo.country?.CountryName || "Not provided"}</div>
                 </div>
                 <div>
-                  <Label className="text-gray-500">Company</Label>
-                  <div>{studentInfo.companyName || "Not provided"}</div>
+                  <Label className="text-gray-500">Zip Code</Label>
+                  <div>{studentInfo.zipCode || "Not provided"}</div>
+                </div>
+                <div>
+                  <Label className="text-gray-500">Sign Up Date</Label>
+                  <div>{new Date(studentInfo.signupDate).toLocaleDateString()}</div>
                 </div>
               </div>
             </div>
