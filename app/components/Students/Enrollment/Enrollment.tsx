@@ -430,12 +430,12 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         BillingState: formData.BillingState ? parseInt(formData.BillingState) : 0,
         BillCountry: formData.BillCountry ? parseInt(formData.BillCountry) : 0,
         // Add Location ID
-        Location: studentInfo?.city?.id ? parseInt(studentInfo.city.id.toString()) : parseInt(formData.city || "0"),
+        location: studentInfo?.city?.id ? parseInt(studentInfo.city.id.toString()) : parseInt(formData.city || "0"),
       };
       
       setLoading(true);
       try {
-        const response = await fetch('https://api.4pmti.com/enrollment', {
+        const response = await fetch('https://api.4pmti.com/enrollment/class', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
