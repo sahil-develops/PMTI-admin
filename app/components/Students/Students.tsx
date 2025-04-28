@@ -417,29 +417,21 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
   onClose,
   onSave,
 }) => {
-  // Add these state variables in your Students component
-
-
   const [formData, setFormData] = useState<Partial<StudentData>>({});
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [countries, setCountries] = useState<{ id: number; CountryName: string }[]>([]);
   const [states, setStates] = useState<{ id: number; name: string }[]>([]);
-  const [cities, setCities] = useState<{ id: number; location: string }[]>([]);
   const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedState, setSelectedState] = useState("");
-  
-  // Add new states for city search functionality
-  const [filteredCities, setFilteredCities] = useState<any[]>([]);
-  const [citySearchFocused, setCitySearchFocused] = useState(false);
-  const [creatingLocation, setCreatingLocation] = useState(false);
-  const [citySearch, setCitySearch] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
+  // Add new state for city input disabled state
+  const [isCityInputDisabled, setIsCityInputDisabled] = useState(true);
+
   useEffect(() => {
     if (student) {
-      // Extract proper values from nested objects
       const countryId = student.country && typeof student.country === 'object' 
         ? (student.country as { id: number }).id.toString() 
         : student.country || "";
@@ -466,7 +458,8 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
       
       setSelectedCountry(countryId);
       setSelectedState(stateId);
-      setCitySearch(cityValue);
+      // Enable city input if state is selected
+      setIsCityInputDisabled(!stateId);
     }
   }, [student]);
 
@@ -479,12 +472,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
       fetchStates(selectedCountry);
     }
   }, [selectedCountry]);
-
-  useEffect(() => {
-    if (selectedState) {
-      fetchCities(selectedState);
-    }
-  }, [selectedState]);
 
   const fetchCountries = async () => {
     try {
@@ -506,34 +493,15 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
     }
   };
 
-  const fetchCities = async (stateId: string) => {
-    try {
-      const response = await fetch(`https://api.4pmti.com/location?stateId=${stateId}`);
-      const data = await response.json();
-      const sortedLocations = [...data.data].sort((a, b) => 
-        a.location.localeCompare(b.location)
-      );
-      setCities(sortedLocations);
-    } catch (error) {
-      console.error('Error fetching cities:', error);
-    }
-  };
-
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    // Only validate fields that have been modified
     if (formData.name !== undefined && formData.name.trim() === '') {
       newErrors.name = "Name is required";
     }
     
     if (formData.email !== undefined && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
       newErrors.email = "Invalid email address";
-    }
-    
-    // Check if we have a state but no city
-    if (selectedState && !formData.locationId && (formData.city === '' || formData.city === undefined)) {
-      newErrors.city = "Please select or create a city";
     }
     
     setErrors(newErrors);
@@ -567,7 +535,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
   const handleInputChange = (field: keyof StudentData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user makes a change
     if (errors[field]) {
       setErrors(prev => {
         const updated = { ...prev };
@@ -577,111 +544,16 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
     }
   };
 
-  const handleCountryChange = async (countryId: string) => {
-    setSelectedCountry(countryId);
-    setSelectedState("");
-    setCities([]);
-    setFormData(prev => ({ 
-      ...prev, 
-      country: countryId,
-      state: '',
-      city: '',
-      locationId: ''
-    }));
-    
-    // Fetch states for selected country
-    fetchStates(countryId);
-  };
-
-  const handleStateChange = async (stateId: string) => {
+  const handleStateChange = (stateId: string) => {
     setSelectedState(stateId);
     setFormData(prev => ({ 
       ...prev, 
       state: stateId,
-      city: '',
-      locationId: ''
+      // Clear city when state changes
+      city: '' 
     }));
-    setCitySearch(""); // Clear city search when state changes
-
-    // Fetch cities for the selected state
-    fetchCities(stateId);
-  };
-
-  const handleCitySearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const searchValue = e.target.value;
-    setCitySearch(searchValue);
-    setFormData(prev => ({
-      ...prev,
-      city: searchValue // Update city value directly
-    }));
-
-    if (searchValue.trim() === '') {
-      setFilteredCities([]);
-    } else {
-      const filtered = cities.filter((city: any) => 
-        city.location.toLowerCase().includes(searchValue.toLowerCase())
-      );
-      setFilteredCities(filtered);
-    }
-  };
-
-  const selectCity = (city: any) => {
-    setCitySearch(city.location);
-    setFormData(prev => ({
-      ...prev,
-      city: city.location,
-      locationId: city.id.toString()
-    }));
-    setFilteredCities([]);
-    setCitySearchFocused(false);
-  };
-
-  const createNewLocation = async () => {
-    if (!selectedCountry || !selectedState || !citySearch.trim()) {
-      return;
-    }
-
-    setCreatingLocation(true);
-    try {
-      const response = await fetch('https://api.4pmti.com/location', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({
-          country: parseInt(selectedCountry),
-          state: parseInt(selectedState),
-          location: citySearch.trim(),
-          addedBy: localStorage.getItem("userEmail"),
-          updatedBy: localStorage.getItem("userEmail"),
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data) {
-          const newLocation = data.data;
-          
-          // Add the new location to the cities list
-          setCities(prev => [...prev, newLocation]);
-          
-          // Update form data with the new location info
-          setFormData(prev => ({
-            ...prev,
-            locationId: newLocation.id.toString(),
-            city: newLocation.location
-          }));
-          
-          setFilteredCities([]);
-          setCitySearchFocused(false);
-        }
-      }
-    } catch (error) {
-      console.error("Error creating location:", error);
-    } finally {
-      setCreatingLocation(false);
-    }
+    // Enable city input when state is selected
+    setIsCityInputDisabled(!stateId);
   };
 
   return (
@@ -732,7 +604,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
               <Label htmlFor="country">Country</Label>
               <Select
                 value={selectedCountry}
-                onValueChange={handleCountryChange}
+                onValueChange={setSelectedCountry}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Country" />
@@ -774,70 +646,17 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
               </Select>
             </div>
             
-            {/* City search with dropdown */}
-            <div className="space-y-2 relative">
-              <Label>City</Label>
+            {/* City input field */}
+            <div className="space-y-2">
+              <Label htmlFor="city">City</Label>
               <Input
-                value={citySearch}
-                onChange={handleCitySearch}
-                onFocus={() => setCitySearchFocused(true)}
-                onBlur={() => {
-                  // Delayed blur to allow clicking on the dropdown items
-                  setTimeout(() => setCitySearchFocused(false), 200);
-                }}
-                placeholder={
-                  !selectedCountry 
-                    ? "Select Country First" 
-                    : !selectedState 
-                      ? "Select State First"
-                      : "Type to search or create city"
-                }
-                disabled={!selectedState}
-                className={errors.city ? "border-red-500" : ""}
+                id="city"
+                value={formData.city || ''}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                placeholder={isCityInputDisabled ? "Select State First" : "Enter city"}
+                disabled={isCityInputDisabled}
+                className={isCityInputDisabled ? "bg-gray-100" : ""}
               />
-              {errors.city && (
-                <p className="text-xs text-red-500">{errors.city}</p>
-              )}
-              
-              {/* City dropdown */}
-              {citySearchFocused && citySearch && filteredCities.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border max-h-60 overflow-auto">
-                  {filteredCities.map((city) => (
-                    <div 
-                      key={city.id}
-                      className="p-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => selectCity(city)}
-                    >
-                      {city.location}
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* Create new location button */}
-              {selectedState && 
-                citySearch && 
-                !loading && 
-                filteredCities.length === 0 && 
-                !cities.some((city: any) => city.location.toLowerCase() === citySearch.toLowerCase()) && (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="mt-2 w-full text-sm"
-                    onClick={createNewLocation}
-                    disabled={creatingLocation}
-                  >
-                    {creatingLocation ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      `Create "${citySearch}" as new location`
-                    )}
-                  </Button>
-                )
-              }
             </div>
             
             <div className="space-y-2">
@@ -993,21 +812,24 @@ const Students = () => {
       // Create a payload object that will be sent to the API
       const payload: any = { ...updatedData };
       
-      // If we have locationId in the data, use it for the city field and convert to integer
-      if (updatedData.locationId) {
-        payload.city = parseInt(updatedData.locationId);
-        // Remove locationId from payload as it's not needed in the API
-        delete payload.locationId;
-      }
-      
-      // Convert state and country to integers if they exist
-      if (updatedData.state && !isNaN(Number(updatedData.state))) {
+      // Convert state to integer if it exists
+      if (updatedData.state) {
         payload.state = parseInt(updatedData.state);
+        if (isNaN(payload.state)) {
+          throw new Error('Invalid state ID');
+        }
       }
       
-      if (updatedData.country && !isNaN(Number(updatedData.country))) {
+      // Convert country to integer if it exists
+      if (updatedData.country) {
         payload.country = parseInt(updatedData.country);
+        if (isNaN(payload.country)) {
+          throw new Error('Invalid country ID');
+        }
       }
+
+      // Remove locationId if it exists (since we're not using it anymore)
+      delete payload.locationId;
 
       console.log("Sending payload to API:", payload);
 

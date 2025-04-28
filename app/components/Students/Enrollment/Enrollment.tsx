@@ -402,7 +402,6 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         
         setErrors(newErrors);
         
-        // Check if there are any validation errors
         if (Object.values(newErrors).some(error => error !== '')) {
           return;
         }
@@ -411,6 +410,11 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       // Determine if payment is made via credit card
       const isPaid = paymentMode === 'cc' || paymentMode === 'both';
       
+      // Get the selected location details
+      const selectedLocationData = locations.find(loc => loc.id.toString() === selectedLocation);
+      const selectedCountryData = countries.find(c => c.id.toString() === selectedCountry);
+      const selectedStateData = states.find(s => s.id.toString() === selectedState);
+
       // Ensure we have all required student data from the studentInfo
       const dataToSubmit = {
         ...formData,
@@ -418,19 +422,20 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         // Add missing required fields from studentInfo
         name: studentInfo?.name || formData.name,
         address: studentInfo?.address || formData.address,
-        city: studentInfo?.city?.id ? parseInt(studentInfo.city.id.toString()) : parseInt(formData.city || "0"),
-        state: studentInfo?.state?.id ? parseInt(studentInfo.state.id.toString()) : parseInt(formData.state || "0"),
-        country: studentInfo?.country?.id ? parseInt(studentInfo.country.id.toString()) : parseInt(formData.country || "0"),
+        // Use location names instead of IDs
+        city: selectedLocationData?.location || "",
+        state: selectedStateData?.name || "",
+        country: selectedCountryData?.CountryName || "",
         phone: studentInfo?.phone || formData.phone,
         profession: studentInfo?.profession || formData.profession,
         email: studentInfo?.email || formData.email,
         zipCode: studentInfo?.zipCode || formData.zipCode,
-        // Convert strings to numbers where needed
-        BillingCity: formData.BillingCity ? parseInt(formData.BillingCity) : 0,
-        BillingState: formData.BillingState ? parseInt(formData.BillingState) : 0,
-        BillCountry: formData.BillCountry ? parseInt(formData.BillCountry) : 0,
-        // Add Location ID
-        location: studentInfo?.city?.id ? parseInt(studentInfo.city.id.toString()) : parseInt(formData.city || "0"),
+        // For billing info, keep BillCountry as number
+        BillingCity: formData.BillingCity,
+        BillingState: billingStates.find(s => s.id.toString() === formData.BillingState)?.name || "",
+        BillCountry: parseInt(formData.BillCountry), // Convert to number
+        // Add Location ID for reference
+        location: parseInt(selectedLocation || "0"),
       };
       
       setLoading(true);
@@ -1394,40 +1399,15 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   </Select>
                 </div>
                 <div>
-                  <Label>Select Location</Label>
-                  <Select
+                  <Label>Billing City</Label>
+                  <Input
                     value={formData.BillingCity}
-                    onValueChange={(value) => {
-                      setFormData(prev => ({ ...prev, BillingCity: value }));
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, BillingCity: e.target.value }));
                     }}
-                    disabled={!formData.BillingState}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={
-                        !formData.BillCountry 
-                          ? "Select Country First" 
-                          : !formData.BillingState 
-                            ? "Select State First"
-                            : "Select Location"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {billingLocations.length > 0 ? (
-                        billingLocations.map((location) => (
-                          <SelectItem 
-                            key={location.id} 
-                            value={location.id.toString()}
-                          >
-                            {location.location}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-locations" disabled>
-                          No locations available
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Enter billing city"
+                    required
+                  />
                 </div>
                 <div>
                   <Label>Zip Code</Label>
