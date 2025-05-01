@@ -64,7 +64,7 @@ export default function AddLocationPage() {
   useEffect(() => {
     const fetchCountries = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/country`)
+        const response = await fetch(`https://api.4pmti.com/country`)
         const data = await response.json()
         if (data.success) {
           // Filter only active countries and sort by name
@@ -116,7 +116,7 @@ export default function AddLocationPage() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/location`, {
+      const response = await fetch(`https://api.4pmti.com/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
