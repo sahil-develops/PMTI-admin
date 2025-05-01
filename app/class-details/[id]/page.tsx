@@ -1024,7 +1024,15 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                 }}>
                   {availableClasses.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id.toString()}>
-                      {cls.title}
+                      {cls.title} - {new Date(cls.startDate).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })} to {new Date(cls.endDate).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
                     </SelectItem>
                   ))}
                   {isLoadingMore && (
