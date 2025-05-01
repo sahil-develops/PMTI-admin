@@ -440,7 +440,12 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       
       setLoading(true);
       try {
-        const response = await fetch('https://api.4pmti.com/enrollment/class', {
+        // Choose endpoint based on whether courseId exists in formData
+        const endpoint = 'courseId' in formData && formData.courseId 
+          ? 'https://api.4pmti.com/enrollment/course' 
+          : 'https://api.4pmti.com/enrollment/class';
+          
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

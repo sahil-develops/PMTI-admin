@@ -364,24 +364,24 @@ export default function EditCourse({ params }: PageProps) {
             </div>
 
             <div className="flex items-center space-x-2">
-              <label className="flex items-center space-x-2">
-                <div 
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    course.isGuestAccess ? 'bg-gray-500' : 'bg-green-500'
-                  }`}
-                  onClick={() => setCourse({ ...course, isGuestAccess: !course.isGuestAccess })}
-                >
-                  <span 
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      course.isGuestAccess ? 'translate-x-1' : 'translate-x-6'
-                    }`} 
-                  />
-                </div>
-                <span className="ml-2 text-sm font-medium text-gray-700">
-                  {course.isGuestAccess ? 'Inactive' : 'Active'}
-                </span>
-              </label>
-            </div>
+  <label className="flex items-center space-x-2">
+    <div 
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        course.isGuestAccess ? 'bg-green-500' : 'bg-gray-500'
+      }`}
+      onClick={() => setCourse({ ...course, isGuestAccess: !course.isGuestAccess })}
+    >
+      <span 
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          course.isGuestAccess ? 'translate-x-6' : 'translate-x-1'
+        }`} 
+      />
+    </div>
+    <span className="ml-2 text-sm font-medium text-gray-700">
+      {course.isGuestAccess ? 'Active' : 'Inactive'}
+    </span>
+  </label>
+</div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button
