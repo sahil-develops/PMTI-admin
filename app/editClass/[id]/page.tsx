@@ -17,6 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {SuccessModal} from "../../components/SuccessModal";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
 
 interface Country {
   id: number;
@@ -174,12 +182,22 @@ const formatDateForInput = (dateString: string) => {
 };
 
 // Update the formatForDateInput function to format as MM/DD/YYYY
+// Update the formatForDateInput function to handle timezone issues
 const formatForDateInput = (dateString: string) => {
+  // Create date object and adjust for timezone
   const date = new Date(dateString);
+  // Get year, month, day without timezone interference
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   const year = date.getFullYear();
   return `${month}/${day}/${year}`;
+};
+
+// Helper function to convert MM/DD/YYYY to a date string without timezone issues
+const formatDateForSubmission = (dateStr: string) => {
+  const [month, day, year] = dateStr.split('/');
+  // Create date string in YYYY-MM-DD format
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 };
 
 // Update the formatDateForInput function to format as MM/DD/YY
@@ -283,8 +301,15 @@ export default function EditClass({ params }: PageProps) {
   }, []);
 
   const validateDates = (startDate: string, endDate: string) => {
+    // Create Date objects from the ISO strings
     const start = new Date(startDate);
     const end = new Date(endDate);
+    
+    // Check if end date comes after start date
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      setDateError('Invalid date format');
+      return false;
+    }
     
     if (end < start) {
       setDateError('End date cannot be before start date');
@@ -332,7 +357,7 @@ export default function EditClass({ params }: PageProps) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (classData && !validateForm() || classData && !validateDates(classData.startDate, classData.endDate)) {
+    if (!classData || !validateForm() || !validateDates(classData.startDate, classData.endDate)) {
       toast({
         variant: "destructive",
         title: "Validation Error",
@@ -340,10 +365,18 @@ export default function EditClass({ params }: PageProps) {
       });
       return;
     }
-
+  
     setIsLoading(true);
-
+  
     try {
+      // Format dates properly to avoid timezone issues like in ClassForm component
+      const startDate = new Date(classData.startDate);
+      const endDate = new Date(classData.endDate);
+      
+      // Format dates in MM-DD-YYYY format for the API
+      const startDateFormatted = `${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}-${startDate.getFullYear()}`;
+      const endDateFormatted = `${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}-${endDate.getFullYear()}`;
+      
       // Create a payload with proper data types
       const payload = {
         ...(classData || {}),
@@ -351,12 +384,13 @@ export default function EditClass({ params }: PageProps) {
         price: classData ? parseFloat(classData.price as string) : 0,
         // Convert status from string to "active"/"inactive"
         status: classData ? convertStatusToString(classData.status as string) : "inactive",
-        startDate: classData ? new Date(classData.startDate).toISOString() : '',
-        endDate: classData ? new Date(classData.endDate).toISOString() : '',
+        // Send dates in MM-DD-YYYY format to match the API expected format
+        startDate: startDateFormatted,
+        endDate: endDateFormatted,
       };
-
+  
       console.log("Submitting payload:", payload);
-
+  
       const response = await fetch(`https://api.4pmti.com/class/${id}`, {
         method: 'PATCH',
         headers: {
@@ -365,27 +399,31 @@ export default function EditClass({ params }: PageProps) {
         },
         body: JSON.stringify(payload),
       });
-
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(Array.isArray(errorData.error) ? errorData.error[0] : errorData.error || 'Failed to update class');
+      }
+  
       const data = await response.json();
       if (data.success) {
         setShowSuccessModal(true);
         setTimeout(() => {
-          setShowSuccessModal(false);
           router.push(`/class-details/${id}`);
-          router.refresh();
-        }, 1500);
+        }, 2000);
       } else {
-        const errorMessage = Array.isArray(data.error) 
-          ? data.error.join(', ') 
-          : data.error || 'Failed to update class';
-        throw new Error(errorMessage);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: Array.isArray(data.error) ? data.error[0] : data.error || "Failed to update class",
+        });
       }
     } catch (error) {
       console.error('Error updating class:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: (error as Error).message || "Failed to update class. Please try again later.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
       });
     } finally {
       setIsLoading(false);
@@ -453,32 +491,82 @@ export default function EditClass({ params }: PageProps) {
 
               <div>
                 <Label>Start Date</Label>
-                <Input
-                  type="text"
-                  value={formatForDateInput(classData.startDate)}
-                  onChange={(e) => {
-                    const [month, day, year] = e.target.value.split('/');
-                    const date = new Date(`${year}-${month}-${day}T12:00:00`);
-                    setClassData({ ...classData, startDate: date.toISOString() });
-                  }}
-                  placeholder="MM/DD/YYYY"
-                  required
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`w-full justify-start text-left font-normal ${errors.startDate ? 'border-red-500' : ''}`}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {classData.startDate ? formatForDateInput(classData.startDate) : <span className="text-muted-foreground">Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={classData.startDate ? new Date(classData.startDate) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          // Keep the date as midnight in local time to avoid timezone shifts
+                          const localDate = new Date(
+                            date.getFullYear(),
+                            date.getMonth(),
+                            date.getDate(),
+                            0, 0, 0
+                          );
+                          setClassData({ ...classData, startDate: localDate.toISOString() });
+                          clearError('startDate');
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {errors.startDate && (
+                  <p className="text-red-500 text-sm mt-1">{errors.startDate}</p>
+                )}
               </div>
 
               <div>
                 <Label>End Date</Label>
-                <Input
-                  type="text"
-                  value={formatForDateInput(classData.endDate)}
-                  onChange={(e) => {
-                    const [month, day, year] = e.target.value.split('/');
-                    const date = new Date(`${year}-${month}-${day}T12:00:00`);
-                    setClassData({ ...classData, endDate: date.toISOString() });
-                  }}
-                  placeholder="MM/DD/YYYY"
-                  required
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`w-full justify-start text-left font-normal ${errors.endDate ? 'border-red-500' : ''}`}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {classData.endDate ? formatForDateInput(classData.endDate) : <span className="text-muted-foreground">Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={classData.endDate ? new Date(classData.endDate) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          // Keep the date as midnight in local time to avoid timezone shifts
+                          const localDate = new Date(
+                            date.getFullYear(),
+                            date.getMonth(),
+                            date.getDate(),
+                            0, 0, 0
+                          );
+                          setClassData({ ...classData, endDate: localDate.toISOString() });
+                          // After selecting a date, validate it against the start date
+                          if (classData.startDate) {
+                            validateDates(classData.startDate, localDate.toISOString());
+                          }
+                          clearError('endDate');
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {errors.endDate && (
+                  <p className="text-red-500 text-sm mt-1">{errors.endDate}</p>
+                )}
               </div>
 
               <div>
