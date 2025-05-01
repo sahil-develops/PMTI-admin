@@ -256,7 +256,7 @@ const Transaction = () => {
 
       console.log("Sending payment data:", formattedData); // Debugging
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/charge`, {
+      const response = await fetch(`https://api.4pmti.com/payment/charge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

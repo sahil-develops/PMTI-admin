@@ -47,7 +47,7 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
     const fetchClassDetails = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}class/${params.id}`,
+          `https://api.4pmti.com/class/${params.id}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,

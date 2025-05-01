@@ -161,7 +161,7 @@ export default function AddLocationPage() {
     
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/state/?countryId=${value}`,
+        `https://api.4pmti.com/state/?countryId=${value}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,

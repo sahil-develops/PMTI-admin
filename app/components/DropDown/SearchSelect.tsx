@@ -42,7 +42,7 @@ const SearchSelect = ({
       setLoading(true);
       setFetchError("");
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${apiUrl}`, {
+        const response = await fetch(`https://api.4pmti.com/${apiUrl}`, {
           headers: {
             "Authorization": `Bearer ${localStorage.getItem("accessToken")}`
           }

@@ -42,7 +42,7 @@ const CreateInstructorForm: React.FC<CreateInstructorFormProps> = ({ onCancel, o
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}instructor`, {
+      const response = await fetch(`https://api.4pmti.com/instructor`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
