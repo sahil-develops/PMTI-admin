@@ -32,6 +32,8 @@ import {
 import { toast } from "@/hooks/use-toast";
 
 interface Course {
+  createdOn: string | number | Date;
+  updatedOn: string | number | Date;
   id: number;
   courseName: string;
   shortName: string;
@@ -99,6 +101,15 @@ const TableSkeleton = () => (
   </div>
 );
 
+const formatDate = (date: Date): string => {
+  const options: Intl.DateTimeFormatOptions = { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric'
+  };
+  
+  return date.toLocaleDateString('en-US', options);
+};
 const CourseList = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -260,7 +271,7 @@ const CourseList = () => {
                 <th scope="col" className="px-6 py-4 text-left font-medium">Start Date</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">End Date</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">Instructor</th>
-                <th scope="col" className="px-6 py-4 text-left font-medium">Status</th>
+                {/* <th scope="col" className="px-6 py-4 text-left font-medium">Status</th> */}
                 <th scope="col" className="px-6 py-4 text-left font-medium">Enrolled</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">Left</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">Actions</th>
@@ -271,10 +282,14 @@ const CourseList = () => {
                 <tr key={course.id} className="bg-white hover:bg-gray-50">
                   <td className="px-6 py-4">{course.category?.name || 'Uncategorized'}</td>
                   <td className="px-6 py-4">{course.courseName}</td>
-                  <td className="px-6 py-4">12/15/2024</td>
-                  <td className="px-6 py-4">12/17/2024</td>
-                  <td className="px-6 py-4">John Cena</td>
                   <td className="px-6 py-4">
+                    {course.createdOn ? formatDate(new Date(course.createdOn)) : 'N/A'}
+                  </td>
+                  <td className="px-6 py-4">
+                    {course.updatedOn ? formatDate(new Date(course.updatedOn)) : 'N/A'}
+                  </td>
+                  <td className="px-6 py-4">John Cena</td>
+                  {/* <td className="px-6 py-4">
                     <span className={`inline-flex px-2 text-xs font-semibold leading-5 rounded-full ${
                       !course.isDelete 
                         ? 'text-green-800 bg-green-100' 
@@ -282,7 +297,7 @@ const CourseList = () => {
                     }`}>
                       {!course.isDelete ? 'Active' : 'Inactive'}
                     </span>
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4">{course.enrollmentCount}</td>
                   <td className="px-6 py-4">30</td>
                   <td className="px-6 py-4">
