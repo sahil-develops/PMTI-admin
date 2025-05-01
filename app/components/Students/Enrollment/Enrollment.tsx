@@ -430,9 +430,9 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         profession: studentInfo?.profession || formData.profession,
         email: studentInfo?.email || formData.email,
         zipCode: studentInfo?.zipCode || formData.zipCode,
-        // For billing info, keep BillCountry as number
+        // For billing info, keep both BillingState and BillCountry as numbers
         BillingCity: formData.BillingCity,
-        BillingState: billingStates.find(s => s.id.toString() === formData.BillingState)?.name || "",
+        BillingState: parseInt(formData.BillingState) || 0, // Send the ID as a number
         BillCountry: parseInt(formData.BillCountry), // Convert to number
         // Add Location ID for reference
         location: parseInt(selectedLocation || "0"),
@@ -1367,11 +1367,15 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Select
                     value={formData.BillingState}
                     onValueChange={(value) => {
+                      // Get the selected state's name
+                      const selectedState = billingStates.find(s => s.id.toString() === value);
+                      
                       setFormData(prev => ({ 
                         ...prev, 
                         BillingState: value,
                         BillingCity: "" // Reset city when state changes
                       }));
+                      
                       // Fetch locations for the selected billing state
                       fetchBillingLocations(formData.BillCountry, value);
                     }}

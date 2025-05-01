@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useRef, FormEvent } from 'react';
+import React, { useState, useRef, FormEvent, ChangeEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -60,10 +60,47 @@ const Transaction = () => {
   // Create a ref for the form
   const formRef = useRef<HTMLFormElement>(null);
 
+  // Handle expiry date formatting
+  const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    
+    // Remove any non-digit characters
+    value = value.replace(/\D/g, '');
+    
+    // Add slash after first 2 digits
+    if (value.length >= 2) {
+      value = value.substring(0, 2) + '/' + value.substring(2);
+    }
+    
+    // Limit to MM/YY format (5 characters)
+    value = value.substring(0, 5);
+    
+    // Update the input value
+    e.target.value = value;
+  };
+
   // Update validateForm to work with form data
   const validateForm = (formData: FormData): boolean => {
     const newErrors: ValidationErrors = {};
     let isValid = true;
+
+    // Required field validation - check all fields
+    const requiredFields: (keyof TransactionFormValues)[] = [
+      'cardNumber', 'expiryDate', 'cvv', 'amount', 'invoiceNumber', 'description', 
+      'billingFirstName', 'billingLastName', 'billingCompany', 'billingAddress', 
+      'billingCity', 'billingState', 'billingZip', 'billingCountry', 
+      'billingPhone', 'billingEmail', 'studentFirstName', 'studentLastName', 
+      'studentAddress', 'studentCity', 'studentState', 'studentZip', 
+      'studentCountry', 'studentPhone', 'studentEmail'
+    ];
+
+    requiredFields.forEach(field => {
+      const value = formData.get(field) as string;
+      if (!value || value.trim() === '') {
+        newErrors[field] = "This field is required";
+        isValid = false;
+      }
+    });
 
     // Card number validation
     const cardNumber = formData.get('cardNumber') as string;
@@ -97,6 +134,65 @@ const Transaction = () => {
     const cvv = formData.get('cvv') as string;
     if (cvv && !/^\d{3,4}$/.test(cvv)) {
       newErrors.cvv = "CVV must be 3 or 4 digits";
+      isValid = false;
+    }
+
+    // Phone number validation
+    const phoneRegex = /^\d{10}$/;
+    const billingPhone = formData.get('billingPhone') as string;
+    const studentPhone = formData.get('studentPhone') as string;
+
+    if (billingPhone && !phoneRegex.test(billingPhone.replace(/\D/g, ''))) {
+      newErrors.billingPhone = "Please enter a valid 10-digit phone number";
+      isValid = false;
+    }
+    if (studentPhone && !phoneRegex.test(studentPhone.replace(/\D/g, ''))) {
+      newErrors.studentPhone = "Please enter a valid 10-digit phone number";
+      isValid = false;
+    }
+
+    // ZIP code validation
+    const zipRegex = /^\d{5}(-\d{4})?$/;
+    const billingZip = formData.get('billingZip') as string;
+    const studentZip = formData.get('studentZip') as string;
+
+    if (billingZip && !zipRegex.test(billingZip)) {
+      newErrors.billingZip = "Please enter a valid ZIP code (12345 or 12345-6789)";
+      isValid = false;
+    }
+    if (studentZip && !zipRegex.test(studentZip)) {
+      newErrors.studentZip = "Please enter a valid ZIP code (12345 or 12345-6789)";
+      isValid = false;
+    }
+
+    // Amount validation - must be a positive number
+    const amount = formData.get('amount') as string;
+    if (amount && (isNaN(Number(amount)) || Number(amount) <= 0)) {
+      newErrors.amount = "Please enter a valid positive amount";
+      isValid = false;
+    }
+
+    // Name validation - only letters, spaces, hyphens, and apostrophes
+    const nameRegex = /^[A-Za-z\s\-']+$/;
+    const billingFirstName = formData.get('billingFirstName') as string;
+    const billingLastName = formData.get('billingLastName') as string;
+    const studentFirstName = formData.get('studentFirstName') as string;
+    const studentLastName = formData.get('studentLastName') as string;
+
+    if (billingFirstName && !nameRegex.test(billingFirstName)) {
+      newErrors.billingFirstName = "Please enter a valid name";
+      isValid = false;
+    }
+    if (billingLastName && !nameRegex.test(billingLastName)) {
+      newErrors.billingLastName = "Please enter a valid name";
+      isValid = false;
+    }
+    if (studentFirstName && !nameRegex.test(studentFirstName)) {
+      newErrors.studentFirstName = "Please enter a valid name";
+      isValid = false;
+    }
+    if (studentLastName && !nameRegex.test(studentLastName)) {
+      newErrors.studentLastName = "Please enter a valid name";
       isValid = false;
     }
 
@@ -134,6 +230,7 @@ const Transaction = () => {
 
       setShowSuccessModal(true);
       form.reset();
+      setErrors({});
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'An error occurred');
       setShowErrorModal(true);
@@ -142,20 +239,22 @@ const Transaction = () => {
     }
   };
 
-  // Update FormInput component
+  // Update FormInput component to handle special inputs
   const FormInput = ({ 
     name, 
     label, 
     placeholder = "", 
-    type = "text"
+    type = "text",
+    onChange
   }: { 
     name: keyof TransactionFormValues; 
     label: string; 
     placeholder?: string; 
     type?: string;
+    onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
   }) => (
     <div className="space-y-2">
-      <Label htmlFor={name}>{label}</Label>
+      <Label htmlFor={name}>{label} <span className="text-red-500">*</span></Label>
       <Input 
         id={name}
         placeholder={placeholder} 
@@ -163,6 +262,8 @@ const Transaction = () => {
         name={name}
         autoComplete="off"
         className={errors[name] ? "border-red-500" : ""}
+        required
+        onChange={onChange}
       />
       {errors[name] && <p className="text-sm font-medium text-red-500">{errors[name]}</p>}
     </div>
@@ -189,6 +290,7 @@ const Transaction = () => {
                     name="expiryDate"
                     label="Expiry Date"
                     placeholder="MM/YY"
+                    onChange={handleExpiryDateChange}
                   />
                   <FormInput
                     name="cvv"
