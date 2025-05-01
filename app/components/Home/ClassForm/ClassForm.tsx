@@ -238,7 +238,6 @@ const ClassForm = () => {
       categoryId: 1,
       classTypeId: 2,
       countryId: 52,
-      locationId: 2,
       stateId: 1,
       maxStudent: 30,
       minStudent: 5,
@@ -880,7 +879,6 @@ const onSubmit = async (data: ClassFormData) => {
                   onValueChange={(value) => {
                     setValue("locationId", Number(value));
                   }}
-                  defaultValue={watch("locationId")?.toString()}
                   disabled={!watch('countryId') || locations.length === 0}
                 >
                   <SelectTrigger 
