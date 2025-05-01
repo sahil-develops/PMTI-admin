@@ -835,13 +835,15 @@ useEffect(() => {
         <p className="font-semibold leading-none tracking-tight text-xl">
           Classes
         </p>
+<Link href={"/addclass"}>
         <button
-          onClick={() => isClient && router.push("/addclass")}
-          className="flex items-center gap-2 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
-        >
-          <Plus size={20} />
-          Add Class
-        </button>
+  // onClick={() => isClient && router.push("/addclass")}
+  className="flex items-center gap-2 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
+>
+  <Plus size={20} />
+  Add Class
+</button>
+  </Link>
       </div>
 
       {/* Search Filters */}
