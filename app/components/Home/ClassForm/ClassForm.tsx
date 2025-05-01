@@ -456,7 +456,7 @@ const formatTime = (time: string) => {
   if (!time) return '';
   try {
     const date = new Date(`2000-01-01T${time}`);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
@@ -714,23 +714,23 @@ const onSubmit = async (data: ClassFormData) => {
                   Status <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  onValueChange={(value) => {
-                    setValue("status", value);
-                  }}
-                  defaultValue="active"
-                >
-                  <SelectTrigger 
-                    className={`mt-1 bg-white w-full ${
-                      errors.status ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  >
-                    <SelectValue placeholder="Select status" className="bg-white" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+  onValueChange={(value) => {
+    setValue("status", value);
+  }}
+  defaultValue="active" // This correctly sets the visual default
+>
+  <SelectTrigger 
+    className={`mt-1 bg-white w-full ${
+      errors.status ? 'border-red-500' : 'border-gray-300'
+    }`}
+  >
+    <SelectValue placeholder="Select status" className="bg-white" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="active">Active</SelectItem>
+    <SelectItem value="inactive">Inactive</SelectItem>
+  </SelectContent>
+</Select>
                 {errors.status && (
                   <p className="mt-1 text-sm text-red-500">{errors.status.message}</p>
                 )}
