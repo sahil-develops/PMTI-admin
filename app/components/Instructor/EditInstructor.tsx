@@ -40,7 +40,7 @@ const EditInstructor = () => {
   useEffect(() => {
     const fetchInstructor = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instructor/${id}`, {
+        const response = await fetch(`https://api.4pmti.com/instructor/${id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ const EditInstructor = () => {
     setError('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instructor/${id}`, {
+      const response = await fetch(`https://api.4pmti.com/instructor/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
