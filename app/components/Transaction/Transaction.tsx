@@ -208,6 +208,7 @@ const Transaction = () => {
     const formData = new FormData(form);
     
     if (!validateForm(formData)) {
+      // Don't reset form or clear fields when validation fails
       return;
     }
     
@@ -217,7 +218,7 @@ const Transaction = () => {
       // Convert form data to match API expectations
       const rawFormValues = Object.fromEntries(formData.entries());
       
-      // Format the data for the API - student fields should be at top level
+      // Format the data for the API with proper structure
       const formattedData = {
         // Payment details
         cardNumber: rawFormValues.cardNumber,
@@ -241,16 +242,16 @@ const Transaction = () => {
         phone: rawFormValues.billingPhone,
         email: rawFormValues.billingEmail,
         
-        // Student information at top level with studentPrefix
-        studentFirstName: rawFormValues.studentFirstName,
-        studentLastName: rawFormValues.studentLastName,
-        studentAddress: rawFormValues.studentAddress,
-        studentCity: rawFormValues.studentCity,
-        studentState: rawFormValues.studentState,
-        studentZip: rawFormValues.studentZip,
-        studentCountry: rawFormValues.studentCountry,
-        studentPhone: rawFormValues.studentPhone,
-        studentEmail: rawFormValues.studentEmail
+        // Student information - ensuring all fields are strings
+        studentFirstName: String(rawFormValues.studentFirstName || ''),
+        studentLastName: String(rawFormValues.studentLastName || ''),
+        studentAddress: String(rawFormValues.studentAddress || ''),
+        studentCity: String(rawFormValues.studentCity || ''),
+        studentState: String(rawFormValues.studentState || ''),
+        studentZip: String(rawFormValues.studentZip || ''),
+        studentCountry: String(rawFormValues.studentCountry || ''),
+        studentPhone: String(rawFormValues.studentPhone || ''),
+        studentEmail: String(rawFormValues.studentEmail || '')
       };
 
       console.log("Sending payment data:", formattedData); // Debugging
@@ -264,12 +265,40 @@ const Transaction = () => {
         body: JSON.stringify(formattedData),
       });
 
+      const responseData = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API Error:", errorData); // Debugging
-        throw new Error(errorData.message || 'Payment failed. Please try again.');
+        console.error("API Error:", responseData); // Debugging
+        
+        // Check if we have validation errors from the API
+        if (responseData.error && Array.isArray(responseData.error)) {
+          // Map API errors to form fields when possible
+          const apiErrors: ValidationErrors = {};
+          
+          responseData.error.forEach((error: string) => {
+            if (error.includes('amount')) apiErrors.amount = error;
+            if (error.includes('expirationDate')) apiErrors.expiryDate = error;
+            if (error.includes('studentFirstName')) apiErrors.studentFirstName = error;
+            if (error.includes('studentLastName')) apiErrors.studentLastName = error;
+            if (error.includes('studentAddress')) apiErrors.studentAddress = error;
+            if (error.includes('studentCity')) apiErrors.studentCity = error;
+            if (error.includes('studentState')) apiErrors.studentState = error;
+            if (error.includes('studentZip')) apiErrors.studentZip = error;
+            if (error.includes('studentCountry')) apiErrors.studentCountry = error;
+            if (error.includes('studentPhone')) apiErrors.studentPhone = error;
+            if (error.includes('studentEmail')) apiErrors.studentEmail = error;
+          });
+          
+          // Update the errors state with API validation errors
+          if (Object.keys(apiErrors).length > 0) {
+            setErrors(prev => ({ ...prev, ...apiErrors }));
+          }
+        }
+        
+        throw new Error(responseData.message || 'Payment failed. Please try again.');
       }
 
+      // Only reset form and clear errors on success
       setShowSuccessModal(true);
       form.reset();
       setErrors({});

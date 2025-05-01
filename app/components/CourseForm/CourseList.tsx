@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { MoreVertical, Edit2, Eye,Plus } from "lucide-react";
+import { MoreVertical, Edit2, Eye, Plus, Trash } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { useRouter } from 'next/navigation';
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 
 interface Course {
   id: number;
@@ -94,6 +105,8 @@ const CourseList = () => {
   const [emailSearch, setEmailSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const router = useRouter();
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -141,6 +154,49 @@ const CourseList = () => {
 
   const handleEditDetails = (courseId: number) => {
     router.push(`/courses/${courseId}/edit`);
+  };
+
+  const handleDeleteCourse = async () => {
+    if (!courseToDelete) return;
+    
+    try {
+      const response = await fetch(`https://api.4pmti.com/course/${courseToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete course');
+      }
+
+      // Remove the deleted course from the list
+      setCourses(prevCourses => prevCourses.filter(course => course.id !== courseToDelete.id));
+      
+      // Show success toast notification
+      toast({
+        title: "Success!",
+        description: `Course "${courseToDelete.courseName}" has been successfully deleted.`,
+        variant: "default",
+        className: "bg-green-50 border-green-200",
+      });
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete course. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCourseToDelete(null);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
+  const openDeleteDialog = (course: Course) => {
+    setCourseToDelete(course);
+    setIsDeleteDialogOpen(true);
   };
 
   if (isLoading) {
@@ -249,6 +305,16 @@ const CourseList = () => {
                           <Edit2 className="h-4 w-4 mr-2" />
                           Edit Details
                         </DropdownMenuItem>
+                        {/* Only show delete option if no enrollments */}
+                        {(!course.enrollmentCount || parseInt(course.enrollmentCount) === 0) && (
+                          <DropdownMenuItem
+                            onClick={() => openDeleteDialog(course)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash className="h-4 w-4 mr-2" />
+                            Delete Course
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </td>
@@ -258,6 +324,28 @@ const CourseList = () => {
           </table>
         </div>
       </div>
+      
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently delete the course{" "}
+              <strong>{courseToDelete?.courseName}</strong>. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteCourse}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
