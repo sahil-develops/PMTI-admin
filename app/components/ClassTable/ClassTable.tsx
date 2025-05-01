@@ -391,6 +391,20 @@ const normalizeDate = (date: Date | undefined) => {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 };
 
+// Update this function to format dates properly
+const formatDateForAPI = (dateString: string): string => {
+  if (!dateString) return '';
+  
+  const date = new Date(dateString);
+  
+  // Format as YYYY-MM-DD to preserve the exact date
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+};
+
 export function ClassTable() {
   const { toast } = useToast();
   const [classes, setClasses] = useState<ClassData[]>([]);
@@ -599,17 +613,13 @@ useEffect(() => {
       
       // Add date parameters without time components
       if (searchParams.startFrom) {
-        // Format date as YYYY-MM-DD to preserve local date
-        const startDate = new Date(searchParams.startFrom);
-        const formattedStartDate = startDate.toLocaleDateString('en-CA'); // Uses YYYY-MM-DD format
-        queryParams.append('startFrom', formattedStartDate);
+        // Use the date value exactly as stored, no timezone conversion
+        queryParams.append('startFrom', searchParams.startFrom);
       }
       
       if (searchParams.dateTo) {
-        // Format date as YYYY-MM-DD to preserve local date
-        const endDate = new Date(searchParams.dateTo);
-        const formattedEndDate = endDate.toLocaleDateString('en-CA'); // Uses YYYY-MM-DD format
-        queryParams.append('dateTo', formattedEndDate);
+        // Use the date value exactly as stored, no timezone conversion
+        queryParams.append('dateTo', searchParams.dateTo);
       }
       
       // Add other search parameters
