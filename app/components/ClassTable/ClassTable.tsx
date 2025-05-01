@@ -613,12 +613,10 @@ useEffect(() => {
       
       // Add date parameters without time components
       if (searchParams.startFrom) {
-        // Use the date value exactly as stored, no timezone conversion
         queryParams.append('startFrom', searchParams.startFrom);
       }
       
       if (searchParams.dateTo) {
-        // Use the date value exactly as stored, no timezone conversion
         queryParams.append('dateTo', searchParams.dateTo);
       }
       
@@ -628,6 +626,9 @@ useEffect(() => {
       if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
       if (searchParams.courseCategoryId) queryParams.append('courseCategory', searchParams.courseCategoryId);
       if (searchParams.classTypeId) queryParams.append('classType', searchParams.classTypeId);
+      
+      // Add global search parameter if present
+      if (searchParams.globalSearch) queryParams.append('search', searchParams.globalSearch);
       
       // Add status parameters based on showClass value
       switch (searchParams.showClass) {
@@ -1148,24 +1149,15 @@ useEffect(() => {
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" size={16} />
             <Input
-              placeholder="Search classes..."
+              placeholder="Search classes"
               className="pl-9 h-10"
               value={searchParams.globalSearch}
-              onChange={async (e) => {
+              onChange={(e) => {
                 const searchTerm = e.target.value;
                 setSearchParams(prev => ({ ...prev, globalSearch: searchTerm }));
-                
-                if (searchTerm) {
-                  // Filter classes locally when there's a search term
-                  const filteredClasses = classes.filter(classItem => 
-                    classItem.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    classItem.instructor?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    classItem.location?.location?.toLowerCase().includes(searchTerm.toLowerCase())
-                  );
-                  setClasses(filteredClasses);
-                } else {
-                  // When search is cleared, call handleSearch instead of direct fetch
-                  // This will preserve all other filter parameters
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
                   handleSearch();
                 }
               }}
