@@ -1,12 +1,9 @@
 'use client'
-import React from 'react';
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import React, { useState, useRef, FormEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -16,134 +13,119 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Control } from "react-hook-form";
 
-// Validation schema using Zod
-const transactionSchema = z.object({
+// Define the form values type
+type TransactionFormValues = {
   // Payment Information
-  cardNumber: z.string()
-    .regex(/^\d{16}$/, "Card number must be 16 digits"),
-  expiryDate: z.string()
-    .regex(/^(0[1-9]|1[0-2])\/([0-9]{2})$/, "Expiry date must be in MM/YY format"),
-  cvv: z.string()
-    .regex(/^\d{3,4}$/, "CVV must be 3 or 4 digits"),
-  amount: z.string()
-    .transform((val) => Number(val))
-    .refine((val) => val > 0, "Amount must be greater than 0"),
+  cardNumber: string;
+  expiryDate: string;
+  cvv: string;
+  amount: string;
+  invoiceNumber: string;
+  description: string;
+  billingFirstName: string;
+  billingLastName: string;
+  billingCompany: string;
+  billingAddress: string;
+  billingCity: string;
+  billingState: string;
+  billingZip: string;
+  billingCountry: string;
+  billingPhone: string;
+  billingEmail: string;
+  studentFirstName: string;
+  studentLastName: string;
+  studentAddress: string;
+  studentCity: string;
+  studentState: string;
+  studentZip: string;
+  studentCountry: string;
+  studentPhone: string;
+  studentEmail: string;
+}
 
-  // Order Information
-  invoiceNumber: z.string().min(1, "Invoice number is required"),
-  description: z.string().min(1, "Description is required"),
-
-  // Billing Information
-  billingFirstName: z.string().min(1, "First name is required"),
-  billingLastName: z.string().min(1, "Last name is required"),
-  billingCompany: z.string().optional(),
-  billingAddress: z.string().min(1, "Address is required"),
-  billingCity: z.string().min(1, "City is required"),
-  billingState: z.string().min(1, "State is required"),
-  billingZip: z.string().min(1, "ZIP code is required"),
-  billingCountry: z.string().min(1, "Country is required"),
-  billingPhone: z.string()
-    .regex(/^\d{10,15}$/, "Phone number must be between 10 and 15 digits"),
-  billingEmail: z.string()
-    .email("Invalid email address"),
-
-  // Student Information
-  studentFirstName: z.string().min(1, "Student first name is required"),
-  studentLastName: z.string().min(1, "Student last name is required"),
-  studentAddress: z.string().min(1, "Student address is required"),
-  studentCity: z.string().min(1, "Student city is required"),
-  studentState: z.string().min(1, "Student state is required"),
-  studentZip: z.string().min(1, "Student ZIP code is required"),
-  studentCountry: z.string().min(1, "Student country is required"),
-  studentPhone: z.string()
-    .regex(/^\d{10,15}$/, "Phone number must be between 10 and 15 digits"),
-  studentEmail: z.string()
-    .email("Invalid email address"),
-});
-
-type TransactionFormValues = z.infer<typeof transactionSchema>;
+// Define validation errors type
+type ValidationErrors = {
+  [K in keyof TransactionFormValues]?: string;
+}
 
 const Transaction = () => {
-  const [showSuccessModal, setShowSuccessModal] = React.useState(false);
-  const [showErrorModal, setShowErrorModal] = React.useState(false);
-  const [errorMessage, setErrorMessage] = React.useState("");
+  // Remove formValues state
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const form = useForm<TransactionFormValues>({
-    resolver: zodResolver(transactionSchema),
-    defaultValues: {
-      cardNumber: "",
-      expiryDate: "",
-      cvv: "",
-      // @ts-ignore
-      amount: "",
-      invoiceNumber: "",
-      description: "",
-      billingFirstName: "",
-      billingLastName: "",
-      billingCompany: "",
-      billingAddress: "",
-      billingCity: "",
-      billingState: "",
-      billingZip: "",
-      billingCountry: "",
-      billingPhone: "",
-      billingEmail: "",
-      studentFirstName: "",
-      studentLastName: "",
-      studentAddress: "",
-      studentCity: "",
-      studentState: "",
-      studentZip: "",
-      studentCountry: "",
-      studentPhone: "",
-      studentEmail: "",
-    },
-  });
+  // Create a ref for the form
+  const formRef = useRef<HTMLFormElement>(null);
 
-  const onSubmit = async (data: TransactionFormValues) => {
+  // Update validateForm to work with form data
+  const validateForm = (formData: FormData): boolean => {
+    const newErrors: ValidationErrors = {};
+    let isValid = true;
+
+    // Card number validation
+    const cardNumber = formData.get('cardNumber') as string;
+    if (cardNumber && !/^\d{16}$/.test(cardNumber)) {
+      newErrors.cardNumber = "Card number must be 16 digits";
+      isValid = false;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const billingEmail = formData.get('billingEmail') as string;
+    const studentEmail = formData.get('studentEmail') as string;
+
+    if (billingEmail && !emailRegex.test(billingEmail)) {
+      newErrors.billingEmail = "Please enter a valid email address";
+      isValid = false;
+    }
+    if (studentEmail && !emailRegex.test(studentEmail)) {
+      newErrors.studentEmail = "Please enter a valid email address";
+      isValid = false;
+    }
+
+    // Expiry date validation
+    const expiryDate = formData.get('expiryDate') as string;
+    if (expiryDate && !/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiryDate)) {
+      newErrors.expiryDate = "Format should be MM/YY";
+      isValid = false;
+    }
+
+    // CVV validation
+    const cvv = formData.get('cvv') as string;
+    if (cvv && !/^\d{3,4}$/.test(cvv)) {
+      newErrors.cvv = "CVV must be 3 or 4 digits";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  // Update handleSubmit
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    if (!validateForm(formData)) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
     try {
+      const formValues = Object.fromEntries(formData.entries());
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/charge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           "Authorization": `Bearer ${localStorage.getItem('accessToken')}`,
         },
-        body: JSON.stringify({
-          amount: Number(data.amount),
-          cardNumber: data.cardNumber,
-          expirationDate: data.expiryDate,
-          cvv: data.cvv,
-          customerEmail: data.billingEmail,
-          invoiceNumber: data.invoiceNumber,
-          description: data.description,
-          studentLastName: data.studentLastName,
-          studentFirstName: data.studentFirstName,
-          company: data.billingCompany,
-          address: data.billingAddress,
-          city: data.billingCity,
-          state: data.billingState,
-          zip: data.billingZip,
-          country: data.billingCountry,
-          phone: data.billingPhone,
-          email: data.billingEmail,
-          studentAddress: data.studentAddress,
-          studentCity: data.studentCity,
-          studentState: data.studentState,
-          studentZip: data.studentZip,
-          studentCountry: data.studentCountry,
-          studentPhone: data.studentPhone,
-          studentEmail: data.studentEmail,
-        }),
+        body: JSON.stringify(formValues),
       });
 
       if (!response.ok) {
@@ -155,39 +137,35 @@ const Transaction = () => {
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'An error occurred');
       setShowErrorModal(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  // Update FormInput component
   const FormInput = ({ 
     name, 
     label, 
     placeholder = "", 
-    type = "text" 
+    type = "text"
   }: { 
     name: keyof TransactionFormValues; 
     label: string; 
     placeholder?: string; 
-    type?: string; 
+    type?: string;
   }) => (
-    <FormField
-      control={form.control as unknown as Control<TransactionFormValues>}
-      name={name}
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <Input 
-              placeholder={placeholder} 
-              type={type} 
-              {...field}
-              value={field.value || ''}
-              onChange={(e) => field.onChange(e.target.value)}
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
+    <div className="space-y-2">
+      <Label htmlFor={name}>{label}</Label>
+      <Input 
+        id={name}
+        placeholder={placeholder} 
+        type={type}
+        name={name}
+        autoComplete="off"
+        className={errors[name] ? "border-red-500" : ""}
+      />
+      {errors[name] && <p className="text-sm font-medium text-red-500">{errors[name]}</p>}
+    </div>
   );
 
   return (
@@ -197,8 +175,7 @@ const Transaction = () => {
           <CardTitle className="text-2xl font-bold">Transaction</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSubmit(data as unknown as TransactionFormValues))} className="space-y-8">
+          <form onSubmit={handleSubmit} ref={formRef} className="space-y-8">
               {/* Payment Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Payment Information</h3>
@@ -336,12 +313,11 @@ const Transaction = () => {
               <Button 
                 type="submit" 
                 className="w-full md:w-auto bg-zinc-700 hover:bg-zinc-800"
-                disabled={form.formState.isSubmitting}
+                disabled={isSubmitting}
               >
-                {form.formState.isSubmitting ? 'Processing...' : 'SUBMIT'}
+                {isSubmitting ? 'Processing...' : 'SUBMIT'}
               </Button>
             </form>
-          </Form>
         </CardContent>
       </Card>
 

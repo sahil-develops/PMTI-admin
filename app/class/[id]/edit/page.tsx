@@ -66,6 +66,15 @@ interface PageProps {
   params: { id: string };
 }
 
+const formatDateForInput = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric'
+  });
+};
+
 const LoadingSkeleton = () => (
   <div className="w-full">
     {/* Breadcrumb Skeleton */}
@@ -239,9 +248,14 @@ export default function EditClass({ params }: PageProps) {
                 <div>
                   <Label>Start Date</Label>
                   <Input
-                    type="date"
-                    value={classData.startDate.split('T')[0]}
-                    onChange={(e) => setClassData({ ...classData, startDate: e.target.value })}
+                    type="text"
+                    value={formatDateForInput(classData.startDate)}
+                    onChange={(e) => {
+                      const [month, day, year] = e.target.value.split('/');
+                      const formattedDate = `${year}-${month}-${day}`;
+                      setClassData({ ...classData, startDate: formattedDate });
+                    }}
+                    placeholder="MM/DD/YYYY"
                     required
                   />
                 </div>
@@ -249,9 +263,14 @@ export default function EditClass({ params }: PageProps) {
                 <div>
                   <Label>End Date</Label>
                   <Input
-                    type="date"
-                    value={classData.endDate.split('T')[0]}
-                    onChange={(e) => setClassData({ ...classData, endDate: e.target.value })}
+                    type="text"
+                    value={formatDateForInput(classData.endDate)}
+                    onChange={(e) => {
+                      const [month, day, year] = e.target.value.split('/');
+                      const formattedDate = `${year}-${month}-${day}`;
+                      setClassData({ ...classData, endDate: formattedDate });
+                    }}
+                    placeholder="MM/DD/YYYY"
                     required
                   />
                 </div>

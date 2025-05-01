@@ -278,10 +278,8 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
   const fetchLocationsForCountry = async (countryId: string) => {
     try {
-      // Set loading state for locations if needed
       setLocations([]);
       
-      // Make the API call with the country ID
       const response = await fetch(`https://api.4pmti.com/location/?countryId=${countryId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -292,8 +290,8 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       
       const data = await response.json();
       if (data.success) {
-        // Filter out deleted locations
         const activeLocations = data.data.filter((loc: { isDelete: boolean }) => !loc.isDelete);
+        console.log('Fetched locations:', activeLocations);
         setLocations(activeLocations);
       } else {
         throw new Error(data.error || 'Failed to fetch locations');
@@ -322,6 +320,13 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     try {
       setIsLoadingMore(true);
       setError(null);
+
+      console.log('API Request Parameters:', {
+        countryId: selectedCountry,
+        locationId: selectedLocation,
+        page,
+        limit: 10
+      });
 
       const response = await fetch(
         `https://api.4pmti.com/class?page=${page}&limit=10&countryId=${selectedCountry}&locationId=${selectedLocation}`,
@@ -782,8 +787,10 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
               <label className="text-sm font-medium">Select Location</label>
               <Select
                 onValueChange={(value) => {
-                  setSelectedLocation(value);
-                  fetchAvailableClasses();
+                  const locationId = value;
+                  console.log('Selected location ID:', locationId);
+                  setSelectedLocation(locationId);
+                  fetchAvailableClasses(1, false);
                 }}
                 disabled={!selectedCountry || locations.length === 0}
               >
@@ -796,7 +803,10 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                 </SelectTrigger>
                 <SelectContent>
                   {locations.map((location) => (
-                    <SelectItem key={location.id} value={location.id.toString()}>
+                    <SelectItem 
+                      key={location.id} 
+                      value={location.id.toString()}
+                    >
                       {location.location}
                     </SelectItem>
                   ))}
