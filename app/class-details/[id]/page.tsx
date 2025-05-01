@@ -198,7 +198,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [countries, setCountries] = useState<CountryOption[]>([]);
   const [locations, setLocations] = useState<LocationOption[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [selectedCountry, setSelectedCountry] = useState<string>("52");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -311,6 +311,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     setSelectedStudent({ studentId, enrollmentId });
     setAvailableClasses([]);
     await fetchCountries();
+    await fetchLocationsForCountry("52");
     setIsRescheduleModalOpen(true);
   };
 
@@ -543,6 +544,24 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  useEffect(() => {
+    // Fetch countries and set default location for US
+    const initializeCountryAndLocation = async () => {
+      await fetchCountries();
+      // Fetch locations for US (ID: 52) by default
+      await fetchLocationsForCountry("52");
+    };
+
+    initializeCountryAndLocation();
+  }, []); // Run once when component mounts
+
+  // Add this useEffect to watch for location changes
+  useEffect(() => {
+    if (selectedCountry && selectedLocation) {
+      fetchAvailableClasses(1, false);
+    }
+  }, [selectedLocation]); // Trigger when selectedLocation changes
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -769,6 +788,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
               <label className="text-sm font-medium">Select Country</label>
               <Select
                 onValueChange={handleCountryChange}
+                defaultValue="52"
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a country" />
@@ -790,7 +810,10 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                   const locationId = value;
                   console.log('Selected location ID:', locationId);
                   setSelectedLocation(locationId);
-                  fetchAvailableClasses(1, false);
+                  // Immediately fetch classes with the selected location
+                  if (selectedCountry && locationId) {
+                    fetchAvailableClasses(1, false);
+                  }
                 }}
                 disabled={!selectedCountry || locations.length === 0}
               >
