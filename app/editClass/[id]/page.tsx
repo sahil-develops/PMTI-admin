@@ -173,13 +173,13 @@ const formatDateForInput = (dateString: string) => {
   return `${month}/${day}/${year}`;
 };
 
-// Update the formatForDateInput function to handle timezone correctly
+// Update the formatForDateInput function to format as MM/DD/YYYY
 const formatForDateInput = (dateString: string) => {
   const date = new Date(dateString);
-  // Adjust for local timezone offset
-  const tzOffset = date.getTimezoneOffset() * 60000; // offset in milliseconds
-  const localDate = new Date(date.getTime() - tzOffset);
-  return localDate.toISOString().split('T')[0]; // Returns YYYY-MM-DD format
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${month}/${day}/${year}`;
 };
 
 // Update the formatDateForInput function to format as MM/DD/YY
@@ -453,40 +453,32 @@ export default function EditClass({ params }: PageProps) {
 
               <div>
                 <Label>Start Date</Label>
-                <div className="flex flex-col gap-1">
-                  <Input
-                    type="date"
-                    value={formatForDateInput(classData.startDate)}
-                    onChange={(e) => {
-                      const inputDate = e.target.value; // YYYY-MM-DD format
-                      const date = new Date(`${inputDate}T12:00:00`); // Set to noon local time
-                      setClassData({ ...classData, startDate: date.toISOString() });
-                    }}
-                    required
-                  />
-                  <div className="text-sm text-gray-500">
-                    {formatDateForDisplay(classData.startDate)}
-                  </div>
-                </div>
+                <Input
+                  type="text"
+                  value={formatForDateInput(classData.startDate)}
+                  onChange={(e) => {
+                    const [month, day, year] = e.target.value.split('/');
+                    const date = new Date(`${year}-${month}-${day}T12:00:00`);
+                    setClassData({ ...classData, startDate: date.toISOString() });
+                  }}
+                  placeholder="MM/DD/YYYY"
+                  required
+                />
               </div>
 
               <div>
                 <Label>End Date</Label>
-                <div className="flex flex-col gap-1">
-                  <Input
-                    type="date"
-                    value={formatForDateInput(classData.endDate)}
-                    onChange={(e) => {
-                      const inputDate = e.target.value; // YYYY-MM-DD format
-                      const date = new Date(`${inputDate}T12:00:00`); // Set to noon local time
-                      setClassData({ ...classData, endDate: date.toISOString() });
-                    }}
-                    required
-                  />
-                  <div className="text-sm text-gray-500">
-                    {formatDateForDisplay(classData.endDate)}
-                  </div>
-                </div>
+                <Input
+                  type="text"
+                  value={formatForDateInput(classData.endDate)}
+                  onChange={(e) => {
+                    const [month, day, year] = e.target.value.split('/');
+                    const date = new Date(`${year}-${month}-${day}T12:00:00`);
+                    setClassData({ ...classData, endDate: date.toISOString() });
+                  }}
+                  placeholder="MM/DD/YYYY"
+                  required
+                />
               </div>
 
               <div>

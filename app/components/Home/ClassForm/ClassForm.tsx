@@ -239,12 +239,14 @@ const ClassForm = () => {
       classTypeId: 2,
       countryId: 52,
       locationId: 2,
+      stateId: 1,
       maxStudent: 30,
       minStudent: 5,
       price: 150.0,
       status: "active",
       onlineAvailable: true,
       isCancel: false,
+      isCorpClass: false,
       addedBy: 1,
       updatedBy: 1,
       isDelete: false,
@@ -481,63 +483,67 @@ const onSubmit = async (data: ClassFormData) => {
     const formattedTimeFrom = formatTime(data.classTimeFrom);
     const formattedTimeTo = formatTime(data.classTimeTo);
     
-    // Format dates in proper ISO format
-    console.log(data.startDate,data.endDate,"Start Date without format");
-    const startDateISO = data.startDate ? data.startDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' 00:00:00' : '';
-    const endDateISO = data.endDate ? data.endDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' 00:00:00' : '';
-    console.log(startDateISO,endDateISO,"Start Date with format");
+    // Format dates properly
+    const startDateISO = data.startDate ? new Date(data.startDate).toISOString().split('T')[0] : '';
+    const endDateISO = data.endDate ? new Date(data.endDate).toISOString().split('T')[0] : '';
 
     // Prepare the data for submission
     const submitData = {
-      ...data,
-      classTime: `${formattedTimeFrom} - ${formattedTimeTo}`,
-      // Use proper ISO format for dates
-      startDate: startDateISO,
-      endDate: endDateISO,
-      // Convert IDs to numbers
+      title: data.title,
+      description: data.description,
       categoryId: Number(data.categoryId),
       classTypeId: Number(data.classTypeId),
       countryId: Number(data.countryId),
-      locationId: Number(data.locationId) || "1",
+      locationId: Number(data.locationId),
+      instructorId: Number(data.instructorId),
+      stateId: Number(data.stateId) || 1, // Add default value if not set
       maxStudent: Number(data.maxStudent),
       minStudent: Number(data.minStudent),
       price: Number(data.price),
+      address: data.address,
+      startDate: startDateISO,
+      endDate: endDateISO,
+      classTimeFrom: formattedTimeFrom,
+      classTimeTo: formattedTimeTo,
+      classTime: `${formattedTimeFrom} - ${formattedTimeTo}`,
+      onlineCourseId: data.onlineCourseId || "",
+      onlineAvailable: Boolean(data.onlineAvailable),
+      isCorpClass: Boolean(data.isCorpClass),
+      status: data.status,
+      isCancel: Boolean(data.isCancel),
+      isDelete: Boolean(data.isDelete),
       addedBy: Number(data.addedBy),
       updatedBy: Number(data.updatedBy),
-      instructorId: Number(data.instructorId),
-      // Include optional fields
       hotel: data.hotel || "",
       hotelEmailId: data.hotelEmailId || "",
       hotelContactNo: data.hotelContactNo || "",
       flightConfirmation: data.flightConfirmation || "",
       carConfirmation: data.carConfirmation || "",
       hotelConfirmation: data.hotelConfirmation || "",
-      // Send status as string instead of boolean
-      status: data.status, // This will now send "active" or "inactive"
-      onlineAvailable: data.onlineAvailable,
-      isCancel: data.isCancel,
-      isDelete: data.isDelete,
-      isCorpClass: data.isCorpClass,
-      // Add cover image URL
-      coverImage: coverImageUrl
+      coverImage: coverImageUrl || ""
     };
 
-    const response = await fetch(`https://api.4pmti.com/class`, {
-      method: "POST",
+    console.log('Submitting data:', submitData); // For debugging
+
+    const response = await fetch('https://api.4pmti.com/class', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem("accessToken")}`
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
       },
       body: JSON.stringify(submitData)
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to create class");
+      throw new Error(errorData.message || 'Failed to create class');
     }
 
+    const result = await response.json();
+    console.log('Success:', result); // For debugging
     setShowSuccess(true);
   } catch (error) {
+    console.error('Error:', error); // For debugging
     setErrorMessage(error instanceof Error ? error.message : "An unknown error occurred");
     setShowError(true);
   } finally {
