@@ -319,6 +319,7 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
 
             {/* Enrollment Information Section */}
      {/* Enrollment Information Section */}
+{/* Enrollment Information Section */}
 {studentData.enrollments && studentData.enrollments.length > 0 && (
   <div>
     <h3 className="text-lg font-medium mb-4">Enrollment History</h3>
@@ -327,59 +328,35 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
         <thead className="bg-gray-50">
           <tr>
             <th className="px-4 py-2 text-left font-medium text-gray-500">Title</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Course Category</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Class Type</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Instructor</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Start Date</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">End Date</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Country</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Location</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Type</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Enrollment Date</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Payment</th>
             <th className="px-4 py-2 text-left font-medium text-gray-500">Progress</th>
             <th className="px-4 py-2 text-left font-medium text-gray-500">Status</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-500">Comments</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
           {studentData.enrollments.map((enrollment: any) => (
             <tr key={enrollment.ID} className="hover:bg-gray-50">
               <td className="px-4 py-2">
-                {enrollment.class ? enrollment.class.title : (enrollment.course ? enrollment.course.title : 'N/A')}
+                {enrollment.course ? enrollment.course.courseName : 
+                 (enrollment.class ? enrollment.class.title : 'N/A')}
               </td>
               <td className="px-4 py-2">
-                {enrollment.class && enrollment.class.courseCategory ? 
-                  enrollment.class.courseCategory.name : 
-                  (enrollment.course && enrollment.course.courseCategory ? 
-                    enrollment.course.courseCategory.name : 'N/A')}
+                {enrollment.enrollmentType || 'N/A'}
               </td>
               <td className="px-4 py-2">
-                {enrollment.class ? 'In-Person' : (enrollment.course ? 'Online' : enrollment.enrollmentType)}
+                {enrollment.EnrollmentDate ? 
+                  new Date(enrollment.EnrollmentDate).toLocaleDateString() : 'N/A'}
               </td>
               <td className="px-4 py-2">
-                {enrollment.class && enrollment.class.instructor ? 
-                  enrollment.class.instructor.name : 
-                  (enrollment.course && enrollment.course.instructor ? 
-                    enrollment.course.instructor.name : 'N/A')}
+                ${parseFloat(enrollment.Price).toFixed(2)}
+                {enrollment.PaymentMode && ` (${enrollment.PaymentMode})`}
               </td>
-              <td className="px-4 py-2">
-                {enrollment.class && enrollment.class.startDate ? 
-                  new Date(enrollment.class.startDate).toLocaleDateString() : 
-                  (enrollment.course && enrollment.course.startDate ? 
-                    new Date(enrollment.course.startDate).toLocaleDateString() : 'N/A')}
+              <td className="px-4 py-2 capitalize">
+                {enrollment.enrollmentProgress || 'N/A'}
               </td>
-              <td className="px-4 py-2">
-                {enrollment.class && enrollment.class.endDate ? 
-                  new Date(enrollment.class.endDate).toLocaleDateString() : 
-                  (enrollment.course && enrollment.course.endDate ? 
-                    new Date(enrollment.course.endDate).toLocaleDateString() : 'N/A')}
-              </td>
-              <td className="px-4 py-2">
-                {enrollment.class && enrollment.class.country ? 
-                  (typeof enrollment.class.country === 'object' ? 
-                    enrollment.class.country.CountryName : enrollment.class.country) : 'N/A'}
-              </td>
-              <td className="px-4 py-2">
-                {enrollment.class && enrollment.class.address ? enrollment.class.address : 'N/A'}
-              </td>
-              <td className="px-4 py-2 capitalize">{enrollment.enrollmentProgress}</td>
               <td className="px-4 py-2">
                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                   enrollment.status 
@@ -389,7 +366,9 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
                   {enrollment.status ? 'Active' : 'Inactive'}
                 </span>
               </td>
-              <td className="px-4 py-2">${parseFloat(enrollment.Price).toFixed(2)}</td>
+              <td className="px-4 py-2">
+                {enrollment.Comments || 'N/A'}
+              </td>
             </tr>
           ))}
         </tbody>
