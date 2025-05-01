@@ -214,24 +214,67 @@ const Transaction = () => {
     setIsSubmitting(true);
     
     try {
-      const formValues = Object.fromEntries(formData.entries());
+      // Convert form data to match API expectations
+      const rawFormValues = Object.fromEntries(formData.entries());
+      
+      // Format the data for the API - student fields should be at top level
+      const formattedData = {
+        // Payment details
+        cardNumber: rawFormValues.cardNumber,
+        expirationDate: rawFormValues.expiryDate, // Rename expiryDate to expirationDate
+        cvv: rawFormValues.cvv,
+        amount: Number(rawFormValues.amount), // Convert to number
+        
+        // Order information
+        invoiceNumber: rawFormValues.invoiceNumber,
+        description: rawFormValues.description,
+        
+        // Address information (using billing info)
+        firstName: rawFormValues.billingFirstName,
+        lastName: rawFormValues.billingLastName,
+        company: rawFormValues.billingCompany,
+        address: rawFormValues.billingAddress,
+        city: rawFormValues.billingCity,
+        state: rawFormValues.billingState,
+        zip: rawFormValues.billingZip,
+        country: rawFormValues.billingCountry,
+        phone: rawFormValues.billingPhone,
+        email: rawFormValues.billingEmail,
+        
+        // Student information at top level with studentPrefix
+        studentFirstName: rawFormValues.studentFirstName,
+        studentLastName: rawFormValues.studentLastName,
+        studentAddress: rawFormValues.studentAddress,
+        studentCity: rawFormValues.studentCity,
+        studentState: rawFormValues.studentState,
+        studentZip: rawFormValues.studentZip,
+        studentCountry: rawFormValues.studentCountry,
+        studentPhone: rawFormValues.studentPhone,
+        studentEmail: rawFormValues.studentEmail
+      };
+
+      console.log("Sending payment data:", formattedData); // Debugging
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/charge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           "Authorization": `Bearer ${localStorage.getItem('accessToken')}`,
         },
-        body: JSON.stringify(formValues),
+        body: JSON.stringify(formattedData),
       });
 
       if (!response.ok) {
-        throw new Error('Payment failed. Please try again.');
+        const errorData = await response.json();
+        console.error("API Error:", errorData); // Debugging
+        throw new Error(errorData.message || 'Payment failed. Please try again.');
       }
 
       setShowSuccessModal(true);
       form.reset();
       setErrors({});
     } catch (error) {
+      console.error("Submission error:", error); // Debugging
       setErrorMessage(error instanceof Error ? error.message : 'An error occurred');
       setShowErrorModal(true);
     } finally {
