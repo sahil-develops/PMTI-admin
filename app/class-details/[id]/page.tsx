@@ -623,22 +623,36 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
             <div className="space-y-4">
               <h3 className="font-medium">Schedule Details</h3>
               <div className="space-y-3">
-                <DetailSection title="Date Range">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-zinc-400" />
-                    <span>
-                      {new Date(classDetails.startDate).toLocaleDateString('en-US', {
-                        month: '2-digit',
-                        day: '2-digit',
-                        year: '2-digit'
-                      })} - {new Date(classDetails.endDate).toLocaleDateString('en-US', {
-                        month: '2-digit',
-                        day: '2-digit',
-                        year: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                </DetailSection>
+              <DetailSection title="Date Range">
+  <div className="flex items-center gap-2">
+    <Calendar className="w-4 h-4 text-zinc-400" />
+    <span>
+      {new Date(classDetails.startDate).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      }).replace(/(\d+)(?=(,))/, match => {
+        const num = parseInt(match);
+        let suffix = "th";
+        if (num % 10 === 1 && num % 100 !== 11) suffix = "st";
+        else if (num % 10 === 2 && num % 100 !== 12) suffix = "nd";
+        else if (num % 10 === 3 && num % 100 !== 13) suffix = "rd";
+        return `${num}${suffix}`;
+      })} - {new Date(classDetails.endDate).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      }).replace(/(\d+)(?=(,))/, match => {
+        const num = parseInt(match);
+        let suffix = "th";
+        if (num % 10 === 1 && num % 100 !== 11) suffix = "st";
+        else if (num % 10 === 2 && num % 100 !== 12) suffix = "nd";
+        else if (num % 10 === 3 && num % 100 !== 13) suffix = "rd";
+        return `${num}${suffix}`;
+      })}
+    </span>
+  </div>
+</DetailSection>
                 <DetailSection title="Class Time">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-zinc-400" />
@@ -765,16 +779,23 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
         {/* Enrollments Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>Class Enrollments</CardTitle>
-          </CardHeader>
-          <CardContent>
-             <EnrollmentTable 
-              enrollments={enrollments as any[]} 
-              onReschedule={handleRescheduleClick}
-            />
-          </CardContent>
-        </Card>
+  <CardHeader>
+    <CardTitle>Class Enrollments</CardTitle>
+  </CardHeader>
+  <CardContent>
+    {enrollments.length > 0 ? (
+      <EnrollmentTable 
+        enrollments={enrollments as any[]} 
+        onReschedule={handleRescheduleClick}
+      />
+    ) : (
+      <div className="text-center py-8 text-zinc-500">
+        <Users className="w-12 h-12 mx-auto mb-2 opacity-20" />
+        <p>No Students Enrolled</p>
+      </div>
+    )}
+  </CardContent>
+</Card>
       </div>
 
       {/* Reschedule Modal */}

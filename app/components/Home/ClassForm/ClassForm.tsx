@@ -473,6 +473,18 @@ const normalizeDate = (date: Date | undefined) => {
   return date;
 };
 
+// Update this function to format dates properly
+const formatDateForAPI = (date: Date | undefined): string => {
+  if (!date) return '';
+  
+  // Format as MM-dd-YYYY
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${month}-${day}-${year}`;
+};
+
 // Update the onSubmit function
 const onSubmit = async (data: ClassFormData) => {
   setLoading(true);
@@ -483,9 +495,9 @@ const onSubmit = async (data: ClassFormData) => {
     const formattedTimeFrom = formatTime(data.classTimeFrom);
     const formattedTimeTo = formatTime(data.classTimeTo);
     
-    // Format dates properly
-    const startDateISO = data.startDate ? new Date(data.startDate).toISOString().split('T')[0] : '';
-    const endDateISO = data.endDate ? new Date(data.endDate).toISOString().split('T')[0] : '';
+    // Format dates properly in MM-dd-YYYY format
+    const startDateFormatted = formatDateForAPI(data.startDate);
+    const endDateFormatted = formatDateForAPI(data.endDate);
 
     // Prepare the data for submission
     const submitData = {
@@ -501,8 +513,8 @@ const onSubmit = async (data: ClassFormData) => {
       minStudent: Number(data.minStudent),
       price: Number(data.price),
       address: data.address,
-      startDate: startDateISO,
-      endDate: endDateISO,
+      startDate: startDateFormatted,
+      endDate: endDateFormatted,
       classTimeFrom: formattedTimeFrom,
       classTimeTo: formattedTimeTo,
       classTime: `${formattedTimeFrom} - ${formattedTimeTo}`,
