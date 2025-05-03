@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useRef, FormEvent, ChangeEvent } from 'react';
+import React, { useState, useRef, FormEvent, ChangeEvent, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -50,35 +50,86 @@ type ValidationErrors = {
 }
 
 const Transaction = () => {
-  // Remove formValues state
+  // Add formValues state back
+  const [formValues, setFormValues] = useState<TransactionFormValues>({
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    amount: '',
+    invoiceNumber: '',
+    description: '',
+    billingFirstName: '',
+    billingLastName: '',
+    billingCompany: '',
+    billingAddress: '',
+    billingCity: '',
+    billingState: '',
+    billingZip: '',
+    billingCountry: '',
+    billingPhone: '',
+    billingEmail: '',
+    studentFirstName: '',
+    studentLastName: '',
+    studentAddress: '',
+    studentCity: '',
+    studentState: '',
+    studentZip: '',
+    studentCountry: '',
+    studentPhone: '',
+    studentEmail: '',
+  });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [focusedField, setFocusedField] = useState<keyof TransactionFormValues | null>(null);
 
   // Create a ref for the form
   const formRef = useRef<HTMLFormElement>(null);
 
   // Handle expiry date formatting
-  const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value;
-    
-    // Remove any non-digit characters
-    value = value.replace(/\D/g, '');
-    
-    // Add slash after first 2 digits
-    if (value.length >= 2) {
-      value = value.substring(0, 2) + '/' + value.substring(2);
-    }
-    
-    // Limit to MM/YY format (5 characters)
-    value = value.substring(0, 5);
-    
-    // Update the input value
-    e.target.value = value;
-  };
+// Handle expiry date formatting
+const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+  let value = e.target.value;
+  
+  // Remove any non-digit characters
+  value = value.replace(/\D/g, '');
+  
+  // Add slash after first 2 digits
+  if (value.length >= 2) {
+    value = value.substring(0, 2) + '/' + value.substring(2);
+  }
+  
+  // Limit to MM/YY format (5 characters)
+  value = value.substring(0, 5);
+  
+  // Use functional update to ensure we're always working with the latest state
+  setFormValues(prevValues => ({
+    ...prevValues,
+    expiryDate: value
+  }));
+};
 
+  // Add a general change handler
+  const handleInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    // Use functional update to ensure we're always working with the latest state
+    setFormValues(prevValues => ({
+      ...prevValues,
+      [name]: value,
+    }));
+    
+    // Clear any error for this field when user starts typing
+    if (errors[name as keyof TransactionFormValues]) {
+      setErrors(prevErrors => {
+        const newErrors = { ...prevErrors };
+        delete newErrors[name as keyof TransactionFormValues];
+        return newErrors;
+      });
+    }
+  }, [errors]);
   // Update validateForm to work with form data
   const validateForm = (formData: FormData): boolean => {
     const newErrors: ValidationErrors = {};
@@ -204,54 +255,48 @@ const Transaction = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    const form = e.target as HTMLFormElement;
-    const formData = new FormData(form);
-    
+    const formData = new FormData(formRef.current!);
     if (!validateForm(formData)) {
-      // Don't reset form or clear fields when validation fails
-      return;
+      return; // Don't proceed if validation fails
     }
     
     setIsSubmitting(true);
     
     try {
-      // Convert form data to match API expectations
-      const rawFormValues = Object.fromEntries(formData.entries());
-      
       // Format the data for the API with proper structure
       const formattedData = {
         // Payment details
-        cardNumber: rawFormValues.cardNumber,
-        expirationDate: rawFormValues.expiryDate, // Rename expiryDate to expirationDate
-        cvv: rawFormValues.cvv,
-        amount: Number(rawFormValues.amount), // Convert to number
+        cardNumber: formValues.cardNumber,
+        expirationDate: formValues.expiryDate,
+        cvv: formValues.cvv,
+        amount: Number(formValues.amount),
         
         // Order information
-        invoiceNumber: rawFormValues.invoiceNumber,
-        description: rawFormValues.description,
+        invoiceNumber: formValues.invoiceNumber,
+        description: formValues.description,
         
         // Address information (using billing info)
-        firstName: rawFormValues.billingFirstName,
-        lastName: rawFormValues.billingLastName,
-        company: rawFormValues.billingCompany,
-        address: rawFormValues.billingAddress,
-        city: rawFormValues.billingCity,
-        state: rawFormValues.billingState,
-        zip: rawFormValues.billingZip,
-        country: rawFormValues.billingCountry,
-        phone: rawFormValues.billingPhone,
-        email: rawFormValues.billingEmail,
+        firstName: formValues.billingFirstName,
+        lastName: formValues.billingLastName,
+        company: formValues.billingCompany,
+        address: formValues.billingAddress,
+        city: formValues.billingCity,
+        state: formValues.billingState,
+        zip: formValues.billingZip,
+        country: formValues.billingCountry,
+        phone: formValues.billingPhone,
+        email: formValues.billingEmail,
         
-        // Student information - ensuring all fields are strings
-        studentFirstName: String(rawFormValues.studentFirstName || ''),
-        studentLastName: String(rawFormValues.studentLastName || ''),
-        studentAddress: String(rawFormValues.studentAddress || ''),
-        studentCity: String(rawFormValues.studentCity || ''),
-        studentState: String(rawFormValues.studentState || ''),
-        studentZip: String(rawFormValues.studentZip || ''),
-        studentCountry: String(rawFormValues.studentCountry || ''),
-        studentPhone: String(rawFormValues.studentPhone || ''),
-        studentEmail: String(rawFormValues.studentEmail || '')
+        // Student information
+        studentFirstName: formValues.studentFirstName,
+        studentLastName: formValues.studentLastName,
+        studentAddress: formValues.studentAddress,
+        studentCity: formValues.studentCity,
+        studentState: formValues.studentState,
+        studentZip: formValues.studentZip,
+        studentCountry: formValues.studentCountry,
+        studentPhone: formValues.studentPhone,
+        studentEmail: formValues.studentEmail
       };
 
       console.log("Sending payment data:", formattedData); // Debugging
@@ -298,9 +343,35 @@ const Transaction = () => {
         throw new Error(responseData.message || 'Payment failed. Please try again.');
       }
 
-      // Only reset form and clear errors on success
+      // Only reset form values on success
       setShowSuccessModal(true);
-      form.reset();
+      setFormValues({
+        cardNumber: '',
+        expiryDate: '',
+        cvv: '',
+        amount: '',
+        invoiceNumber: '',
+        description: '',
+        billingFirstName: '',
+        billingLastName: '',
+        billingCompany: '',
+        billingAddress: '',
+        billingCity: '',
+        billingState: '',
+        billingZip: '',
+        billingCountry: '',
+        billingPhone: '',
+        billingEmail: '',
+        studentFirstName: '',
+        studentLastName: '',
+        studentAddress: '',
+        studentCity: '',
+        studentState: '',
+        studentZip: '',
+        studentCountry: '',
+        studentPhone: '',
+        studentEmail: '',
+      });
       setErrors({});
     } catch (error) {
       console.error("Submission error:", error); // Debugging
@@ -311,23 +382,32 @@ const Transaction = () => {
     }
   };
 
-  // Update FormInput component to handle special inputs
-  const FormInput = ({ 
-    name, 
-    label, 
-    placeholder = "", 
-    type = "text",
-    onChange
-  }: { 
-    name: keyof TransactionFormValues; 
-    label: string; 
-    placeholder?: string; 
-    type?: string;
-    onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
-  }) => (
+  // UUpdate FormInput component to handle special inputs
+const FormInput = ({ 
+  name, 
+  label, 
+  placeholder = "", 
+  type = "text",
+  onChange
+}: { 
+  name: keyof TransactionFormValues; 
+  label: string; 
+  placeholder?: string; 
+  type?: string;
+  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Handle focus
+  const handleFocus = () => {
+    setFocusedField(name);
+  };
+  
+  return (
     <div className="space-y-2">
       <Label htmlFor={name}>{label} <span className="text-red-500">*</span></Label>
       <Input 
+        ref={inputRef}
         id={name}
         placeholder={placeholder} 
         type={type}
@@ -335,11 +415,23 @@ const Transaction = () => {
         autoComplete="off"
         className={errors[name] ? "border-red-500" : ""}
         required
-        onChange={onChange}
+        value={formValues[name]}
+        onChange={(e) => {
+          // Important: Stop propagation if causing issues
+          // e.stopPropagation();
+          
+          if (onChange) {
+            onChange(e);
+          } else {
+            handleInputChange(e);
+          }
+        }}
+        onFocus={handleFocus}
       />
       {errors[name] && <p className="text-sm font-medium text-red-500">{errors[name]}</p>}
     </div>
   );
+};
 
   return (
     <div className="mx-auto py-8 px-4">

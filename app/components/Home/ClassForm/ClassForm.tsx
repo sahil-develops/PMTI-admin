@@ -473,17 +473,17 @@ const normalizeDate = (date: Date | undefined) => {
 };
 
 // Update this function to format dates properly
+// Replace the existing formatDateForAPI function with this improved version
 const formatDateForAPI = (date: Date | undefined): string => {
   if (!date) return '';
   
-  // Format as MM-dd-YYYY
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const year = date.getFullYear();
-  
-  return `${month}-${day}-${year}`;
+  // Format as MM-dd-YYYY using toLocaleString
+  return date.toLocaleString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric'
+  }).replace(/\//g, '-'); // Replace / with -
 };
-
 // Update the onSubmit function
 const onSubmit = async (data: ClassFormData) => {
   setLoading(true);

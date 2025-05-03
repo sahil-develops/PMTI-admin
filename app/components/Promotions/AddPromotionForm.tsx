@@ -63,7 +63,7 @@ export default function AddPromotionForm() {
     endDate: '',
     title: '',
     description: '',
-    active:1,
+    active: 0, // Changed from 1 to 0 for inactive by default
     promotionType: '2'
   });
 
@@ -229,10 +229,8 @@ export default function AddPromotionForm() {
       }
     }
 
-    // Cover image validation
-    if (!uploadedImageUrl) {
-      newErrors.image = 'Promotion image is required';
-    }
+    // Remove the image validation
+    // No longer requiring the image field
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -263,7 +261,7 @@ export default function AddPromotionForm() {
         endDate: new Date(formData.endDate).toISOString(),
         title: formData.title,
         description: formData.description,
-        active: formData.active ? 0 : 1,
+        active: formData.active, // Changed: directly use formData.active (0 for inactive, 1 for active)
         promotionType: parseInt(formData.promotionType),
         isDelete: 0,
         addedBy: parseInt(localStorage.getItem('userId') || '0'),
@@ -501,7 +499,7 @@ export default function AddPromotionForm() {
         </div>
 
         <div className="space-y-2">
-          <Label>Promotion Image <span className="text-red-500">*</span></Label>
+          <Label>Promotion Image <span className="text-xs text-zinc-500">(Optional)</span></Label>
           <div
             className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
               isDragging 

@@ -172,6 +172,7 @@ export const EnrollmentTable = ({
   const classdays = startDate && endDate ? getDaysBetweenDates(startDate, endDate) : [];
 
   const handleUpdate = async (studentId: number, payload: UpdatePayload) => {
+    
     const loadingKey = `${studentId}-${Object.keys(payload)[0]}`;
     setLoading(prev => ({ ...prev, [loadingKey]: true }));
     setError(null);
@@ -194,6 +195,7 @@ export const EnrollmentTable = ({
               signatureInput: payload.signatureInput || enrollment.signatureInput
             };
           }
+          // console.log('Updated enrollment:', { ...enrollment, ...});
           return enrollment;
         }));
         if (onUpdate) onUpdate();
@@ -217,6 +219,8 @@ export const EnrollmentTable = ({
       onReschedule(studentId, enrollmentId);
     }
   };
+
+
 
   return (
     <div className="w-full overflow-x-auto hideScrollBar border border-zinc-100">
@@ -258,6 +262,7 @@ export const EnrollmentTable = ({
         </TableHeader>
         <TableBody>
           {enrollments.map((enrollment) => (
+          
             <TableRow key={enrollment.ID} className="hover:bg-zinc-50">
               <StyledTableCell>
                 <Checkbox
@@ -270,6 +275,7 @@ export const EnrollmentTable = ({
                   }}
                 />
               </StyledTableCell>
+              {/* <StyledTableCell>{enrollment.ID}</StyledTableCell> */}
               <StyledTableCell>{enrollment.student.name}</StyledTableCell>
               <StyledTableCell>{enrollment.student.email}</StyledTableCell>
               <StyledTableCell>
@@ -278,7 +284,7 @@ export const EnrollmentTable = ({
               <StyledTableCell>
                 <CompactSelect
                   value={(enrollment.PMPPass ? "pass" : "fail")}
-                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                  onChange={(value) => handleUpdate(enrollment.ID, {
                     enrollmentProgress: value
                   })}
                   loading={loading[`${enrollment.student.id}-enrollmentProgress`]}
@@ -291,7 +297,7 @@ export const EnrollmentTable = ({
               <StyledTableCell>
                 <CompactSelect
                   value={(enrollment.pmbok ? "yes" : "no")}
-                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                  onChange={(value) => handleUpdate(enrollment.ID, {
                     pmbok: value === "yes"
                   })}
                   loading={loading[`${enrollment.student.id}-pmbok`]}
@@ -304,7 +310,7 @@ export const EnrollmentTable = ({
               <StyledTableCell>
                 <CompactSelect
                   value={(enrollment.status ? "active" : "inactive")}
-                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                  onChange={(value) => handleUpdate(enrollment.ID, {
                     status: value === "active"
                   })}
                   loading={loading[`${enrollment.student.id}-status`]}
@@ -317,7 +323,7 @@ export const EnrollmentTable = ({
               <StyledTableCell>
                 <CompactSelect
                   value={enrollment.MealType || "non-vegetarian"}
-                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                  onChange={(value) => handleUpdate(enrollment.ID, {
                     MealType: value
                   })}
                   loading={loading[`${enrollment.student.id}-MealType`]}
