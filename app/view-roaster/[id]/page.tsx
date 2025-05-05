@@ -92,6 +92,7 @@ interface APIResponse {
 }
 
 interface EnrollmentTableProps {
+  status: boolean;
   enrollments: {
     id: number;
     enrollmentType: string;
@@ -180,7 +181,12 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
         const data: APIResponse = await response.json();
         if (data.success) {
           setClassDetails(data.data.classs);
-          setEnrollments(data.data.enrollments);
+          
+          // Filter out enrollments with status: false
+          const activeEnrollments = data.data.enrollments.filter(
+            enrollment => enrollment.status !== false
+          );
+          setEnrollments(activeEnrollments);
         } else {
           throw new Error(data.error || "Failed to fetch class details");
         }
@@ -636,22 +642,29 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
         {/* Enrollments Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>Class Enrollments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EnrollmentTable 
-              enrollments={enrollments} 
-              startDate={classDetails.startDate}
-              endDate={classDetails.endDate}
-              onReschedule={(studentId, enrollmentId) => {
-                // Handle rescheduling logic here
-                console.log(`Reschedule student ${studentId} enrollment ${enrollmentId}`);
-                // You might want to implement actual rescheduling functionality
-              }}
-            />
-          </CardContent>
-        </Card>
+        <CardHeader>
+    <div className="flex justify-between items-center">
+      <CardTitle>Class Enrollments</CardTitle>
+      
+      {enrollments.some(e => e.status === false) && (
+        <div className="text-sm text-zinc-500">
+          Note: Inactive enrollments are hidden
+        </div>
+      )}
+    </div>
+  </CardHeader>
+  <CardContent>
+    <EnrollmentTable 
+      enrollments={enrollments.filter(enrollment => enrollment.status !== false)} 
+      startDate={classDetails.startDate}
+      endDate={classDetails.endDate}
+      onReschedule={(studentId, enrollmentId) => {
+        // Handle rescheduling logic here
+        console.log(`Reschedule student ${studentId} enrollment ${enrollmentId}`);
+      }}
+    />
+  </CardContent>
+</Card>
       </div>
     </div>
   );
