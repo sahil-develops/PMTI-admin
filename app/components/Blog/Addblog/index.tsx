@@ -2035,9 +2035,12 @@ const Index = () => {
         body: JSON.stringify(payload),
       });
 
-      setTimeout(() => {
-        router.push('/blog');
-      }, 1500);
+  
+      if (response.ok) {
+        setTimeout(() => {
+          router.push('/blog');
+        }, 1500);
+      }
 
       if (!response.ok) {
         throw new Error('Failed to publish blog post');
