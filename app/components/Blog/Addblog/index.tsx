@@ -113,6 +113,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [linkUrl, setLinkUrl] = useState('');
+  const [linkTitle, setLinkTitle] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -229,8 +230,16 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
     formData.append('file', file);
     
     try {
+      const authToken = localStorage.getItem('accessToken');
+      if (!authToken) {
+        throw new Error('Authentication token not found');
+      }
+
       const response = await fetch('https://api.4pmti.com/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
         body: formData,
       });
       
@@ -348,13 +357,20 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
       return;
     }
 
+    // Create link attributes object
+    const linkAttributes: { href: string; title?: string } = { href: url };
+    if (linkTitle.trim()) {
+      linkAttributes.title = linkTitle.trim();
+    }
+
     editor
       .chain()
       .focus()
-      .setLink({ href: url })
+      .setLink(linkAttributes)
       .run();
 
     setLinkUrl('');
+    setLinkTitle('');
     setShowLinkInput(false);
   };
 
@@ -570,38 +586,70 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         </button>
 
         {showLinkInput && (
-          <div className="absolute top-full left-0 mt-1 flex items-center gap-1 bg-white border rounded-md shadow-lg p-2 z-50">
-            <input
-              type="url"
-              value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
-              placeholder="Enter URL..."
-              className="px-2 py-1 border rounded text-sm w-64"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  addLink();
-                } else if (e.key === 'Escape') {
-                  setShowLinkInput(false);
-                  setLinkUrl('');
-                }
-              }}
-              autoFocus
-            />
-            <button
-              onClick={addLink}
-              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-            >
-              Add
-            </button>
-            <button
-              onClick={() => {
-                setShowLinkInput(false);
-                setLinkUrl('');
-              }}
-              className="px-3 py-1 border rounded text-sm hover:bg-gray-100"
-            >
-              Cancel
-            </button>
+          <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg p-3 z-[9999] min-w-[400px] ">
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  URL *
+                </label>
+                <input
+                  type="url"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="w-full px-2 py-1 border rounded text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      addLink();
+                    } else if (e.key === 'Escape') {
+                      setShowLinkInput(false);
+                      setLinkUrl('');
+                      setLinkTitle('');
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Title (optional)
+                </label>
+                <input
+                  type="text"
+                  value={linkTitle}
+                  onChange={(e) => setLinkTitle(e.target.value)}
+                  placeholder="Link title for accessibility"
+                  className="w-full px-2 py-1 border rounded text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      addLink();
+                    } else if (e.key === 'Escape') {
+                      setShowLinkInput(false);
+                      setLinkUrl('');
+                      setLinkTitle('');
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  onClick={addLink}
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  Add Link
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLinkInput(false);
+                    setLinkUrl('');
+                    setLinkTitle('');
+                  }}
+                  className="px-3 py-1 border rounded text-sm hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -2021,8 +2069,16 @@ const Index = () => {
     formData.append('file', file);
   
     try {
+      const authToken = localStorage.getItem('accessToken');
+      if (!authToken) {
+        throw new Error('Authentication token not found');
+      }
+
       const response = await fetch('https://api.4pmti.com/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
         body: formData,
       });
   

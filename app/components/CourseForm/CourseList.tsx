@@ -281,7 +281,7 @@ const CourseList = () => {
                 <th scope="col" className="px-6 py-4 text-left font-medium">Title</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">Start Date</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">End Date</th>
-                <th scope="col" className="px-6 py-4 text-left font-medium">Instructor</th>
+                {/* <th scope="col" className="px-6 py-4 text-left font-medium">Instructor</th> */}
                 {/* <th scope="col" className="px-6 py-4 text-left font-medium">Status</th> */}
                 <th scope="col" className="px-6 py-4 text-left font-medium">Enrolled</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">Left</th>
@@ -299,7 +299,7 @@ const CourseList = () => {
                   <td className="px-6 py-4">
                     {course.updatedOn ? formatDate(new Date(course.updatedOn)) : 'N/A'}
                   </td>
-                  <td className="px-6 py-4">John Cena</td>
+                  {/* <td className="px-6 py-4">John Cena</td> */}
                   {/* <td className="px-6 py-4">
                     <span className={`inline-flex px-2 text-xs font-semibold leading-5 rounded-full ${
                       !course.isDelete 

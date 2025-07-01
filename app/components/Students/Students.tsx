@@ -409,38 +409,43 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
   // Add new state for city input disabled state
   const [isCityInputDisabled, setIsCityInputDisabled] = useState(true);
 
-  useEffect(() => {
-    if (student) {
-      const countryId = student.country && typeof student.country === 'object' 
-        ? (student.country as { id: number }).id.toString() 
-        : student.country || "";
-        
-      const stateId = student.state && typeof student.state === 'object' 
-        ? (student.state as { id: number }).id.toString() 
-        : student.state || "";
-      const cityValue = student.city && typeof student.city === 'object' 
-        ? (student.city as { location: string }).location 
-        : student.city || "";
-
-      setFormData({
-        name: student.name,
-        address: student.address,
-        city: cityValue,
-        state: stateId, 
-        country: countryId,
-        zipCode: student.zipCode,
-        phone: student.phone,
-        email: student.email,
-        companyName: student.companyName,
-        profession: student.profession,
-      });
+// In the EditStudentModal component, update the useEffect that sets initial form data:
+useEffect(() => {
+  if (student) {
+    // Handle country - can be object or string
+    const countryId = student.country && typeof student.country === 'object' 
+      ? (student.country as { id: number }).id.toString() 
+      : student.country || "";
       
-      setSelectedCountry(countryId);
-      setSelectedState(stateId);
-      // Enable city input if state is selected
-      setIsCityInputDisabled(!stateId);
-    }
-  }, [student]);
+    // Handle state - can be object or string
+    const stateId = student.state && typeof student.state === 'object' 
+      ? (student.state as { id: number }).id.toString() 
+      : student.state || "";
+      
+    // Handle city - can be object or string
+    const cityValue = student.city && typeof student.city === 'object' 
+      ? (student.city as { location: string }).location 
+      : student.city || "";
+
+    setFormData({
+      name: student.name,
+      address: student.address,
+      city: cityValue,
+      state: stateId, // Ensure this is the state ID
+      country: countryId,
+      zipCode: student.zipCode,
+      phone: student.phone,
+      email: student.email,
+      companyName: student.companyName,
+      profession: student.profession,
+    });
+    
+    setSelectedCountry(countryId);
+    setSelectedState(stateId);
+    // Enable city input if state is selected
+    setIsCityInputDisabled(!stateId);
+  }
+}, [student]);
 
   useEffect(() => {
     fetchCountries();
@@ -475,18 +480,25 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    if (formData.name !== undefined && formData.name.trim() === '') {
+    if (!formData.name || formData.name.trim() === '') {
       newErrors.name = "Name is required";
     }
     
-    if (formData.email !== undefined && !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
+    if (!formData.email || !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
       newErrors.email = "Invalid email address";
     }
-    
+  
+    if (!formData.city || formData.city.trim() === '') {
+      newErrors.city = "City is required";
+    }
+  
+    if (!formData.state) {
+      newErrors.state = "State is required";
+    }
+  
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!student) return;
@@ -528,10 +540,8 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
     setFormData(prev => ({ 
       ...prev, 
       state: stateId,
-      // Clear city when state changes
-      city: '' 
+      city: '' // Clear city when state changes
     }));
-    // Enable city input when state is selected
     setIsCityInputDisabled(!stateId);
   };
 
@@ -600,43 +610,49 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
             
             {/* State selection */}
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Select
-                value={selectedState}
-                onValueChange={handleStateChange}
-                disabled={!selectedCountry}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={selectedCountry ? "Select State" : "Select Country First"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {states.length > 0 ? (
-                    states.map((state) => (
-                      <SelectItem key={state.id} value={state.id.toString()}>
-                        {state.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-states" disabled>
-                      No states available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+  <Label htmlFor="state">State</Label>
+  <Select
+    value={selectedState}
+    onValueChange={handleStateChange}
+    disabled={!selectedCountry}
+  >
+    <SelectTrigger className={errors.state ? "border-red-500" : ""}>
+      <SelectValue placeholder={selectedCountry ? "Select State" : "Select Country First"} />
+    </SelectTrigger>
+    <SelectContent>
+      {states.length > 0 ? (
+        states.map((state) => (
+          <SelectItem key={state.id} value={state.id.toString()}>
+            {state.name}
+          </SelectItem>
+        ))
+      ) : (
+        <SelectItem value="no-states" disabled>
+          No states available
+        </SelectItem>
+      )}
+    </SelectContent>
+  </Select>
+  {errors.state && (
+    <p className="text-xs text-red-500">{errors.state}</p>
+  )}
+</div>
             
             {/* City input field */}
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                value={formData.city || ''}
-                onChange={(e) => handleInputChange('city', e.target.value)}
-                placeholder={isCityInputDisabled ? "Select State First" : "Enter city"}
-                disabled={isCityInputDisabled}
-                className={isCityInputDisabled ? "bg-gray-100" : ""}
-              />
-            </div>
+  <Label htmlFor="city">City</Label>
+  <Input
+    id="city"
+    value={formData.city || ''}
+    onChange={(e) => handleInputChange('city', e.target.value)}
+    placeholder={isCityInputDisabled ? "Select State First" : "Enter city"}
+    disabled={isCityInputDisabled}
+    className={isCityInputDisabled ? "bg-gray-100" : errors.city ? "border-red-500" : ""}
+  />
+  {errors.city && (
+    <p className="text-xs text-red-500">{errors.city}</p>
+  )}
+</div>
             
             <div className="space-y-2">
               <Label htmlFor="zipCode">Zip Code</Label>
@@ -806,12 +822,14 @@ const Students = () => {
           throw new Error('Invalid country ID');
         }
       }
-
-      // Remove locationId if it exists (since we're not using it anymore)
-      delete payload.locationId;
-
+  
+      // Ensure city is not empty
+      if (!payload.city || payload.city.trim() === '') {
+        throw new Error('City is required');
+      }
+  
       console.log("Sending payload to API:", payload);
-
+  
       const response = await fetch(`https://api.4pmti.com/students/${studentId}`, {
         method: 'PATCH',
         headers: {
@@ -820,25 +838,25 @@ const Students = () => {
         },
         body: JSON.stringify(payload),
       });
-
+  
       const data = await response.json();
-
+  
       if (!response.ok) {
         // Get specific error message if available
         const errorMessage = data.error || data.message || 'Failed to update student';
         throw new Error(errorMessage);
       }
-
-      // Update local state with the updated data we got back from the API
+  
+      // Update local state with the updated data
       setStudents(prevStudents =>
         prevStudents.map(student =>
           student.id === studentId ? { ...student, ...updatedData } : student
         )
       );
-
+  
       setShowSuccess(true);
       
-      // Refresh student list to make sure we have the latest data
+      // Refresh student list
       fetchStudents();
       
     } catch (error: any) {

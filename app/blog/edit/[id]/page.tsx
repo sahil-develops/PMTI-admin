@@ -1,10 +1,11 @@
 'use client'
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import ReactQuill from 'react-quill';
-import { Trash2, Code, FileText } from 'lucide-react';
+
+import { Trash2,  } from 'lucide-react';
 import Head from 'next/head';
 import 'react-quill/dist/quill.snow.css';
+import BlogEditor from '@/app/components/Blog/Addblog/BlogEditor';
 
 // Define types
 interface User {
@@ -48,7 +49,6 @@ export default function EditBlog({ params }: { params: { id: string } }) {
   const [imageUploadError, setImageUploadError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const [isHtmlMode, setIsHtmlMode] = useState(false);
   const [editedSlug, setEditedSlug] = useState('');
 
   useEffect(() => {
@@ -59,98 +59,46 @@ export default function EditBlog({ params }: { params: { id: string } }) {
         if (!authToken) {
           throw new Error('Authentication token not found');
         }
-
         const response = await fetch(`https://api.4pmti.com/blog/${params.id}`, {
           headers: {
             'Authorization': `Bearer ${authToken}`
           }
         });
-
         if (!response.ok) {
           throw new Error('Failed to fetch blog post');
         }
-
-        const result: SingleBlogResponse = await response.json();
+        const result = await response.json();
         if (result.success) {
           setEditedTitle(result.data.title);
-          setEditedContent(result.data.content);
+          setEditedContent(result.data.content || '');
           setEditedCoverImage(result.data.cover_image);
           setEditedSlug(result.data.slug);
         } else {
           throw new Error(result.error || 'Failed to fetch blog post');
         }
       } catch (error) {
-        console.error('Error fetching blog post:', error);
         setError('Failed to load blog post. Please try again.');
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchBlogPost();
   }, [params.id]);
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        setIsImageUploading(true);
-        setImageUploadError('');
-        
-        const authToken = localStorage.getItem('accessToken');
-        if (!authToken) {
-          throw new Error('Authentication token not found');
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('https://api.4pmti.com/upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-          },
-          body: formData
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to upload image');
-        }
-
-        const data = await response.json();
-        console.log('Upload response:', data);
-
-        if (data.success && data.data && data.data.url) {
-          setEditedCoverImage(data.data.url);
-        } else {
-          throw new Error('Invalid response from upload service');
-        }
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        setImageUploadError('Failed to upload image. Please try again.');
-      } finally {
-        setIsImageUploading(false);
-      }
-    }
-  };
 
   const handleSave = async () => {
     try {
       setIsSaving(true);
       setError('');
-      
       const authToken = localStorage.getItem('accessToken');
       if (!authToken) {
         throw new Error('Authentication token not found');
       }
-
       const updateData = {
         title: editedTitle,
         content: editedContent,
         slug: editedSlug,
         cover_image: editedCoverImage
       };
-      
       const response = await fetch(`https://api.4pmti.com/blog/${params.id}`, {
         method: 'PATCH',
         headers: {
@@ -159,11 +107,9 @@ export default function EditBlog({ params }: { params: { id: string } }) {
         },
         body: JSON.stringify(updateData)
       });
-      
       if (!response.ok) {
         throw new Error('Failed to update blog post');
       }
-      
       const result = await response.json();
       if (result.success) {
         router.push('/blog');
@@ -171,7 +117,6 @@ export default function EditBlog({ params }: { params: { id: string } }) {
         throw new Error(result.error || 'Failed to update blog post');
       }
     } catch (error) {
-      console.error('Error updating blog post:', error);
       setError('Failed to update blog post. Please try again.');
     } finally {
       setIsSaving(false);
@@ -221,10 +166,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                       src={editedCoverImage}
                       alt="Cover preview"
                       className="h-48 w-auto object-cover rounded-lg shadow"
-                      onError={(e) => {
-                        console.error('Image failed to load:', editedCoverImage);
-                        setImageUploadError('Failed to load image preview');
-                      }}
+                      onError={() => setImageUploadError('Failed to load image preview')}
                     />
                     <button
                       onClick={() => {
@@ -237,18 +179,40 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                     </button>
                   </div>
                 )}
-
                 <div className="relative">
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={handleImageUpload}
-                    className="block w-full text-sm text-gray-500
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-md file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-blue-50 file:text-blue-700
-                      hover:file:bg-blue-100"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        try {
+                          setIsImageUploading(true);
+                          setImageUploadError('');
+                          const authToken = localStorage.getItem('accessToken');
+                          if (!authToken) throw new Error('Authentication token not found');
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          const response = await fetch('https://api.4pmti.com/upload', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${authToken}` },
+                            body: formData
+                          });
+                          if (!response.ok) throw new Error('Failed to upload image');
+                          const data = await response.json();
+                          if (data.success && data.data && data.data.url) {
+                            setEditedCoverImage(data.data.url);
+                          } else {
+                            throw new Error('Invalid response from upload service');
+                          }
+                        } catch (error) {
+                          setImageUploadError('Failed to upload image. Please try again.');
+                        } finally {
+                          setIsImageUploading(false);
+                        }
+                      }
+                    }}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   />
                   {isImageUploading && (
                     <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -256,7 +220,6 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                     </div>
                   )}
                 </div>
-
                 {imageUploadError && (
                   <p className="text-red-500 text-sm">{imageUploadError}</p>
                 )}
@@ -309,71 +272,10 @@ export default function EditBlog({ params }: { params: { id: string } }) {
 
             {/* Content Editor */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Content
-                </label>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setIsHtmlMode(false)}
-                    className={`p-2 rounded-md flex items-center gap-2 ${
-                      !isHtmlMode 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                    title="Rich Text Editor"
-                  >
-                    <FileText size={16} />
-                    <span className="text-sm">Rich Text</span>
-                  </button>
-                  <button
-                    onClick={() => setIsHtmlMode(true)}
-                    className={`p-2 rounded-md flex items-center gap-2 ${
-                      isHtmlMode 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                    title="HTML Editor"
-                  >
-                    <Code size={16} />
-                    <span className="text-sm">HTML</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="border border-gray-300 rounded-md">
-                {isHtmlMode ? (
-                  <textarea
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="w-full h-[500px] p-4 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    style={{ 
-                      resize: 'vertical',
-                      minHeight: '300px',
-                      lineHeight: '1.5'
-                    }}
-                  />
-                ) : (
-                  <ReactQuill
-                    value={editedContent}
-                    onChange={setEditedContent}
-                    style={{ 
-                      height: '500px'
-                    }}
-                    modules={{
-                      toolbar: [
-                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'indent': '-1'}, { 'indent': '+1' }],
-                        [{ 'color': [] }, { 'background': [] }],
-                        ['link', 'image'],
-                        ['clean']
-                      ]
-                    }}
-                  />
-                )}
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Content
+              </label>
+              <BlogEditor content={editedContent} onChange={setEditedContent} />
             </div>
 
             {error && (

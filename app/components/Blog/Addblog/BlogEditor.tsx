@@ -6,7 +6,8 @@ import Text from '@tiptap/extension-text';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
-import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered, X } from 'lucide-react';
+import Link from '@tiptap/extension-link';
+import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered, X, Link2, Link2Off } from 'lucide-react';
 
 // Extend the Image extension to support alignment and width
 const CustomImage = Image.extend({
@@ -40,6 +41,9 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
   const coverImageInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkTitle, setLinkTitle] = useState('');
+  const [showLinkInput, setShowLinkInput] = useState(false);
 
   if (!editor) {
     return null;
@@ -224,9 +228,43 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
     const node = editor.state.doc.nodeAt(from);
     return node && node.type.name === 'image';
   };
-  
+
+  const addLink = () => {
+    if (!linkUrl || !editor) return;
+    
+    // Ensure URL has http:// or https://
+    const url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
+    
+    // If there's no selection, don't add the link
+    if (editor.state.selection.empty) {
+      alert('Please select some text first');
+      return;
+    }
+
+    // Create link attributes object
+    const linkAttributes: { href: string; title?: string } = { href: url };
+    if (linkTitle.trim()) {
+      linkAttributes.title = linkTitle.trim();
+    }
+
+    editor
+      .chain()
+      .focus()
+      .setLink(linkAttributes)
+      .run();
+
+    setLinkUrl('');
+    setLinkTitle('');
+    setShowLinkInput(false);
+  };
+
+  const removeLink = () => {
+    if (!editor) return;
+    editor.chain().focus().unsetLink().run();
+  };
+
   return (
-    <div className="flex flex-wrap space-x-1 space-y-1 sm:space-x-2 sm:space-y-0 border-b pb-2 mb-2 rounded-t-lg bg-gray-100 p-2 sticky top-0">
+    <div className=" flex flex-wrap space-x-1 space-y-1 sm:space-x-2 sm:space-y-0 border-b pb-2 mb-2 rounded-t-lg bg-gray-100 p-2 sticky top-0">
       <input
         type="file"
         ref={fileInputRef}
@@ -345,6 +383,97 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
           <span className="text-xs">Uploading...</span>
         </div>
       )}
+
+      {/* Link controls */}
+      <div className=" flex items-center gap-1">
+        <button
+          onClick={() => {
+            if (editor.isActive('link')) {
+              removeLink();
+            } else {
+              setShowLinkInput(!showLinkInput);
+            }
+          }}
+          className={`p-1.5 hover:bg-gray-200 rounded ${
+            editor.isActive('link') ? 'bg-gray-200' : ''
+          }`}
+          title={editor.isActive('link') ? 'Remove Link' : 'Add Link'}
+        >
+          {editor.isActive('link') ? (
+            <Link2Off size={16} />
+          ) : (
+            <Link2 size={16} />
+          )}
+        </button>
+
+        {showLinkInput && (
+          <div className="absolute top-full left-1/4  mt-1 bg-white border rounded-md shadow-lg p-3 z-50 min-w-[200px] lg:min-w-[400px]">
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  URL *
+                </label>
+                <input
+                  type="url"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="w-full px-2 py-1 border rounded text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      addLink();
+                    } else if (e.key === 'Escape') {
+                      setShowLinkInput(false);
+                      setLinkUrl('');
+                      setLinkTitle('');
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Title (optional)
+                </label>
+                <input
+                  type="text"
+                  value={linkTitle}
+                  onChange={(e) => setLinkTitle(e.target.value)}
+                  placeholder="Link title for accessibility"
+                  className="w-full px-2 py-1 border rounded text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      addLink();
+                    } else if (e.key === 'Escape') {
+                      setShowLinkInput(false);
+                      setLinkUrl('');
+                      setLinkTitle('');
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  onClick={addLink}
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  Add Link
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLinkInput(false);
+                    setLinkUrl('');
+                    setLinkTitle('');
+                  }}
+                  className="px-3 py-1 border rounded text-sm hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Image controls - only visible when an image is selected */}
       {isImageSelected() && (
@@ -477,7 +606,13 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
         }
       }),
       CustomImage,
-
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          target: '_blank',
+        },
+        validate: href => /^https?:\/\//.test(href),
+      }),
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
@@ -569,88 +704,48 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
           .ProseMirror h1 {
             font-size: 2rem;
             font-weight: bold;
-            margin-top: 1.5rem;
-            margin-bottom: 1rem;
           }
           
           .ProseMirror h2 {
             font-size: 1.5rem;
             font-weight: bold;
-            margin-top: 1.25rem;
-            margin-bottom: 0.75rem;
           }
           
           .ProseMirror h3 {
             font-size: 1.25rem;
             font-weight: bold;
-            margin-top: 1rem;
-            margin-bottom: 0.5rem;
           }
           
-          .ProseMirror ul {
-            list-style-type: disc;
-            padding-left: 1.5rem;
-            margin: 1rem 0;
-          }
-          
+          .ProseMirror ul,
           .ProseMirror ol {
-            list-style-type: decimal;
-            padding-left: 1.5rem;
-            margin: 1rem 0;
+            padding-left: 1.5em;
           }
           
           .ProseMirror li {
-            margin-bottom: 0.25rem;
+            margin: 0.25em 0;
           }
           
-          .ProseMirror li p {
-            margin: 0;
+          .ProseMirror img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
           }
           
-          .image-upload-placeholder {
-            width: 100%;
-            height: 200px;
-            margin: 1rem 0;
-            background-color: #f3f4f6;
-            border-radius: 0.375rem;
-            position: relative;
-            overflow: hidden;
+          .ProseMirror a {
+            color: #2563eb;
+            text-decoration: none;
+            cursor: pointer;
           }
           
-          /* Make sure images don't break layout */
-         /* Make sure images don't break layout */
-.ProseMirror img {
-  max-width: 50%;
-  width: auto;
-  height: auto;
-  box-sizing: border-box;
-}
-
-/* Ensure proper alignment for images */
-.ProseMirror img[style*="float: left"] {
-  margin-right: 1rem;
-  margin-bottom: 1rem;
-}
-
-.ProseMirror img[style*="float: right"] {
-  margin-left: 1rem;
-  margin-bottom: 1rem;
-}
-
-/* Add a clear class for paragraphs after images */
-.ProseMirror p {
-  margin: 0.5em 0;
-  clear: both; /* This ensures paragraphs after images clear floats */
-}
-
-.ProseMirror-selectednode{
-width: 40%;
-}
-
-/* For centered images */
-.ProseMirror img[style*="margin: 0 auto"] {
-  margin-bottom: 1rem;
-}
+          .ProseMirror a:hover {
+            text-decoration: underline;
+          }
+          
+          .ProseMirror a.is-active {
+            background-color: rgba(37, 99, 235, 0.1);
+            border-radius: 0.25rem;
+            padding: 0 2px;
+          }
         `}</style>
       </div>
     </div>

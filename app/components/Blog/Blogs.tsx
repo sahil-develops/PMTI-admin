@@ -46,12 +46,7 @@ interface BlogResponse {
   };
 }
 
-interface SingleBlogResponse {
-  message: string;
-  error: string;
-  success: boolean;
-  data: BlogPost;
-}
+
 
 export default function Blogs() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
