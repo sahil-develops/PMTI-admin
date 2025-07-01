@@ -27,7 +27,8 @@ import Superscript from '@tiptap/extension-superscript'
 import Subscript from '@tiptap/extension-subscript'
 import Underline from '@tiptap/extension-underline'
 import {Strike} from '@tiptap/extension-strike'
-import { createPortal } from 'react-dom';
+
+import { useRouter } from 'next/navigation';
 
 // Add this new type for image layout
 type ImageLayout = 'inline' | 'wrap' | 'block';
@@ -1995,6 +1996,8 @@ const Index = () => {
     return Object.keys(errors).length === 0;
   };
 
+  const router = useRouter();
+
   const handleSubmit = async () => {
     if (isSubmitting) return;
     
@@ -2032,11 +2035,16 @@ const Index = () => {
         body: JSON.stringify(payload),
       });
 
+      setTimeout(() => {
+        router.push('/blog');
+      }, 1500);
+
       if (!response.ok) {
         throw new Error('Failed to publish blog post');
       }
 
       setShowSuccessModal(true);
+      router.push('/blog');
       // Reset form
       setTitle('');
       setDescription('');
@@ -2045,7 +2053,11 @@ const Index = () => {
       setCategory('');
       setCoverImageUrl('');
       setThumbnailUrl('');
+      setSlug('');
+      setHead('');
+      setScript('');
       setValidationErrors({});
+   
     } catch (error) {
       console.error('Error:', error);
       if (error instanceof Error) {
@@ -2530,7 +2542,7 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
           <Alert className="bg-green-50">
             <AlertTitle>Blog post published successfully!</AlertTitle>
             <AlertDescription>
-              Your blog post has been published and is now live on the website.
+              Your blog post has been published and is now live on the website. You will be redirected to the blog page shortly.
             </AlertDescription>
           </Alert>
         </DialogContent>
