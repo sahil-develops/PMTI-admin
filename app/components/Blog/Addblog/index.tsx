@@ -1954,6 +1954,9 @@ const Index = () => {
   const [coverImageUrl, setCoverImageUrl] = useState('');
   const [isCoverImageUploading, setIsCoverImageUploading] = useState(false);
   const [coverImageError, setCoverImageError] = useState('');
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState('');
   const [validationErrors, setValidationErrors] = useState<{
     title?: string;
     category?: string;
@@ -2010,6 +2013,7 @@ const Index = () => {
       tagNames,
       relatedArticleIds: [101, 102, 103],
       coverImage: coverImageUrl,
+      thumbnail: thumbnailUrl,
       slug,
       metadata: {
         head: head.toString(),
@@ -2039,6 +2043,8 @@ const Index = () => {
       setContent('');
       setTags('');
       setCategory('');
+      setCoverImageUrl('');
+      setThumbnailUrl('');
       setValidationErrors({});
     } catch (error) {
       console.error('Error:', error);
@@ -2096,6 +2102,51 @@ const Index = () => {
   const handleDeleteCoverImage = () => {
     setCoverImageUrl('');
     setCoverImageError('');
+  };
+
+  const handleThumbnailUpload = async (file: File) => {
+    const allowedTypes = ['png', 'jpg', 'jpeg'];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+  
+    if (!fileExtension || !allowedTypes.includes(fileExtension)) {
+      setThumbnailError('Only PNG, JPG, and JPEG files are allowed.');
+      return;
+    }
+  
+    setIsThumbnailUploading(true);
+    setThumbnailError('');
+  
+    const formData = new FormData();
+    formData.append('file', file);
+  
+    try {
+      const authToken = localStorage.getItem('accessToken');
+      if (!authToken) {
+        throw new Error('Authentication token not found');
+      }
+
+      const response = await fetch('https://api.4pmti.com/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: formData,
+      });
+  
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      setThumbnailUrl(data.data.url);
+    } catch (error) {
+      setThumbnailError('Failed to upload thumbnail. Please try again.');
+    } finally {
+      setIsThumbnailUploading(false);
+    }
+  };
+
+  const handleDeleteThumbnail = () => {
+    setThumbnailUrl('');
+    setThumbnailError('');
   };
 
   const handleSlugChange = (value: string) => {
@@ -2267,6 +2318,50 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
                     onClick={handleDeleteCoverImage}
                     className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
                     title="Delete cover image"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Thumbnail
+            </label>
+            <div className="flex flex-col gap-2">
+              <input
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleThumbnailUpload(file);
+                }}
+                accept="image/png, image/jpeg, image/jpg"
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              
+              {thumbnailError && (
+                <p className="text-red-500 text-sm">{thumbnailError}</p>
+              )}
+              
+              {isThumbnailUploading && (
+                <div className="mt-2 w-full h-48 bg-gray-100 rounded-lg relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-shimmer" />
+                </div>
+              )}
+              
+              {thumbnailUrl && !isThumbnailUploading && (
+                <div className="mt-2 border rounded-lg overflow-hidden relative group">
+                  <img
+                    src={thumbnailUrl}
+                    alt="Thumbnail preview"
+                    className="w-full h-48 object-cover"
+                  />
+                  <button
+                    onClick={handleDeleteThumbnail}
+                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                    title="Delete thumbnail"
                   >
                     <Trash2 size={16} />
                   </button>

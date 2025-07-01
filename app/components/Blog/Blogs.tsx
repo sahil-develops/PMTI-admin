@@ -2,10 +2,11 @@
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { Plus, Search, Trash2, Edit, X } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Tooltip } from 'react-tooltip';
 import ReactQuill from 'react-quill';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 // Define types
 interface User {
@@ -33,7 +34,7 @@ interface BlogPost {
 
 interface BlogResponse {
   message: string;
-  error: string;
+  error: string | string[];
   success: boolean;
   data: {
     data: BlogPost[];
@@ -43,10 +44,8 @@ interface BlogResponse {
       limit: number;
       totalPages: number;
     };
-  };
+  } | null;
 }
-
-
 
 export default function Blogs() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
@@ -59,44 +58,129 @@ export default function Blogs() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   const router = useRouter();
+  const { toast } = useToast();
+
+  // Helper function to extract error message from API response
+  const extractErrorMessage = (apiResponse: any): string => {
+    if (apiResponse.error) {
+      if (Array.isArray(apiResponse.error)) {
+        return apiResponse.error.join(', ');
+      } else if (typeof apiResponse.error === 'string') {
+        return apiResponse.error;
+      }
+    }
+    return 'An unexpected error occurred. Please try again.';
+  };
+
+  const fetchBlogPosts = async (page = 1) => {
+    try {
+      setIsLoading(true);
+      
+      // Get user data from localStorage
+      const userDataString = localStorage.getItem('userData');
+      if (!userDataString) {
+        throw new Error('User data not found. Please log in again.');
+      }
+      
+      let userData;
+      try {
+        userData = JSON.parse(userDataString);
+      } catch (parseError) {
+        throw new Error('Invalid user data. Please log in again.');
+      }
+      
+      if (!userData.data || !userData.data.id) {
+        throw new Error('User ID not found. Please log in again.');
+      }
+      
+      const userId = userData.data.id;
+      
+      // Fetch blog posts with pagination
+      const response = await fetch(`https://api.4pmti.com/blog?userId=${userId}&page=${page}&limit=${itemsPerPage}`);
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('You do not have permission to access this resource.');
+        } else if (response.status === 404) {
+          throw new Error('Blog posts not found.');
+        } else if (response.status >= 500) {
+          throw new Error('Server error. Please try again later.');
+        } else {
+          throw new Error(`Failed to fetch blog posts (${response.status})`);
+        }
+      }
+      
+      const result: BlogResponse = await response.json();
+      if (result.success && result.data) {
+        setBlogPosts(result.data.data);
+        setTotalPages(result.data.meta.totalPages);
+        setTotalItems(result.data.meta.total);
+        setCurrentPage(result.data.meta.page);
+        setError(null); // Clear any previous errors
+      } else {
+        const errorMessage = extractErrorMessage(result);
+        setError(errorMessage);
+      }
+    } catch (error) {
+      console.error('Error fetching blog posts:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch blog posts. Please try again later.';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchBlogPosts = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Get user data from localStorage
-        const userDataString = localStorage.getItem('userData');
-        if (!userDataString) {
-          throw new Error('User data not found in localStorage');
-        }
-        
-        const userData = JSON.parse(userDataString);
-        const userId = userData.data.id;
-        
-        // Fetch blog posts
-        const response = await fetch(`https://api.4pmti.com/blog?userId=${userId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch blog posts');
-        }
-        
-        const result: BlogResponse = await response.json();
-        if (result.success) {
-          setBlogPosts(result.data.data);
-        } else {
-          throw new Error(result.error || 'Failed to fetch blog posts');
-        }
-      } catch (error) {
-        console.error('Error fetching blog posts:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    fetchBlogPosts(currentPage);
+  }, [currentPage, itemsPerPage]);
 
-    fetchBlogPosts();
-  }, []);
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    try {
+      if (page >= 1 && page <= totalPages) {
+        setCurrentPage(page);
+      } else {
+        throw new Error('Invalid page number');
+      }
+    } catch (error) {
+      console.error('Error changing page:', error);
+      toast({
+        title: 'Navigation Error',
+        description: 'Failed to navigate to the selected page. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newLimit: number) => {
+    try {
+      if (newLimit > 0 && newLimit <= 100) {
+        setItemsPerPage(newLimit);
+        setCurrentPage(1); // Reset to first page when changing limit
+      } else {
+        throw new Error('Invalid items per page value');
+      }
+    } catch (error) {
+      console.error('Error changing items per page:', error);
+      toast({
+        title: 'Settings Error',
+        description: 'Failed to update items per page. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
 
   // Filter blog posts based on search criteria
   const filteredBlogPosts = blogPosts.filter(post => {
@@ -118,17 +202,34 @@ export default function Blogs() {
 
   // Function to strip HTML tags for preview
   const stripHtml = (html: string) => {
-    const tmp = document.createElement('DIV');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
+    try {
+      const tmp = document.createElement('DIV');
+      tmp.innerHTML = html;
+      return tmp.textContent || tmp.innerText || '';
+    } catch (error) {
+      console.error('Error stripping HTML:', error);
+      return 'Content preview unavailable';
+    }
   };
 
   // Function to get preview text
   const getPreview = (content: string, length = 100) => {
-    const stripped = stripHtml(content);
-    return stripped.length > length 
-      ? stripped.substring(0, length) + '...' 
-      : stripped;
+    try {
+      const stripped = stripHtml(content);
+      return stripped.length > length 
+        ? stripped.substring(0, length) + '...' 
+        : stripped;
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      return 'Preview unavailable';
+    }
+  };
+
+  // Function to handle image loading errors
+  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const img = event.target as HTMLImageElement;
+    img.src = '/placeholder-image.png'; // You can add a placeholder image
+    img.alt = 'Image not available';
   };
 
   // Function to handle delete confirmation
@@ -145,13 +246,10 @@ export default function Blogs() {
       setIsDeleting(true);
       
       // Get auth token
-      const userDataString = localStorage.getItem('accessToken');
-      if (!userDataString) {
-        throw new Error('User data not found in localStorage');
+      const authToken = localStorage.getItem('accessToken');
+      if (!authToken) {
+        throw new Error('Authentication token not found. Please log in again.');
       }
-      
-      // const userData = JSON.parse(userDataString);
-      const authToken = userDataString;
       
       // Delete the blog post
       const response = await fetch(`https://api.4pmti.com/blog/${postToDelete.id}`, {
@@ -163,21 +261,48 @@ export default function Blogs() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to delete blog post');
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('You do not have permission to delete this blog post.');
+        } else if (response.status === 404) {
+          throw new Error('Blog post not found or already deleted.');
+        } else if (response.status >= 500) {
+          throw new Error('Server error. Please try again later.');
+        } else {
+          throw new Error(`Failed to delete blog post (${response.status})`);
+        }
       }
       
       const result = await response.json();
       if (result.success) {
-        // Update local state
-        setBlogPosts(prevPosts => prevPosts.filter(post => post.id !== postToDelete.id));
+        // Check if we need to go to previous page (if we deleted the last item on current page)
+        const remainingItems = blogPosts.length - 1;
+        if (remainingItems === 0 && currentPage > 1) {
+          // If no items left on current page and not on first page, go to previous page
+          setCurrentPage(currentPage - 1);
+        } else {
+          // Otherwise, refresh current page
+          fetchBlogPosts(currentPage);
+        }
+        
+        // Show success toast
+        toast({
+          title: 'Success',
+          description: `Successfully deleted "${postToDelete.title}"`,
+        });
+        
         setSuccessMessage(`Successfully deleted "${postToDelete.title}"`);
         setShowSuccessModal(true);
+        setError(null); // Clear any previous errors
       } else {
-        throw new Error(result.error || 'Failed to delete blog post');
+        const errorMessage = extractErrorMessage(result);
+        setError(errorMessage);
       }
     } catch (error) {
       console.error('Error deleting blog post:', error);
-      alert('Failed to delete blog post. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete blog post. Please try again later.';
+      setError(errorMessage);
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
@@ -187,7 +312,26 @@ export default function Blogs() {
 
   // Function to handle edit click
   const handleEditClick = (post: BlogPost) => {
-    router.push(`/blog/edit/${post.id}`);
+    try {
+      router.push(`/blog/edit/${post.id}`);
+    } catch (error) {
+      console.error('Error navigating to edit page:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to navigate to edit page. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Function to handle search errors
+  const handleSearchError = (error: any, searchType: string) => {
+    console.error(`Error in ${searchType} search:`, error);
+    toast({
+      title: 'Search Error',
+      description: `Failed to perform ${searchType} search. Please try again.`,
+      variant: 'destructive'
+    });
   };
 
   return (
@@ -208,6 +352,34 @@ export default function Blogs() {
             </button>
           </Link>
         </div>
+        
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>{error}</p>
+                </div>
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setError(null)}
+                    className="bg-red-50 text-red-700 hover:bg-red-100 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="relative">
@@ -244,6 +416,31 @@ export default function Blogs() {
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
           </div>
+        ) : blogPosts.length === 0 && !isLoading ? (
+          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="text-gray-400 mb-4">
+                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No blog posts found</h3>
+              <p className="text-gray-500 text-center max-w-md">
+                {globalSearch || nameSearch || emailSearch 
+                  ? 'No blog posts match your search criteria. Try adjusting your search terms.'
+                  : 'You haven\'t created any blog posts yet. Get started by adding your first blog post.'
+                }
+              </p>
+              {!globalSearch && !nameSearch && !emailSearch && (
+                <Link href="/blog/add" className="mt-4">
+                  <button className="bg-black text-white px-4 py-2 rounded-md flex items-center gap-2 transition duration-300">
+                    <Plus size={16} />
+                    <span>Add Your First Blog</span>
+                  </button>
+                </Link>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="bg-white shadow-md rounded-lg overflow-hidden">
             {/* Responsive table with horizontal scroll on mobile */}
@@ -276,12 +473,17 @@ export default function Blogs() {
                     filteredBlogPosts.map((post) => (
                       <tr key={post.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
-                          {post.cover_image && (
+                          {post.cover_image ? (
                             <img 
                               src={post.cover_image} 
                               alt={post.title}
                               className="h-20 w-20 object-cover rounded"
+                              onError={handleImageError}
                             />
+                          ) : (
+                            <div className="h-20 w-20 bg-gray-200 rounded flex items-center justify-center">
+                              <span className="text-gray-500 text-xs">No Image</span>
+                            </div>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -349,9 +551,74 @@ export default function Blogs() {
             </div>
             
             <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-              <div className="text-sm text-gray-700">
-                Showing <span className="font-medium">{filteredBlogPosts.length}</span> of{' '}
-                <span className="font-medium">{blogPosts.length}</span> results
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{((currentPage - 1) * itemsPerPage) + 1}</span> to{' '}
+                  <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of{' '}
+                  <span className="font-medium">{totalItems}</span> results
+                </div>
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-700">Items per page:</label>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* Pagination Controls */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                
+                {/* Page Numbers */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-1 text-sm border rounded-md ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 hover:bg-gray-100'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
             </div>
           </div>

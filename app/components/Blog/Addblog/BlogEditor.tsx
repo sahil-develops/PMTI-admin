@@ -36,6 +36,22 @@ const CustomImage = Image.extend({
 
 import { Editor } from '@tiptap/react';
 
+const CustomLink = Link.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      title: {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute('title'),
+        renderHTML: (attributes: { title?: string }) => {
+          if (!attributes.title) return {};
+          return { title: attributes.title };
+        },
+      },
+    };
+  },
+});
+
 const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCoverImageUpload?: (url: string) => void }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverImageInputRef = useRef<HTMLInputElement>(null);
@@ -606,10 +622,11 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
         }
       }),
       CustomImage,
-      Link.configure({
+      CustomLink.configure({
         openOnClick: false,
         HTMLAttributes: {
           target: '_blank',
+          rel: 'noopener noreferrer nofollow',
         },
         validate: href => /^https?:\/\//.test(href),
       }),

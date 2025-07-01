@@ -1,8 +1,8 @@
 'use client'
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { Trash2,  } from 'lucide-react';
+import { Trash2, Eye, X } from 'lucide-react';
 import Head from 'next/head';
 import 'react-quill/dist/quill.snow.css';
 import BlogEditor from '@/app/components/Blog/Addblog/BlogEditor';
@@ -27,6 +27,7 @@ interface BlogPost {
   title: string;
   content: string;
   cover_image: string;
+  thumbnail: string;
   slug: string;
   tags: Tag[];
   user: User;
@@ -45,11 +46,16 @@ export default function EditBlog({ params }: { params: { id: string } }) {
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
   const [editedCoverImage, setEditedCoverImage] = useState('');
+  const [editedThumbnail, setEditedThumbnail] = useState('');
   const [isImageUploading, setIsImageUploading] = useState(false);
+  const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState('');
+  const [thumbnailUploadError, setThumbnailUploadError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [editedSlug, setEditedSlug] = useState('');
+  const [showCoverImageModal, setShowCoverImageModal] = useState(false);
+  const [showThumbnailModal, setShowThumbnailModal] = useState(false);
 
   useEffect(() => {
     const fetchBlogPost = async () => {
@@ -72,6 +78,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
           setEditedTitle(result.data.title);
           setEditedContent(result.data.content || '');
           setEditedCoverImage(result.data.cover_image);
+          setEditedThumbnail(result.data.thumbnail || '');
           setEditedSlug(result.data.slug);
         } else {
           throw new Error(result.error || 'Failed to fetch blog post');
@@ -97,7 +104,8 @@ export default function EditBlog({ params }: { params: { id: string } }) {
         title: editedTitle,
         content: editedContent,
         slug: editedSlug,
-        cover_image: editedCoverImage
+        cover_image: editedCoverImage,
+        thumbnail: editedThumbnail
       };
       const response = await fetch(`https://api.4pmti.com/blog/${params.id}`, {
         method: 'PATCH',
@@ -117,7 +125,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
         throw new Error(result.error || 'Failed to update blog post');
       }
     } catch (error) {
-      setError('Failed to update blog post. Please try again.');
+      setError('Thumbnail is required.');
     } finally {
       setIsSaving(false);
     }
@@ -133,6 +141,33 @@ export default function EditBlog({ params }: { params: { id: string } }) {
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setEditedTitle(newTitle);
+  };
+
+  const handleImageUpload = async (file: File, setImage: (url: string) => void, setUploading: (loading: boolean) => void, setError: (error: string) => void) => {
+    try {
+      setUploading(true);
+      setError('');
+      const authToken = localStorage.getItem('accessToken');
+      if (!authToken) throw new Error('Authentication token not found');
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('https://api.4pmti.com/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${authToken}` },
+        body: formData
+      });
+      if (!response.ok) throw new Error('Failed to upload image');
+      const data = await response.json();
+      if (data.success && data.data && data.data.url) {
+        setImage(data.data.url);
+      } else {
+        throw new Error('Invalid response from upload service');
+      }
+    } catch (error) {
+      setError('Failed to upload image. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (isLoading) {
@@ -165,18 +200,29 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                     <img
                       src={editedCoverImage}
                       alt="Cover preview"
-                      className="h-48 w-auto object-cover rounded-lg shadow"
+                      className="h-48 w-auto object-cover rounded-lg shadow cursor-pointer"
+                      onClick={() => setShowCoverImageModal(true)}
                       onError={() => setImageUploadError('Failed to load image preview')}
                     />
-                    <button
-                      onClick={() => {
-                        setEditedCoverImage('');
-                        setImageUploadError('');
-                      }}
-                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="absolute top-2 right-2 flex space-x-1">
+                      <button
+                        onClick={() => setShowCoverImageModal(true)}
+                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1.5 shadow transition-colors"
+                        title="View image"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditedCoverImage('');
+                          setImageUploadError('');
+                        }}
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow transition-colors"
+                        title="Remove image"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 )}
                 <div className="relative">
@@ -186,30 +232,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        try {
-                          setIsImageUploading(true);
-                          setImageUploadError('');
-                          const authToken = localStorage.getItem('accessToken');
-                          if (!authToken) throw new Error('Authentication token not found');
-                          const formData = new FormData();
-                          formData.append('file', file);
-                          const response = await fetch('https://api.4pmti.com/upload', {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${authToken}` },
-                            body: formData
-                          });
-                          if (!response.ok) throw new Error('Failed to upload image');
-                          const data = await response.json();
-                          if (data.success && data.data && data.data.url) {
-                            setEditedCoverImage(data.data.url);
-                          } else {
-                            throw new Error('Invalid response from upload service');
-                          }
-                        } catch (error) {
-                          setImageUploadError('Failed to upload image. Please try again.');
-                        } finally {
-                          setIsImageUploading(false);
-                        }
+                        await handleImageUpload(file, setEditedCoverImage, setIsImageUploading, setImageUploadError);
                       }
                     }}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
@@ -222,6 +245,66 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                 </div>
                 {imageUploadError && (
                   <p className="text-red-500 text-sm">{imageUploadError}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Thumbnail Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Thumbnail
+              </label>
+              <div className="space-y-4">
+                {editedThumbnail && (
+                  <div className="relative w-fit">
+                    <img
+                      src={editedThumbnail}
+                      alt="Thumbnail preview"
+                      className="h-48 w-auto object-cover rounded-lg shadow cursor-pointer"
+                      onClick={() => setShowThumbnailModal(true)}
+                      onError={() => setThumbnailUploadError('Failed to load thumbnail preview')}
+                    />
+                    <div className="absolute top-2 right-2 flex space-x-1">
+                      <button
+                        onClick={() => setShowThumbnailModal(true)}
+                        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1.5 shadow transition-colors"
+                        title="View thumbnail"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditedThumbnail('');
+                          setThumbnailUploadError('');
+                        }}
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow transition-colors"
+                        title="Remove thumbnail"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        await handleImageUpload(file, setEditedThumbnail, setIsThumbnailUploading, setThumbnailUploadError);
+                      }
+                    }}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  />
+                  {isThumbnailUploading && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-green-500 border-t-transparent"></div>
+                    </div>
+                  )}
+                </div>
+                {thumbnailUploadError && (
+                  <p className="text-red-500 text-sm">{thumbnailUploadError}</p>
                 )}
               </div>
             </div>
@@ -292,7 +375,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
               </button>
               <button
                 onClick={handleSave}
-                disabled={isSaving || isImageUploading}
+                disabled={isSaving || isImageUploading || isThumbnailUploading}
                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
                 {isSaving ? (
@@ -308,6 +391,44 @@ export default function EditBlog({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
+
+      {/* Cover Image Modal */}
+      {showCoverImageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="relative max-w-4xl max-h-full">
+            <button
+              onClick={() => setShowCoverImageModal(false)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 z-10"
+            >
+              <X size={24} />
+            </button>
+            <img
+              src={editedCoverImage}
+              alt="Cover image full view"
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Thumbnail Modal */}
+      {showThumbnailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="relative max-w-4xl max-h-full">
+            <button
+              onClick={() => setShowThumbnailModal(false)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 z-10"
+            >
+              <X size={24} />
+            </button>
+            <img
+              src={editedThumbnail}
+              alt="Thumbnail full view"
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
