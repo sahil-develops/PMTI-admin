@@ -31,6 +31,10 @@ interface BlogPost {
   slug: string;
   tags: Tag[];
   user: User;
+  metadata?: {
+    head?: string;
+    script?: string;
+  };
 }
 
 interface SingleBlogResponse {
@@ -47,6 +51,8 @@ export default function EditBlog({ params }: { params: { id: string } }) {
   const [editedContent, setEditedContent] = useState('');
   const [editedCoverImage, setEditedCoverImage] = useState('');
   const [editedThumbnail, setEditedThumbnail] = useState('');
+  const [editedHead, setEditedHead] = useState('');
+  const [editedScript, setEditedScript] = useState('');
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState('');
@@ -80,6 +86,8 @@ export default function EditBlog({ params }: { params: { id: string } }) {
           setEditedCoverImage(result.data.cover_image);
           setEditedThumbnail(result.data.thumbnail || '');
           setEditedSlug(result.data.slug);
+          setEditedHead(result.data.metadata?.head || '');
+          setEditedScript(result.data.metadata?.script || '');
         } else {
           throw new Error(result.error || 'Failed to fetch blog post');
         }
@@ -105,7 +113,11 @@ export default function EditBlog({ params }: { params: { id: string } }) {
         content: editedContent,
         slug: editedSlug,
         cover_image: editedCoverImage,
-        thumbnail: editedThumbnail
+        thumbnail: editedThumbnail,
+        metadata: {
+          head: editedHead,
+          script: editedScript
+        }
       };
       const response = await fetch(`https://api.4pmti.com/blog/${params.id}`, {
         method: 'PATCH',
@@ -359,6 +371,40 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                 Content
               </label>
               <BlogEditor content={editedContent} onChange={setEditedContent} />
+            </div>
+
+            {/* Head Metadata */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Head Metadata
+              </label>
+              <textarea
+                value={editedHead}
+                onChange={(e) => setEditedHead(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                rows={8}
+                placeholder="Enter HTML head metadata (meta tags, title, etc.)"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Add custom HTML head metadata like meta tags, title, and other head elements.
+              </p>
+            </div>
+
+            {/* Script Metadata */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Script Metadata
+              </label>
+              <textarea
+                value={editedScript}
+                onChange={(e) => setEditedScript(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                rows={6}
+                placeholder="Enter custom JavaScript code"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Add custom JavaScript code that will be included in the blog post.
+              </p>
             </div>
 
             {error && (
