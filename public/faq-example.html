@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ Example - Blog Post</title>
+    <meta name="description" content="Example blog post with interactive FAQs">
+    
+    <!-- FAQ Handler Script -->
+    <script src="/js/faq-handler.js" defer></script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #1a202c;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .blog-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+        
+        .blog-content p {
+            margin-bottom: 1.5rem;
+        }
+        
+        .blog-content h2 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .blog-content h3 {
+            color: #4a5568;
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            margin-bottom: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <article class="blog-content">
+        <h1>Understanding SAFe Framework: A Comprehensive Guide</h1>
+        
+        <p>The Scaled Agile Framework (SAFe) is a set of organization and workflow patterns intended to guide enterprises in scaling lean and agile practices. This guide will help you understand the key concepts and implementation strategies.</p>
+        
+        <h2>What is SAFe?</h2>
+        <p>SAFe is a knowledge base of proven, integrated principles and practices for Lean, Agile, and DevOps. It provides guidance for work at the Portfolio, Large Solution, Program, and Team levels.</p>
+        
+        <h2>Key Benefits of SAFe</h2>
+        <p>SAFe offers several advantages for large organizations looking to scale their Agile practices effectively.</p>
+        
+        <!-- Example FAQ Section -->
+        <h2>Frequently Asked Questions</h2>
+        
+        <div class="wp-faq-block" data-faq-id="faq-1">
+            <div class="faq-header" onclick="toggleFAQ('faq-1')">
+                <h3>What is the difference between SAFe and Scrum?</h3>
+                <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
+            </div>
+            <div id="faq-1-content" class="faq-content">
+                <div>
+                    <p><strong>Scrum</strong> is an Agile framework designed for individual teams, typically consisting of 5–10 members. It emphasizes iterative development, frequent feedback, and continuous improvement within a single team.</p>
+                    <p><strong>SAFe (Scaled Agile Framework)</strong>, on the other hand, is designed to scale Agile practices across multiple teams, departments, and even entire enterprises. SAFe introduces additional layers such as <strong>Agile Release Trains (ARTs)</strong>, <strong>Lean Portfolio Management</strong>, and <strong>Program Increments (PIs)</strong> to ensure strategic alignment and smooth execution across large-scale projects.</p>
+                    <p><em>Use Scrum for small team agility and SAFe when coordinating multiple Agile teams across an organization.</em></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="wp-faq-block" data-faq-id="faq-2">
+            <div class="faq-header" onclick="toggleFAQ('faq-2')">
+                <h3>How long does it take to implement SAFe?</h3>
+                <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
+            </div>
+            <div id="faq-2-content" class="faq-content">
+                <div>
+                    <p>SAFe implementation timelines vary depending on the organization's size, complexity, and level of Agile maturity.</p>
+                    <ul>
+                        <li><strong>Small and mid-sized organizations:</strong> Typically 6–12 months to see measurable improvements.</li>
+                        <li><strong>Large enterprises:</strong> May take 12–24 months to fully integrate SAFe across multiple teams and departments.</li>
+                    </ul>
+                    <p>Successful adoption involves structured <strong>PI Planning</strong>, leadership training, and ongoing coaching. Organizations often start by piloting SAFe within a few Agile teams before scaling across the entire enterprise.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="wp-faq-block" data-faq-id="faq-3">
+            <div class="faq-header" onclick="toggleFAQ('faq-3')">
+                <h3>What are the key benefits of SAFe?</h3>
+                <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
+            </div>
+            <div id="faq-3-content" class="faq-content">
+                <div>
+                    <p>SAFe offers several advantages, particularly for large organizations:</p>
+                    <ul>
+                        <li><strong>Improved collaboration:</strong> Aligns multiple Agile teams and stakeholders.</li>
+                        <li><strong>Faster time-to-market:</strong> Shortens development cycles through continuous integration and delivery.</li>
+                        <li><strong>Strategic alignment:</strong> Ensures that Agile execution aligns with business goals.</li>
+                        <li><strong>Scalability:</strong> Supports teams of all sizes, from small groups to enterprises with thousands of employees.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <h2>Conclusion</h2>
+        <p>SAFe provides a comprehensive framework for scaling Agile practices across large organizations. By understanding the key differences from Scrum and the implementation timeline, organizations can better prepare for their SAFe transformation journey.</p>
+    </article>
+    
+    <script>
+        // Optional: Add some analytics tracking
+        function trackPageView() {
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'page_view', {
+                    page_title: 'SAFe Framework Guide',
+                    page_location: window.location.href
+                });
+            }
+        }
+        
+        // Track page view when loaded
+        document.addEventListener('DOMContentLoaded', trackPageView);
+    </script>
+</body>
+</html> 

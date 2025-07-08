@@ -4,12 +4,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
+import Loader from "@/components/ui/Loader";
 
 interface Enrollment {
   ID: number; // Changed from id: string to ID: number based on ClassDetailsPage usage
@@ -34,6 +30,7 @@ interface Enrollment {
   status?: boolean;
   [key: string]: any; // This allows for dynamic day input properties
   testDate?: string;
+  enrollmentProgress?: string;
 }
 
 interface EnrollmentTableProps {
@@ -86,7 +83,11 @@ const CompactSelect = ({ value, onChange, options, loading = false }: {
 }) => (
   <Select value={value} onValueChange={onChange} disabled={loading}>
     <SelectTrigger className="h-8 min-h-8 text-xs px-2 py-0">
-      <SelectValue />
+      {loading ? (
+        <span className="flex items-center justify-center w-full h-full"><Loader size={16} /></span>
+      ) : (
+        <SelectValue />
+      )}
     </SelectTrigger>
     <SelectContent>
       {options.map((option) => (
@@ -181,10 +182,17 @@ export const EnrollmentTable = ({
       const response = await updateEnrollment(studentId, payload);
       if (response.success) {
         setEnrollments(prev => prev.map(enrollment => {
-          if (enrollment.student.id === studentId) {
+          if (enrollment.ID === studentId) {
+            let newPMPPass = enrollment.PMPPass;
+            let newEnrollmentProgress = enrollment.enrollmentProgress;
+            if (payload.enrollmentProgress) {
+              newEnrollmentProgress = payload.enrollmentProgress;
+              newPMPPass = payload.enrollmentProgress === 'pass';
+            }
             return {
               ...enrollment,
-              PMPPass: payload.enrollmentProgress ? payload.enrollmentProgress === 'pass' : enrollment.PMPPass,
+              enrollmentProgress: newEnrollmentProgress,
+              PMPPass: newPMPPass,
               pmbok: payload.pmbok !== undefined ? payload.pmbok : enrollment.pmbok,
               status: payload.status !== undefined ? payload.status : enrollment.status,
               MealType: payload.MealType || enrollment.MealType,
@@ -283,11 +291,11 @@ export const EnrollmentTable = ({
               </StyledTableCell>
               <StyledTableCell>
                 <CompactSelect
-                  value={(enrollment.PMPPass ? "pass" : "fail")}
+                  value={enrollment.enrollmentProgress || (enrollment.PMPPass ? "pass" : "fail")}
                   onChange={(value) => handleUpdate(enrollment.ID, {
                     enrollmentProgress: value
                   })}
-                  loading={loading[`${enrollment.student.id}-enrollmentProgress`]}
+                  loading={loading[`${enrollment.ID}-enrollmentProgress`]}
                   options={[
                     { value: "pass", label: "Pass" },
                     { value: "fail", label: "Fail" }
@@ -300,7 +308,7 @@ export const EnrollmentTable = ({
                   onChange={(value) => handleUpdate(enrollment.ID, {
                     pmbok: value === "yes"
                   })}
-                  loading={loading[`${enrollment.student.id}-pmbok`]}
+                  loading={loading[`${enrollment.ID}-pmbok`]}
                   options={[
                     { value: "yes", label: "Yes" },
                     { value: "no", label: "No" }
@@ -313,7 +321,7 @@ export const EnrollmentTable = ({
                   onChange={(value) => handleUpdate(enrollment.ID, {
                     status: value === "active"
                   })}
-                  loading={loading[`${enrollment.student.id}-status`]}
+                  loading={loading[`${enrollment.ID}-status`]}
                   options={[
                     { value: "active", label: "Active" },
                     { value: "inactive", label: "Inactive" }
@@ -326,7 +334,7 @@ export const EnrollmentTable = ({
                   onChange={(value) => handleUpdate(enrollment.ID, {
                     MealType: value
                   })}
-                  loading={loading[`${enrollment.student.id}-MealType`]}
+                  loading={loading[`${enrollment.ID}-MealType`]}
                   options={[
                     { value: "vegetarian", label: "Vegetarian" },
                     { value: "non-vegetarian", label: "Non-Vegetarian" }
@@ -335,17 +343,44 @@ export const EnrollmentTable = ({
               </StyledTableCell>
               <StyledTableCell>{enrollment.student.phone}</StyledTableCell>
               <StyledTableCell>{enrollment.Price}</StyledTableCell>
-              <StyledTableCell>{enrollment.Comments ? enrollment.Comments : "N/A"}</StyledTableCell>
+              <StyledTableCell>
+                {enrollment.Comments ? (
+                  <div className="whitespace-pre-wrap">
+                    {enrollment.Comments.split('\n').map((line, index) => {
+                      // Check if the line contains a date pattern (ISO date format)
+                      const dateMatch = line.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)/);
+                      if (dateMatch) {
+                        const dateStr = dateMatch[1];
+                        const date = new Date(dateStr);
+                        const formattedDate = date.toLocaleDateString('en-US', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        }).replace(/(\d+)(?=(,))/, match => {
+                          const num = parseInt(match);
+                          let suffix = "th";
+                          if (num % 10 === 1 && num % 100 !== 11) suffix = "st";
+                          else if (num % 10 === 2 && num % 100 !== 12) suffix = "nd";
+                          else if (num % 10 === 3 && num % 100 !== 13) suffix = "rd";
+                          return `${num}${suffix}`;
+                        });
+                        return line.replace(dateStr, formattedDate);
+                      }
+                      return line;
+                    }).join('\n')}
+                  </div>
+                ) : "N/A"}
+              </StyledTableCell>
               
               {/* Dynamic day input cells */}
               {classdays.map((date, index) => (
                 <StyledTableCell key={date.toISOString()}>
                   <CompactInput 
                     value={enrollment[`day${index + 1}Input`] || ""}
-                    onChange={(value) => handleUpdate(enrollment.student.id, {
+                    onChange={(value) => handleUpdate(enrollment.ID, {
                       [`day${index + 1}Input`]: value
                     })}
-                    loading={loading[`${enrollment.student.id}-day${index + 1}Input`]}
+                    loading={loading[`${enrollment.ID}-day${index + 1}Input`]}
                     placeholder={`Day ${index + 1} Input`}
                   />
                 </StyledTableCell>
@@ -355,20 +390,20 @@ export const EnrollmentTable = ({
               <StyledTableCell>
                 <CompactInput 
                   value={enrollment.testDate || ""}
-                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                  onChange={(value) => handleUpdate(enrollment.ID, {
                     testDate: value
                   })}
-                  loading={loading[`${enrollment.student.id}-testDate`]}
+                  loading={loading[`${enrollment.ID}-testDate`]}
                   placeholder="Test Date"
                 />
               </StyledTableCell>
               <StyledTableCell>
                 <CompactInput 
                   value={enrollment.signatureInput || ""}
-                  onChange={(value) => handleUpdate(enrollment.student.id, {
+                  onChange={(value) => handleUpdate(enrollment.ID, {
                     signatureInput: value
                   })}
-                  loading={loading[`${enrollment.student.id}-signatureInput`]}
+                  loading={loading[`${enrollment.ID}-signatureInput`]}
                   placeholder="Signature"
                 />
               </StyledTableCell>
@@ -376,7 +411,7 @@ export const EnrollmentTable = ({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => handleRescheduleClick(enrollment.student.id, enrollment.ID)}
+                  onClick={() => handleRescheduleClick(enrollment.ID, enrollment.ID)}
                 >
                   Reschedule
                 </Button>

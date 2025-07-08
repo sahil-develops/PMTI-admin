@@ -6,12 +6,16 @@ import Text from '@tiptap/extension-text';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
-import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered, ArrowDown, Link2, Link2Off, Underline as UnderlineIcon, Strikethrough, Type, Highlighter, Superscript as SuperscriptIcon, Subscript as SubscriptIcon } from 'lucide-react';
+import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered, ArrowDown, Link2, Link2Off, Underline as UnderlineIcon, Strikethrough, Type, Highlighter, Superscript as SuperscriptIcon, Subscript as SubscriptIcon, Plus, GripVertical, ChevronDown, ChevronUp, Copy, Edit3, HelpCircle, MessageSquare, X, Check, Settings } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DragHandleDots2Icon } from "@radix-ui/react-icons";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { Editor } from '@tiptap/react';
 import Link from '@tiptap/extension-link';
@@ -28,6 +32,7 @@ import Subscript from '@tiptap/extension-subscript'
 import Underline from '@tiptap/extension-underline'
 import {Strike} from '@tiptap/extension-strike'
 
+
 import { useRouter } from 'next/navigation';
 
 // Add this new type for image layout
@@ -35,6 +40,278 @@ type ImageLayout = 'inline' | 'wrap' | 'block';
 
 // Add this type for editor mode
 type EditorMode = 'rich' | 'html';
+
+// FAQ Types
+interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  isExpanded?: boolean;
+}
+
+interface FAQTemplate {
+  id: string;
+  name: string;
+  question: string;
+  answer: string;
+  category: string;
+}
+
+// WordPress-style FAQ Inserter Component
+const FAQInserter = ({ editor }: { editor: Editor | null }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState('')
+
+  const insertFAQ = () => {
+    if (!editor || !question.trim() || !answer.trim()) return
+
+    const faqId = `faq-${Date.now()}`
+    const faqHTML = `
+      <div class="wp-faq-block" data-faq-id="${faqId}">
+        <div class="faq-header" onclick="toggleFAQ('${faqId}')">
+          <h3>${question}</h3>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6,9 12,15 18,9"></polyline>
+          </svg>
+        </div>
+        <div id="${faqId}-content" class="faq-content">
+          <div>
+            ${answer}
+          </div>
+        </div>
+      </div>
+    `
+
+    editor.chain().focus().insertContent(faqHTML).run()
+    
+    // Reset form
+    setQuestion('')
+    setAnswer('')
+    setIsOpen(false)
+  }
+
+  const insertFAQFromTemplate = (template: FAQTemplate) => {
+    if (!editor) return
+
+    const faqId = `faq-${Date.now()}`
+    const faqHTML = `
+      <div class="wp-faq-block" data-faq-id="${faqId}">
+        <div class="faq-header" onclick="toggleFAQ('${faqId}')">
+          <h3>${template.question}</h3>
+          <svg class="faq-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6,9 12,15 18,9"></polyline>
+          </svg>
+        </div>
+        <div id="${faqId}-content" class="faq-content">
+          <div>
+            ${template.answer}
+          </div>
+        </div>
+      </div>
+    `
+
+    editor.chain().focus().insertContent(faqHTML).run()
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 hover:bg-gray-200 rounded flex items-center gap-2"
+        title="Insert FAQ"
+      >
+        <HelpCircle size={16} />
+        <span className="text-sm font-medium">Insert FAQ</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-96 bg-white border rounded-lg shadow-xl z-50 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Add FAQ</h3>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="p-1 hover:bg-gray-100 rounded"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Question</Label>
+              <Input
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Enter your question..."
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Answer</Label>
+              <Textarea
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                placeholder="Enter your answer..."
+                rows={4}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={insertFAQ}
+                disabled={!question.trim() || !answer.trim()}
+                className="flex-1"
+              >
+                Insert FAQ
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsOpen(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+            
+            {/* Quick Templates */}
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Quick Templates</h4>
+              <div className="grid grid-cols-1 gap-2">
+                {FAQ_TEMPLATES.slice(0, 3).map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => insertFAQFromTemplate(template)}
+                    className="text-left p-2 hover:bg-gray-50 rounded border text-sm"
+                  >
+                    <div className="font-medium text-gray-900">{template.name}</div>
+                    <div className="text-gray-500 truncate">{template.question}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Block Inserter Component
+const BlockInserter = ({ editor, onInsert }: { editor: Editor | null; onInsert?: () => void }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const blocks = [
+    {
+      id: 'faq',
+      name: 'FAQ Block',
+      description: 'Add an interactive FAQ item',
+      icon: HelpCircle,
+      category: 'Interactive',
+    },
+    {
+      id: 'heading',
+      name: 'Heading',
+      description: 'Add a heading',
+      icon: Heading1,
+      category: 'Text',
+    },
+    {
+      id: 'image',
+      name: 'Image',
+      description: 'Add an image',
+      icon: Upload,
+      category: 'Media',
+    },
+    {
+      id: 'table',
+      name: 'Table',
+      description: 'Add a table',
+      icon: TableIcon,
+      category: 'Content',
+    },
+  ]
+
+  const filteredBlocks = blocks.filter(block =>
+    block.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    block.description.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const handleInsert = (block: any) => {
+    if (block.id === 'faq') {
+      // Show FAQ inserter instead of direct insertion
+      setIsOpen(false)
+      setSearchTerm('')
+      // Trigger FAQ inserter
+      return
+    } else if (block.id === 'heading') {
+      editor?.commands.toggleHeading({ level: 2 })
+    } else if (block.id === 'image') {
+      // Trigger image upload
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = 'image/*'
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0]
+        if (file) {
+          // Handle image upload
+          console.log('Image upload triggered')
+        }
+      }
+      input.click()
+    } else if (block.id === 'table') {
+      editor?.commands.insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+    }
+    
+    setIsOpen(false)
+    setSearchTerm('')
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 hover:bg-gray-200 rounded flex items-center gap-2"
+        title="Insert Block"
+      >
+        <Plus size={16} />
+        <span className="text-sm font-medium">Insert Block</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-80 bg-white border rounded-lg shadow-xl z-50">
+          <div className="p-3 border-b">
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search blocks..."
+              className="w-full"
+            />
+          </div>
+          
+          <div className="max-h-64 overflow-y-auto">
+            {filteredBlocks.map((block) => (
+              <button
+                key={block.id}
+                onClick={() => handleInsert(block)}
+                className="w-full p-3 text-left hover:bg-gray-50 border-b last:border-b-0 flex items-center gap-3"
+              >
+                <block.icon size={20} className="text-gray-500" />
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900">{block.name}</div>
+                  <div className="text-sm text-gray-500">{block.description}</div>
+                </div>
+                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
+                  {block.category}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const CustomImage = Image.extend({
   addAttributes() {
@@ -109,7 +386,11 @@ const CustomImage = Image.extend({
   },
 });
 
-const MenuBar = ({ editor }: { editor: Editor | null }) => {
+const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: { 
+  editor: Editor | null; 
+  faqs: FAQ[]; 
+  insertFaqsIntoContent: () => void; 
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -783,6 +1064,20 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
         <ArrowDown size={16} />
       </button>
 
+      {/* FAQ Inserter */}
+      <FAQInserter editor={editor} />
+
+      {/* Insert FAQs button */}
+      {faqs.length > 0 && (
+        <button
+          onClick={insertFaqsIntoContent}
+          className="p-2 hover:bg-gray-200 rounded bg-blue-50 text-blue-600"
+          title="Insert FAQ Section"
+        >
+          <span className="text-sm font-medium">Insert FAQs</span>
+        </button>
+      )}
+
       {/* Text formatting buttons */}
       <button
         onClick={() => editor.chain().focus().toggleUnderline().run()}
@@ -1043,9 +1338,12 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
 interface BlogEditorProps {
   content: string;
   onChange: (content: string) => void;
+  faqs?: FAQ[];
+  onFaqsChange?: (faqs: FAQ[]) => void;
+  onEditorReady?: (insertFaqsFn: () => void) => void;
 }
 
-const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
+const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], onFaqsChange, onEditorReady }) => {
   const [editorMode, setEditorMode] = useState<EditorMode>('rich');
   const [htmlContent, setHtmlContent] = useState(content);
   const [slug, setSlug] = useState('');
@@ -1214,6 +1512,158 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
     }
   };
 
+  // Function to generate FAQ HTML
+  const generateFaqHtml = (faqs: FAQ[]): string => {
+    if (faqs.length === 0) return '';
+
+    return faqs.map((faq, index) => {
+      const itemId = `faq${index + 1}_${Date.now()}`;
+      const headingId = `heading${index + 1}_${Date.now()}`;
+      const collapseId = `collapse${index + 1}_${Date.now()}`;
+      return `
+        <div class="accordion-item" style="margin-bottom: 1.5rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 2px 8px rgba(67,56,202,0.08);">
+          <h3 class="accordion-header" id="${headingId}" style="margin: 0;">
+            <button 
+              class="accordion-button collapsed" 
+              type="button" 
+              onclick="toggleAccordion('${collapseId}', this)"
+              aria-expanded="false" 
+              aria-controls="${collapseId}"
+              style="
+                width: 100%;
+                padding: 1.5rem 2rem;
+                background: #4338ca;
+                color: #fff;
+                border: none;
+                text-align: left;
+                font-size: 1.15rem;
+                font-weight: 700;
+                cursor: pointer;
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                letter-spacing: 0.01em;
+                transition: background 0.2s;
+              "
+            >
+              <span>${faq.question}</span>
+              <svg 
+                class="accordion-icon" 
+                width="22" 
+                height="22" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                stroke-width="2" 
+                style="transition: transform 0.3s ease; transform: rotate(0deg);"
+              >
+                <polyline points="6,9 12,15 18,9"></polyline>
+              </svg>
+            </button>
+          </h3>
+          <div 
+            id="${collapseId}" 
+            class="accordion-collapse" 
+            aria-labelledby="${headingId}"
+            style="
+              max-height: 0;
+              overflow: hidden;
+              transition: max-height 0.3s ease;
+            "
+          >
+            <div class="accordion-body" style="padding: 1.5rem 2rem; background-color: #f8fafc; color: #374151; line-height: 1.7; font-size: 1.05rem; font-weight: 400;">
+              ${faq.answer}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('') + `
+      <script>
+        function toggleAccordion(targetId, buttonElement) {
+          const target = document.getElementById(targetId);
+          const icon = buttonElement.querySelector('.accordion-icon');
+          const isExpanded = buttonElement.getAttribute('aria-expanded') === 'true';
+
+          // Close all other accordions in the same group
+          const accordionContainer = buttonElement.closest('.accordion-item').parentNode;
+          const allItems = accordionContainer.querySelectorAll('.accordion-collapse');
+          const allButtons = accordionContainer.querySelectorAll('.accordion-button');
+          const allIcons = accordionContainer.querySelectorAll('.accordion-icon');
+
+          allItems.forEach((item, index) => {
+            if (item !== target) {
+              item.style.maxHeight = '0';
+              allButtons[index].setAttribute('aria-expanded', 'false');
+              allButtons[index].classList.add('collapsed');
+              allIcons[index].style.transform = 'rotate(0deg)';
+            }
+          });
+
+          if (isExpanded) {
+            // Close the current item
+            target.style.maxHeight = '0';
+            buttonElement.setAttribute('aria-expanded', 'false');
+            buttonElement.classList.add('collapsed');
+            icon.style.transform = 'rotate(0deg)';
+          } else {
+            // Open the current item
+            target.style.maxHeight = target.scrollHeight + 'px';
+            buttonElement.setAttribute('aria-expanded', 'true');
+            buttonElement.classList.remove('collapsed');
+            icon.style.transform = 'rotate(180deg)';
+          }
+        }
+      </script>
+    `;
+  };
+
+  // Function to insert FAQs into editor content
+  const insertFaqsIntoContent = () => {
+    if (!editor || faqs.length === 0) return;
+    
+    const faqHtml = generateFaqHtml(faqs);
+    
+    // Insert FAQ section at the end of the content
+    editor.chain().focus().insertContent(faqHtml).run();
+  };
+
+  // Expose insert function to parent component
+  useEffect(() => {
+    if (onEditorReady && editor) {
+      onEditorReady(insertFaqsIntoContent);
+    }
+  }, [editor, onEditorReady]);
+
+  // Add global toggle function for FAQs
+  useEffect(() => {
+    // Add global toggle function
+    (window as any).toggleFAQ = (faqId: string) => {
+      const content = document.getElementById(`${faqId}-content`)
+      const icon = document.querySelector(`[data-faq-id="${faqId}"] .faq-icon`)
+      
+      if (content && icon) {
+        const isExpanded = content.classList.contains('expanded')
+        
+        if (isExpanded) {
+          content.classList.remove('expanded')
+          if (icon instanceof HTMLElement) {
+            icon.style.transform = 'rotate(0deg)'
+          }
+        } else {
+          content.classList.add('expanded')
+          if (icon instanceof HTMLElement) {
+            icon.style.transform = 'rotate(180deg)'
+          }
+        }
+      }
+    }
+
+    return () => {
+      delete (window as any).toggleFAQ
+    }
+  }, [])
+
   return (
     <div className="rounded-lg border relative bg-white ">
       {/* Editor Mode Switch */}
@@ -1232,7 +1682,11 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
 
       {editorMode === 'rich' ? (
         <>
-          <MenuBar editor={editor} />
+          <MenuBar 
+            editor={editor} 
+            faqs={faqs} 
+            insertFaqsIntoContent={insertFaqsIntoContent} 
+          />
           <div
             onDragOver={handleDragOver}
             onDrop={(e) => editor && handleDrop(e, editor)}
@@ -1272,6 +1726,91 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
           line-height: 1.6;
           font-size: 16px;
           padding: 1rem;
+        }
+
+        /* WordPress-style FAQ blocks */
+        .wp-faq-block {
+          margin: 2rem 0;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.5rem;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          transition: box-shadow 0.2s ease;
+        }
+
+        .wp-faq-block:hover {
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .faq-header {
+          padding: 1.25rem 1.5rem;
+          background: #4338ca;
+          color: white;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          transition: background-color 0.2s ease;
+        }
+
+        .faq-header:hover {
+          background: #3730a3;
+        }
+
+        .faq-header h3 {
+          margin: 0;
+          font-size: 1.1rem;
+          font-weight: 600;
+        }
+
+        .faq-icon {
+          transition: transform 0.3s ease;
+          min-width: 20px;
+          min-height: 20px;
+        }
+
+        .faq-content {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s ease;
+        }
+
+        .faq-content.expanded {
+          max-height: 1000px;
+        }
+
+        .faq-content > div {
+          padding: 1.5rem;
+          background-color: #f8fafc;
+          color: #374151;
+          line-height: 1.6;
+        }
+
+        .faq-content p {
+          margin: 0 0 1rem 0;
+        }
+
+        .faq-content p:last-child {
+          margin-bottom: 0;
+        }
+
+        .faq-content ul, .faq-content ol {
+          margin: 1rem 0;
+          padding-left: 1.5rem;
+        }
+
+        .faq-content li {
+          margin: 0.5rem 0;
+        }
+
+        .faq-content strong {
+          font-weight: 600;
+          color: #1f2937;
+        }
+
+        .faq-content em {
+          font-style: italic;
+          color: #6b7280;
         }
 
         /* Heading styles */
@@ -1758,6 +2297,118 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange }) => {
         .color-picker-dropdown {
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
+
+        /* Shimmer animation for loading states */
+        @keyframes shimmer {
+          0% {
+            background-position: -200px 0;
+          }
+          100% {
+            background-position: calc(200px + 100%) 0;
+          }
+        }
+
+        .animate-shimmer {
+          animation: shimmer 2s infinite linear;
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200px 100%;
+        }
+
+        /* FAQ Section Styles */
+        .faq-section {
+          margin: 3rem 0;
+          padding: 2rem 0;
+          border-top: 2px solid #e5e7eb;
+        }
+
+        .accordion {
+          max-width: 100%;
+        }
+
+        .accordion-item {
+          margin-bottom: 1rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.5rem;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .accordion-header {
+          margin: 0;
+        }
+
+        .accordion-button {
+          width: 100%;
+          padding: 1.25rem 1.5rem;
+          background: #4338ca;
+          color: white;
+          border: none;
+          text-align: left;
+          font-size: 1.1rem;
+          font-weight: 600;
+          cursor: pointer;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          transition: background-color 0.2s ease;
+        }
+
+        .accordion-button:hover {
+          background: #3730a3;
+        }
+
+        .accordion-button:focus {
+          outline: 2px solid #6366f1;
+          outline-offset: 2px;
+        }
+
+        .accordion-icon {
+          transition: transform 0.3s ease;
+          transform: rotate(0deg);
+          min-width: 20px;
+          min-height: 20px;
+        }
+
+        .accordion-collapse {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s ease;
+        }
+
+        .accordion-body {
+          padding: 1.5rem;
+          background-color: #f8fafc;
+          color: #374151;
+          line-height: 1.6;
+        }
+
+        .accordion-body p {
+          margin: 0 0 1rem 0;
+        }
+
+        .accordion-body p:last-child {
+          margin-bottom: 0;
+        }
+
+        .accordion-body ul {
+          margin: 1rem 0;
+          padding-left: 1.5rem;
+        }
+
+        .accordion-body li {
+          margin: 0.5rem 0;
+        }
+
+        .accordion-body strong {
+          font-weight: 600;
+          color: #1f2937;
+        }
+
+        .accordion-body em {
+          font-style: italic;
+          color: #6b7280;
+        }
       `}</style>
     </div>
   );
@@ -1767,6 +2418,447 @@ interface BlogPreviewProps {
   title: string;
   content: string;
 }
+
+// FAQ Template Data
+const FAQ_TEMPLATES: FAQTemplate[] = [
+  // General FAQs
+  {
+    id: 'general-1',
+    name: 'What is this about?',
+    question: 'What is this blog post about?',
+    answer: 'This blog post covers important information about the topic discussed in the article.',
+    category: 'General'
+  },
+  {
+    id: 'general-2',
+    name: 'Who is this for?',
+    question: 'Who is this content intended for?',
+    answer: 'This content is designed for readers who want to learn more about the subject matter.',
+    category: 'General'
+  },
+  {
+    id: 'general-3',
+    name: 'How to get started?',
+    question: 'How can I get started with this?',
+    answer: 'To get started, follow the step-by-step guide provided in the article above.',
+    category: 'General'
+  },
+  // Technical FAQs
+  {
+    id: 'technical-1',
+    name: 'System Requirements',
+    question: 'What are the system requirements?',
+    answer: 'Please check the technical specifications mentioned in the article for detailed requirements.',
+    category: 'Technical'
+  },
+  {
+    id: 'technical-2',
+    name: 'Troubleshooting',
+    question: 'What if I encounter issues?',
+    answer: 'If you encounter any issues, please refer to the troubleshooting section or contact support.',
+    category: 'Technical'
+  },
+  {
+    id: 'technical-3',
+    name: 'Installation Guide',
+    question: 'How do I install this?',
+    answer: 'Follow the installation instructions provided in the detailed guide above.',
+    category: 'Technical'
+  },
+  // Business FAQs
+  {
+    id: 'business-1',
+    name: 'Pricing Information',
+    question: 'How much does this cost?',
+    answer: 'For detailed pricing information, please refer to the pricing section in the article.',
+    category: 'Business'
+  },
+  {
+    id: 'business-2',
+    name: 'Support Options',
+    question: 'What support options are available?',
+    answer: 'We offer various support options including documentation, community forums, and direct support.',
+    category: 'Business'
+  },
+  {
+    id: 'business-3',
+    name: 'Return Policy',
+    question: 'What is your return policy?',
+    answer: 'Please review our return policy in the terms and conditions section.',
+    category: 'Business'
+  },
+  // Educational FAQs
+  {
+    id: 'educational-1',
+    name: 'Learning Resources',
+    question: 'Where can I learn more?',
+    answer: 'Check out the additional resources and links provided throughout the article.',
+    category: 'Educational'
+  },
+  {
+    id: 'educational-2',
+    name: 'Certification',
+    question: 'Is there a certification available?',
+    answer: 'Information about certifications and qualifications can be found in the article.',
+    category: 'Educational'
+  },
+  {
+    id: 'educational-3',
+    name: 'Best Practices',
+    question: 'What are the best practices?',
+    answer: 'The article includes comprehensive best practices and guidelines for optimal results.',
+    category: 'Educational'
+  },
+  // SAFe Framework FAQs (Interactive Examples)
+  {
+    id: 'safe-1',
+    name: 'SAFe vs Scrum Difference',
+    question: 'What is the difference between SAFe and Scrum?',
+    answer: '<p><strong>Scrum</strong> is an Agile framework designed for individual teams, typically consisting of 5–10 members. It emphasizes iterative development, frequent feedback, and continuous improvement within a single team.</p><p><strong>SAFe (Scaled Agile Framework)</strong>, on the other hand, is designed to scale Agile practices across multiple teams, departments, and even entire enterprises. SAFe introduces additional layers such as <strong>Agile Release Trains (ARTs)</strong>, <strong>Lean Portfolio Management</strong>, and <strong>Program Increments (PIs)</strong> to ensure strategic alignment and smooth execution across large-scale projects.</p><p><em>Use Scrum for small team agility and SAFe when coordinating multiple Agile teams across an organization.</em></p>',
+    category: 'Framework'
+  },
+  {
+    id: 'safe-2',
+    name: 'SAFe Implementation Timeline',
+    question: 'How long does it take to implement SAFe?',
+    answer: '<p>SAFe implementation timelines vary depending on the organization\'s size, complexity, and level of Agile maturity.</p><ul><li><strong>Small and mid-sized organizations:</strong> Typically 6–12 months to see measurable improvements.</li><li><strong>Large enterprises:</strong> May take 12–24 months to fully integrate SAFe across multiple teams and departments.</li></ul><p>Successful adoption involves structured <strong>PI Planning</strong>, leadership training, and ongoing coaching. Organizations often start by piloting SAFe within a few Agile teams before scaling across the entire enterprise.</p>',
+    category: 'Framework'
+  },
+  {
+    id: 'safe-3',
+    name: 'SAFe Key Benefits',
+    question: 'What are the key benefits of SAFe?',
+    answer: '<p>SAFe offers several advantages, particularly for large organizations:</p><ul><li><strong>Improved collaboration:</strong> Aligns multiple Agile teams and stakeholders.</li><li><strong>Faster time-to-market:</strong> Shortens development cycles through continuous integration and delivery.</li><li><strong>Strategic alignment:</strong> Ensures that Agile execution aligns with business goals.</li><li><strong>Scalability:</strong> Supports teams of all sizes, from small groups to enterprises with thousands of employees.</li></ul>',
+    category: 'Framework'
+  }
+];
+
+// FAQ Management Component
+interface FAQManagerProps {
+  faqs: FAQ[];
+  onFaqsChange: (faqs: FAQ[]) => void;
+  onInsertFaqs?: () => void;
+}
+
+const FAQManager: React.FC<FAQManagerProps> = ({ faqs, onFaqsChange, onInsertFaqs }) => {
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
+  const [newFaq, setNewFaq] = useState({ question: '', answer: '' });
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+
+  const categories = ['All', ...Array.from(new Set(FAQ_TEMPLATES.map(t => t.category)))];
+
+  const addFaq = () => {
+    if (faqs.length >= 3) {
+      alert('You can only add up to 3 FAQs per blog post.');
+      return;
+    }
+    
+    if (!newFaq.question.trim() || !newFaq.answer.trim()) {
+      alert('Please fill in both question and answer fields.');
+      return;
+    }
+
+    const faq: FAQ = {
+      id: Date.now().toString(),
+      question: newFaq.question.trim(),
+      answer: newFaq.answer.trim(),
+      isExpanded: false
+    };
+
+    onFaqsChange([...faqs, faq]);
+    setNewFaq({ question: '', answer: '' });
+    setShowAddDialog(false);
+  };
+
+  const addFromTemplate = () => {
+    if (faqs.length >= 3) {
+      alert('You can only add up to 3 FAQs per blog post.');
+      return;
+    }
+
+    const template = FAQ_TEMPLATES.find(t => t.id === selectedTemplate);
+    if (!template) return;
+
+    const faq: FAQ = {
+      id: Date.now().toString(),
+      question: template.question,
+      answer: template.answer,
+      isExpanded: false
+    };
+
+    onFaqsChange([...faqs, faq]);
+    setSelectedTemplate('');
+    setShowTemplateDialog(false);
+  };
+
+  const editFaq = () => {
+    if (!editingFaq) return;
+    
+    if (!newFaq.question.trim() || !newFaq.answer.trim()) {
+      alert('Please fill in both question and answer fields.');
+      return;
+    }
+
+    const updatedFaqs = faqs.map(faq => 
+      faq.id === editingFaq.id 
+        ? { ...faq, question: newFaq.question.trim(), answer: newFaq.answer.trim() }
+        : faq
+    );
+
+    onFaqsChange(updatedFaqs);
+    setEditingFaq(null);
+    setNewFaq({ question: '', answer: '' });
+    setShowAddDialog(false);
+  };
+
+  const deleteFaq = (id: string) => {
+    if (confirm('Are you sure you want to delete this FAQ?')) {
+      onFaqsChange(faqs.filter(faq => faq.id !== id));
+    }
+  };
+
+  const toggleFaq = (id: string) => {
+    const updatedFaqs = faqs.map(faq => 
+      faq.id === id ? { ...faq, isExpanded: !faq.isExpanded } : faq
+    );
+    onFaqsChange(updatedFaqs);
+  };
+
+  const moveFaq = (fromIndex: number, toIndex: number) => {
+    const newFaqs = [...faqs];
+    const [movedFaq] = newFaqs.splice(fromIndex, 1);
+    newFaqs.splice(toIndex, 0, movedFaq);
+    onFaqsChange(newFaqs);
+  };
+
+  const openEditDialog = (faq: FAQ) => {
+    setEditingFaq(faq);
+    setNewFaq({ question: faq.question, answer: faq.answer });
+    setShowAddDialog(true);
+  };
+
+  const filteredTemplates = selectedCategory === 'All' 
+    ? FAQ_TEMPLATES 
+    : FAQ_TEMPLATES.filter(t => t.category === selectedCategory);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">Frequently Asked Questions</h3>
+        <div className="flex gap-2">
+          {faqs.length > 0 && onInsertFaqs && (
+            <Button
+              onClick={onInsertFaqs}
+              variant="outline"
+              size="sm"
+              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+            >
+              <Plus size={16} className="mr-2" />
+              Insert into Editor
+            </Button>
+          )}
+          <Button
+            onClick={() => setShowTemplateDialog(true)}
+            variant="outline"
+            size="sm"
+            disabled={faqs.length >= 3}
+          >
+            <Copy size={16} className="mr-2" />
+            Add from Template
+          </Button>
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            size="sm"
+            disabled={faqs.length >= 3}
+          >
+            <Plus size={16} className="mr-2" />
+            Add Custom FAQ
+          </Button>
+        </div>
+      </div>
+
+      {faqs.length === 0 ? (
+        <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+          <p>No FAQs added yet.</p>
+          <p className="text-sm">Add up to 3 FAQs to help your readers.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {faqs.map((faq, index) => (
+            <div key={faq.id} className="border rounded-lg bg-white">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="flex flex-col gap-1">
+                    <button
+                      onClick={() => moveFaq(index, Math.max(0, index - 1))}
+                      disabled={index === 0}
+                      className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
+                    >
+                      <ChevronUp size={16} />
+                    </button>
+                    <button
+                      onClick={() => moveFaq(index, Math.min(faqs.length - 1, index + 1))}
+                      disabled={index === faqs.length - 1}
+                      className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
+                    >
+                      <ChevronDown size={16} />
+                    </button>
+                  </div>
+                  <GripVertical size={16} className="text-gray-400" />
+                  <button
+                    onClick={() => toggleFaq(faq.id)}
+                    className="flex-1 text-left font-medium text-gray-900 hover:text-blue-600"
+                  >
+                    {faq.question}
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openEditDialog(faq)}
+                    className="p-2 hover:bg-gray-100 rounded"
+                    title="Edit FAQ"
+                  >
+                    <Edit3 size={16} />
+                  </button>
+                  <button
+                    onClick={() => deleteFaq(faq.id)}
+                    className="p-2 hover:bg-red-100 rounded text-red-500"
+                    title="Delete FAQ"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+              {faq.isExpanded && (
+                <div className="px-4 pb-4 text-gray-600">
+                  {faq.answer}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add/Edit FAQ Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingFaq ? 'Edit FAQ' : 'Add Custom FAQ'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="faq-question">Question *</Label>
+              <Input
+                id="faq-question"
+                value={newFaq.question}
+                onChange={(e) => setNewFaq({ ...newFaq, question: e.target.value })}
+                placeholder="Enter the question..."
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="faq-answer">Answer *</Label>
+              <Textarea
+                id="faq-answer"
+                value={newFaq.answer}
+                onChange={(e) => setNewFaq({ ...newFaq, answer: e.target.value })}
+                placeholder="Enter the answer..."
+                rows={4}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowAddDialog(false);
+              setEditingFaq(null);
+              setNewFaq({ question: '', answer: '' });
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={editingFaq ? editFaq : addFaq}>
+              {editingFaq ? 'Update FAQ' : 'Add FAQ'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Selection Dialog */}
+      <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Select FAQ Template</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            <div className="mb-4">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="overflow-y-auto max-h-[400px] space-y-3">
+              {filteredTemplates.map(template => (
+                <div
+                  key={template.id}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    selectedTemplate === template.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setSelectedTemplate(template.id)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">{template.name}</h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        <strong>Q:</strong> {template.question}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        <strong>A:</strong> {template.answer}
+                      </p>
+                    </div>
+                    <div className="ml-4">
+                      <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
+                        {template.category}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowTemplateDialog(false);
+              setSelectedTemplate('');
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={addFromTemplate}
+              disabled={!selectedTemplate}
+            >
+              Add Selected Template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
 
 const BlogPreview: React.FC<BlogPreviewProps> = ({ title, content }) => (
   <div className="border rounded-lg p-6 bg-white">
@@ -1967,6 +3059,8 @@ const Index = () => {
   const [slug, setSlug] = useState('');
   const [head, setHead] = useState('');
   const [script, setScript] = useState('');
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const editorRef = useRef<{ insertFaqsIntoContent: () => void } | null>(null);
 
   const validateForm = () => {
     const errors: {
@@ -2059,6 +3153,7 @@ const Index = () => {
       setSlug('');
       setHead('');
       setScript('');
+      setFaqs([]);
       setValidationErrors({});
    
     } catch (error) {
@@ -2232,7 +3327,10 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
 <!-- Additional Meta Tags -->
 <meta name="robots" content="index, follow" />
 <meta name="author" content="Your Site Name" />
-<link rel="canonical" href="${canonicalUrl}" />`;
+<link rel="canonical" href="${canonicalUrl}" />
+
+<!-- FAQ Handler Script -->
+<script src="/js/faq-handler.js" defer></script>`;
 
     setHead(headContent);
   };
@@ -2493,11 +3591,29 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
               if (newContent.trim() && newContent !== '<p></p>') {
                 setValidationErrors(prev => ({ ...prev, content: undefined }));
               }
-            }} 
+            }}
+            faqs={faqs}
+            onFaqsChange={setFaqs}
+            onEditorReady={(insertFaqsFn) => {
+              editorRef.current = { insertFaqsIntoContent: insertFaqsFn };
+            }}
           />
           {validationErrors.content && (
             <p className="mt-1 text-sm text-red-500">{validationErrors.content}</p>
           )}
+        </div>
+
+        {/* FAQ Management Section */}
+        <div className="border-t pt-8">
+          <FAQManager 
+            faqs={faqs} 
+            onFaqsChange={setFaqs}
+            onInsertFaqs={() => {
+              if (editorRef.current) {
+                editorRef.current.insertFaqsIntoContent();
+              }
+            }}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-4">

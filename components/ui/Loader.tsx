@@ -1,10 +1,13 @@
 import React from 'react';
 
-const Loader = () => {
+const Loader = ({ size = 16 }: { size?: number }) => {
   return (
-    <div className="flex justify-center items-center">
-      <div className="loader"></div>
-    </div>
+    <span className="inline-flex items-center justify-center">
+      <span
+        className="loader"
+        style={{ width: size, height: size, borderWidth: size / 8 }}
+      />
+    </span>
   );
 };
 

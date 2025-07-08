@@ -29,6 +29,7 @@ interface BlogPost {
   cover_image: string;
   thumbnail: string;
   slug: string;
+  description: string | null;
   tags: Tag[];
   user: User;
   metadata?: {
@@ -53,6 +54,8 @@ export default function EditBlog({ params }: { params: { id: string } }) {
   const [editedThumbnail, setEditedThumbnail] = useState('');
   const [editedHead, setEditedHead] = useState('');
   const [editedScript, setEditedScript] = useState('');
+  const [editedDescription, setEditedDescription] = useState('');
+  const [editedTags, setEditedTags] = useState<string>('');
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState('');
@@ -62,6 +65,19 @@ export default function EditBlog({ params }: { params: { id: string } }) {
   const [editedSlug, setEditedSlug] = useState('');
   const [showCoverImageModal, setShowCoverImageModal] = useState(false);
   const [showThumbnailModal, setShowThumbnailModal] = useState(false);
+  
+  // Store original values to compare changes
+  const [originalValues, setOriginalValues] = useState({
+    title: '',
+    content: '',
+    cover_image: '',
+    thumbnail: '',
+    slug: '',
+    description: '',
+    tags: '',
+    head: '',
+    script: ''
+  });
 
   useEffect(() => {
     const fetchBlogPost = async () => {
@@ -86,8 +102,23 @@ export default function EditBlog({ params }: { params: { id: string } }) {
           setEditedCoverImage(result.data.cover_image);
           setEditedThumbnail(result.data.thumbnail || '');
           setEditedSlug(result.data.slug);
+          setEditedDescription(result.data.description || '');
+          setEditedTags(result.data.tags ? result.data.tags.map((tag: Tag) => tag.name).join(', ') : '');
           setEditedHead(result.data.metadata?.head || '');
           setEditedScript(result.data.metadata?.script || '');
+          
+          // Store original values for comparison
+          setOriginalValues({
+            title: result.data.title,
+            content: result.data.content || '',
+            cover_image: result.data.cover_image,
+            thumbnail: result.data.thumbnail || '',
+            slug: result.data.slug,
+            description: result.data.description || '',
+            tags: result.data.tags ? result.data.tags.map((tag: Tag) => tag.name).join(', ') : '',
+            head: result.data.metadata?.head || '',
+            script: result.data.metadata?.script || ''
+          });
         } else {
           throw new Error(result.error || 'Failed to fetch blog post');
         }
@@ -100,6 +131,8 @@ export default function EditBlog({ params }: { params: { id: string } }) {
     fetchBlogPost();
   }, [params.id]);
 
+
+
   const handleSave = async () => {
     try {
       setIsSaving(true);
@@ -108,17 +141,62 @@ export default function EditBlog({ params }: { params: { id: string } }) {
       if (!authToken) {
         throw new Error('Authentication token not found');
       }
-      const updateData = {
-        title: editedTitle,
-        content: editedContent,
-        slug: editedSlug,
-        cover_image: editedCoverImage,
-        thumbnail: editedThumbnail,
-        metadata: {
-          head: editedHead,
-          script: editedScript
+
+      // Create updateData object with only changed fields
+      const updateData: any = {};
+
+      // Check each field and only include if it has changed
+      if (editedTitle !== originalValues.title) {
+        updateData.title = editedTitle;
+      }
+
+      if (editedContent !== originalValues.content) {
+        updateData.content = editedContent;
+      }
+
+      if (editedSlug !== originalValues.slug) {
+        updateData.slug = editedSlug;
+      }
+
+      if (editedDescription !== originalValues.description) {
+        updateData.description = editedDescription;
+      }
+
+      if (editedCoverImage !== originalValues.cover_image) {
+        updateData.cover_image = editedCoverImage;
+      }
+
+      if (editedThumbnail !== originalValues.thumbnail) {
+        updateData.thumbnail = editedThumbnail;
+      }
+
+      // Check if tags have changed
+      const currentTags = editedTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      const originalTags = originalValues.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      const tagsChanged = JSON.stringify(currentTags.sort()) !== JSON.stringify(originalTags.sort());
+      
+      if (tagsChanged) {
+        updateData.tagNames = currentTags;
+      }
+
+      // Check if metadata has changed
+      const metadataChanged = editedHead !== originalValues.head || editedScript !== originalValues.script;
+      if (metadataChanged) {
+        updateData.metadata = {};
+        if (editedHead !== originalValues.head) {
+          updateData.metadata.head = editedHead;
         }
-      };
+        if (editedScript !== originalValues.script) {
+          updateData.metadata.script = editedScript;
+        }
+      }
+
+      // Only proceed if there are changes to save
+      if (Object.keys(updateData).length === 0) {
+        setError('No changes detected to save.');
+        return;
+      }
+
       const response = await fetch(`https://api.4pmti.com/blog/${params.id}`, {
         method: 'PATCH',
         headers: {
@@ -362,6 +440,40 @@ export default function EditBlog({ params }: { params: { id: string } }) {
               </div>
               <p className="mt-1 text-sm text-gray-500">
                 This will be the URL of your blog post. Use lowercase letters, numbers, and hyphens only.
+              </p>
+            </div>
+
+            {/* Description Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                rows={4}
+                placeholder="Enter a brief description of your blog post"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                A short description that will appear in search results and social media shares.
+              </p>
+            </div>
+
+            {/* Tags/Categories Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Categories/Tags
+              </label>
+              <input
+                type="text"
+                value={editedTags}
+                onChange={(e) => setEditedTags(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Enter tags separated by commas (e.g., SCRUM, PMPM, Agile)"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Enter categories or tags separated by commas to help organize your blog post.
               </p>
             </div>
 

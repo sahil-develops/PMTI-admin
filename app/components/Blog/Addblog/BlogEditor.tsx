@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useEditor, EditorContent, Extension } from '@tiptap/react';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
@@ -7,7 +7,44 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
-import { Bold, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered, X, Link2, Link2Off } from 'lucide-react';
+import Bold from '@tiptap/extension-bold';
+import { useToast } from '@/hooks/use-toast';
+import { Bold as BoldIcon, Italic, Heading1, Heading2, Heading3, List, AlignLeft, AlignCenter, AlignRight, Upload, MinusSquare, Square, PlusSquare, Trash2, ListOrdered, X, Link2, Link2Off } from 'lucide-react';
+
+// Custom Bold extension that only applies when explicitly triggered
+const CustomBold = Bold.extend({
+  addCommands() {
+    return {
+      ...this.parent?.(),
+      toggleBold: () => ({ commands, editor }) => {
+        // Only allow bold in paragraphs and text nodes, not in headings
+        const { state } = editor;
+        const { selection } = state;
+        const { $from, $to } = selection;
+        
+        // Check if we're in a heading
+        const isInHeading = $from.parent.type.name === 'heading' || $to.parent.type.name === 'heading';
+        
+        if (isInHeading) {
+          // If in heading, don't apply bold formatting
+          return false;
+        }
+        
+        // Apply bold only when explicitly triggered by the button
+        return commands.toggleMark('bold');
+      },
+    };
+  },
+  
+  addKeyboardShortcuts() {
+    return {
+      'Mod-b': () => {
+        // Disable keyboard shortcut for bold to prevent accidental usage
+        return false;
+      },
+    };
+  },
+});
 
 // Extend the Image extension to support alignment and width
 const CustomImage = Image.extend({
@@ -60,6 +97,7 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
   const [linkUrl, setLinkUrl] = useState('');
   const [linkTitle, setLinkTitle] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
+  const { toast } = useToast();
 
   if (!editor) {
     return null;
@@ -298,11 +336,46 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
       
       {/* Text formatting buttons */}
       <button
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('bold') ? 'bg-gray-200' : ''}`}
-        title="Bold"
+        onClick={() => {
+          const { state } = editor;
+          const { selection } = state;
+          const { $from, $to } = selection;
+          
+          // Check if we're in a heading
+          const isInHeading = $from.parent.type.name === 'heading' || $to.parent.type.name === 'heading';
+          
+          if (isInHeading) {
+            // Show a toast notification that bold is not available in headings
+            toast({
+              title: 'Bold Not Available',
+              description: 'Bold formatting is not available in headings. Use it in regular paragraphs instead.',
+              variant: 'destructive',
+            });
+            return;
+          }
+          
+          editor.chain().focus().toggleBold().run();
+        }}
+        className={`p-2 hover:bg-gray-200 rounded ${
+          editor.isActive('bold') ? 'bg-gray-200' : ''
+        } ${
+          (() => {
+            const { state } = editor;
+            const { selection } = state;
+            const { $from, $to } = selection;
+            const isInHeading = $from.parent.type.name === 'heading' || $to.parent.type.name === 'heading';
+            return isInHeading ? 'opacity-50 cursor-not-allowed' : '';
+          })()
+        }`}
+        title={(() => {
+          const { state } = editor;
+          const { selection } = state;
+          const { $from, $to } = selection;
+          const isInHeading = $from.parent.type.name === 'heading' || $to.parent.type.name === 'heading';
+          return isInHeading ? 'Bold not available in headings' : 'Bold';
+        })()}
       >
-        <Bold size={16} />
+        <BoldIcon size={16} />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -599,6 +672,25 @@ interface BlogEditorProps {
 const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: BlogEditorProps) => {
   const [isImgLoading, setIsImgLoading] = useState(false);
   
+  // Function to clean up <strong> tags from headings
+  const cleanStrongTagsFromHeadings = (html: string): string => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Remove <strong> tags from h1, h2, h3, h4 elements
+    const headings = tempDiv.querySelectorAll('h1, h2, h3, h4');
+    headings.forEach(heading => {
+      const strongTags = heading.querySelectorAll('strong');
+      strongTags.forEach(strong => {
+        // Replace <strong> with its text content
+        const textNode = document.createTextNode(strong.textContent || '');
+        strong.parentNode?.replaceChild(textNode, strong);
+      });
+    });
+    
+    return tempDiv.innerHTML;
+  };
+  
   const editor = useEditor({
     extensions: [
       Document,
@@ -606,6 +698,7 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
       Text,
       StarterKit.configure({
         document: false,
+        bold: false, // Disable default bold extension
         heading: {
           levels: [1, 2, 3],
           HTMLAttributes: {
@@ -633,10 +726,16 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
+      CustomBold,
     ],
-    content: content || '<p></p>',
+    content: content ? cleanStrongTagsFromHeadings(content) : '<p></p>',
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      let html = editor.getHTML();
+      
+      // Clean up any <strong> tags in headings
+      const cleanedHtml = cleanStrongTagsFromHeadings(html);
+      
+      onChange(cleanedHtml);
     },
     parseOptions: {
       preserveWhitespace: 'full',
@@ -649,6 +748,16 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
       onCoverImageChange(url);
     }
   };
+
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && content) {
+      const cleanedContent = cleanStrongTagsFromHeadings(content);
+      if (editor.getHTML() !== cleanedContent) {
+        editor.commands.setContent(cleanedContent);
+      }
+    }
+  }, [content, editor]);
 
   return (
     <div className="space-y-4">
@@ -720,16 +829,30 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
           
           .ProseMirror h1 {
             font-size: 2rem;
-            font-weight: bold;
+            font-weight: 600;
           }
           
           .ProseMirror h2 {
             font-size: 1.5rem;
-            font-weight: bold;
+            font-weight: 600;
           }
           
           .ProseMirror h3 {
             font-size: 1.25rem;
+            font-weight: 600;
+          }
+          
+          .ProseMirror h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+          }
+          
+          .ProseMirror p {
+            font-weight: normal;
+          }
+          
+          /* Only apply bold when explicitly set via the bold button */
+          .ProseMirror strong {
             font-weight: bold;
           }
           
