@@ -181,6 +181,7 @@ const ActionDropdown = ({
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
+          body: JSON.stringify({ isCorpClass: true })
         }
       );
 
@@ -755,7 +756,7 @@ useEffect(() => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
-        body: JSON.stringify({ ids: selectedClasses })
+        body: JSON.stringify({ ids: selectedClasses, isCorpClass: true })
       });
 
       if (!response.ok) {

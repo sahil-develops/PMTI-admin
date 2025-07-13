@@ -387,6 +387,8 @@ export default function EditClass({ params }: PageProps) {
         // Send dates in MM-DD-YYYY format to match the API expected format
         startDate: startDateFormatted,
         endDate: endDateFormatted,
+        // Always set isCorpClass to true
+        isCorpClass: true,
       };
   
       console.log("Submitting payload:", payload);

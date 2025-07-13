@@ -3062,6 +3062,12 @@ const Index = () => {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const editorRef = useRef<{ insertFaqsIntoContent: () => void } | null>(null);
 
+  // Function to sanitize content by removing script tags
+  const sanitizeContent = (content: string): string => {
+    // Remove script tags and their content
+    return content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  };
+
   const validateForm = () => {
     const errors: {
       title?: string;
@@ -3104,44 +3110,64 @@ const Index = () => {
       .map(tag => tag.trim())
       .filter(tag => tag !== '');
 
+    // Convert script and head to base64 if they exist
+    const scriptBase64 = script.trim() ? btoa(unescape(encodeURIComponent(script))) : '';
+    const headBase64 = head.trim() ? btoa(unescape(encodeURIComponent(head))) : '';
+
     const payload = {
       title,
-      content,
+      content: sanitizeContent(content),
       tagNames,
       relatedArticleIds: [101, 102, 103],
-      coverImage: coverImageUrl,
-      thumbnail: thumbnailUrl,
+      coverImage: coverImageUrl || '',
+      thumbnail: thumbnailUrl || '',
       slug,
       metadata: {
-        head: head.toString(),
-        script: script.toString()
+        head: headBase64,
+        script: scriptBase64
       }
     };
 
     setIsSubmitting(true);
     try {
+      const authToken = localStorage.getItem('accessToken');
+      if (!authToken) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Validate token format
+      if (!authToken.startsWith('eyJ') && !authToken.includes('.')) {
+        throw new Error('Invalid authentication token format');
+      }
+
+      console.log('Sending payload:', JSON.stringify(payload, null, 2));
+
       const response = await fetch('https://api.4pmti.com/blog', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + localStorage.getItem('accessToken'),
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify(payload),
       });
 
-  
-      if (response.ok) {
-        setTimeout(() => {
-          router.push('/blog');
-        }, 1500);
-      }
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
-        throw new Error('Failed to publish blog post');
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
+      const responseData = await response.json();
+      console.log('Success response:', responseData);
+
       setShowSuccessModal(true);
-      router.push('/blog');
+      setTimeout(() => {
+        router.push('/blog');
+      }, 1500);
+      
       // Reset form
       setTitle('');
       setDescription('');
