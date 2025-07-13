@@ -1516,105 +1516,16 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
   const generateFaqHtml = (faqs: FAQ[]): string => {
     if (faqs.length === 0) return '';
 
-    return faqs.map((faq, index) => {
-      const itemId = `faq${index + 1}_${Date.now()}`;
-      const headingId = `heading${index + 1}_${Date.now()}`;
-      const collapseId = `collapse${index + 1}_${Date.now()}`;
-      return `
-        <div class="accordion-item" style="margin-bottom: 1.5rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 2px 8px rgba(67,56,202,0.08);">
-          <h3 class="accordion-header" id="${headingId}" style="margin: 0;">
-            <button 
-              class="accordion-button collapsed" 
-              type="button" 
-              onclick="toggleAccordion('${collapseId}', this)"
-              aria-expanded="false" 
-              aria-controls="${collapseId}"
-              style="
-                width: 100%;
-                padding: 1.5rem 2rem;
-                background: #4338ca;
-                color: #fff;
-                border: none;
-                text-align: left;
-                font-size: 1.15rem;
-                font-weight: 700;
-                cursor: pointer;
-                position: relative;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                letter-spacing: 0.01em;
-                transition: background 0.2s;
-              "
-            >
-              <span>${faq.question}</span>
-              <svg 
-                class="accordion-icon" 
-                width="22" 
-                height="22" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                stroke-width="2" 
-                style="transition: transform 0.3s ease; transform: rotate(0deg);"
-              >
-                <polyline points="6,9 12,15 18,9"></polyline>
-              </svg>
-            </button>
-          </h3>
-          <div 
-            id="${collapseId}" 
-            class="accordion-collapse" 
-            aria-labelledby="${headingId}"
-            style="
-              max-height: 0;
-              overflow: hidden;
-              transition: max-height 0.3s ease;
-            "
-          >
-            <div class="accordion-body" style="padding: 1.5rem 2rem; background-color: #f8fafc; color: #374151; line-height: 1.7; font-size: 1.05rem; font-weight: 400;">
-              ${faq.answer}
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('') + `
-      <script>
-        function toggleAccordion(targetId, buttonElement) {
-          const target = document.getElementById(targetId);
-          const icon = buttonElement.querySelector('.accordion-icon');
-          const isExpanded = buttonElement.getAttribute('aria-expanded') === 'true';
-
-          // Close all other accordions in the same group
-          const accordionContainer = buttonElement.closest('.accordion-item').parentNode;
-          const allItems = accordionContainer.querySelectorAll('.accordion-collapse');
-          const allButtons = accordionContainer.querySelectorAll('.accordion-button');
-          const allIcons = accordionContainer.querySelectorAll('.accordion-icon');
-
-          allItems.forEach((item, index) => {
-            if (item !== target) {
-              item.style.maxHeight = '0';
-              allButtons[index].setAttribute('aria-expanded', 'false');
-              allButtons[index].classList.add('collapsed');
-              allIcons[index].style.transform = 'rotate(0deg)';
-            }
-          });
-
-          if (isExpanded) {
-            // Close the current item
-            target.style.maxHeight = '0';
-            buttonElement.setAttribute('aria-expanded', 'false');
-            buttonElement.classList.add('collapsed');
-            icon.style.transform = 'rotate(0deg)';
-          } else {
-            // Open the current item
-            target.style.maxHeight = target.scrollHeight + 'px';
-            buttonElement.setAttribute('aria-expanded', 'true');
-            buttonElement.classList.remove('collapsed');
-            icon.style.transform = 'rotate(180deg)';
-          }
-        }
-      </script>
+    return `
+      <div class="faq-section" style="text-align: left !important;">
+        <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem;">FAQ</h2>
+        ${faqs.map((faq) => `
+          <details style="margin-bottom: 1rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.5rem 1rem; background: #fff;">
+            <summary style="font-weight: 600; font-size: 1.1rem; cursor: pointer; outline: none; padding: 0.5rem 0;">${faq.question}</summary>
+            <div style="margin-top: 0.5rem; padding-left: 0.5rem; color: #374151;">${faq.answer}</div>
+          </details>
+        `).join('')}
+      </div>
     `;
   };
 
@@ -2408,6 +2319,34 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
         .accordion-body em {
           font-style: italic;
           color: #6b7280;
+        }
+
+        /* --- Compact FAQ Accordion Styles for Editor --- */
+        .accordion-item {
+          margin-bottom: 0.5rem !important;
+          border-radius: 0.5rem;
+          border: 1px solid #e2e8f0;
+          box-shadow: none !important;
+        }
+        .accordion-header {
+          margin: 0 !important;
+        }
+        .accordion-button {
+          padding: 0.5rem 1rem !important;
+          font-size: 1rem !important;
+        }
+        .accordion-body {
+          padding: 0.5rem 1rem !important;
+          font-size: 1rem !important;
+        }
+        .accordion-collapse {
+          /* No extra margin or padding needed */
+        }
+
+        /* .faq-section, .faq-section * { text-align: left !important; } */
+
+        .ProseMirror, .ProseMirror * {
+          text-align: left !important;
         }
       `}</style>
     </div>
