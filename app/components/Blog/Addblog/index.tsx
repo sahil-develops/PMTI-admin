@@ -3196,14 +3196,6 @@ const Index = () => {
   };
 
   const handleCoverImageUpload = async (file: File) => {
-    const allowedTypes = ['png', 'jpg', 'jpeg'];
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
-  
-    if (!fileExtension || !allowedTypes.includes(fileExtension)) {
-      setCoverImageError('Only PNG, JPG, and JPEG files are allowed.');
-      return;
-    }
-  
     setIsCoverImageUploading(true);
     setCoverImageError('');
   
@@ -3241,14 +3233,6 @@ const Index = () => {
   };
 
   const handleThumbnailUpload = async (file: File) => {
-    const allowedTypes = ['png', 'jpg', 'jpeg'];
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
-  
-    if (!fileExtension || !allowedTypes.includes(fileExtension)) {
-      setThumbnailError('Only PNG, JPG, and JPEG files are allowed.');
-      return;
-    }
-  
     setIsThumbnailUploading(true);
     setThumbnailError('');
   
@@ -3432,7 +3416,7 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
                   const file = e.target.files?.[0];
                   if (file) handleCoverImageUpload(file);
                 }}
-                accept="image/png, image/jpeg, image/jpg"
+                accept="*/*"
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
               
@@ -3476,7 +3460,7 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
                   const file = e.target.files?.[0];
                   if (file) handleThumbnailUpload(file);
                 }}
-                accept="image/png, image/jpeg, image/jpg"
+                accept="*/*"
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
               
