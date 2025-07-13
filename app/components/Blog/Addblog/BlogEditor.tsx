@@ -283,15 +283,47 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
     return node && node.type.name === 'image';
   };
 
+  const isLinkActive = () => {
+    return editor.isActive('link');
+  };
+
+  const isImageLinkActive = () => {
+    const { from } = editor.state.selection;
+    const node = editor.state.doc.nodeAt(from);
+    
+    // Check if we're on a link node that contains an image
+    if (node && node.type.name === 'link' && node.content.content[0]?.type.name === 'image') {
+      return true;
+    }
+    
+    // Check if we're on an image that's inside a link
+    if (node && node.type.name === 'image') {
+      const { $from } = editor.state.selection;
+      const linkParent = $from.parent;
+      return linkParent && linkParent.type.name === 'link';
+    }
+    
+    return false;
+  };
+
   const addLink = () => {
     if (!linkUrl || !editor) return;
     
     // Ensure URL has http:// or https://
     const url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
     
-    // If there's no selection, don't add the link
-    if (editor.state.selection.empty) {
-      alert('Please select some text first');
+    // Check if an image is selected
+    const isImageSelected = () => {
+      const { from } = editor.state.selection;
+      const node = editor.state.doc.nodeAt(from);
+      return node && node.type.name === 'image';
+    };
+    
+    const imageSelected = isImageSelected();
+    
+    // If there's no selection and no image is selected, don't add the link
+    if (editor.state.selection.empty && !imageSelected) {
+      alert('Please select some text or an image first');
       return;
     }
 
@@ -301,11 +333,31 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
       linkAttributes.title = linkTitle.trim();
     }
 
-    editor
-      .chain()
-      .focus()
-      .setLink(linkAttributes)
-      .run();
+    if (imageSelected) {
+      // Handle linking an image
+      const { from } = editor.state.selection;
+      const node = editor.state.doc.nodeAt(from);
+      
+      if (node && node.type.name === 'image') {
+        // Create HTML for linked image
+        const linkedImageHtml = `<a href="${url}"${linkTitle.trim() ? ` title="${linkTitle.trim()}"` : ''} target="_blank" rel="noopener noreferrer nofollow"><img src="${node.attrs.src}" alt="${node.attrs.alt || ''}" title="${node.attrs.title || ''}" style="width: ${node.attrs.width || 'auto'}; ${node.attrs.alignment === 'center' ? 'display: block; margin: 0 auto;' : node.attrs.alignment === 'right' ? 'float: right;' : 'float: left;'}" /></a>`;
+        
+        // Replace the image with the linked image using HTML
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from, to: from + node.nodeSize })
+          .insertContent(linkedImageHtml)
+          .run();
+      }
+    } else {
+      // Handle linking text (existing functionality)
+      editor
+        .chain()
+        .focus()
+        .setLink(linkAttributes)
+        .run();
+    }
 
     setLinkUrl('');
     setLinkTitle('');
@@ -314,11 +366,53 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
 
   const removeLink = () => {
     if (!editor) return;
-    editor.chain().focus().unsetLink().run();
+    
+    // Check if we're removing a link from an image
+    const { from } = editor.state.selection;
+    const node = editor.state.doc.nodeAt(from);
+    
+    if (node && node.type.name === 'link') {
+      // If the link contains an image, extract the image
+      const imageNode = node.content.content[0];
+      if (imageNode && imageNode.type.name === 'image') {
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from, to: from + node.nodeSize })
+          .insertContent(imageNode)
+          .run();
+      } else {
+        // Regular text link removal
+        editor.chain().focus().unsetLink().run();
+      }
+    } else if (node && node.type.name === 'image') {
+      // Check if the image is inside a link (HTML-based approach)
+      const { $from } = editor.state.selection;
+      const linkParent = $from.parent;
+      
+      if (linkParent && linkParent.type.name === 'link') {
+        // Extract the image from the link
+        const imageAttrs = node.attrs;
+        const imageHtml = `<img src="${imageAttrs.src}" alt="${imageAttrs.alt || ''}" title="${imageAttrs.title || ''}" style="width: ${imageAttrs.width || 'auto'}; ${imageAttrs.alignment === 'center' ? 'display: block; margin: 0 auto;' : imageAttrs.alignment === 'right' ? 'float: right;' : 'float: left;'}" />`;
+        
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: $from.start(), to: $from.end() })
+          .insertContent(imageHtml)
+          .run();
+      } else {
+        // Regular text link removal
+        editor.chain().focus().unsetLink().run();
+      }
+    } else {
+      // Regular text link removal
+      editor.chain().focus().unsetLink().run();
+    }
   };
 
   return (
-    <div className=" flex flex-wrap space-x-1 space-y-1 sm:space-x-2 sm:space-y-0 border-b pb-2 mb-2 rounded-t-lg bg-gray-100 p-2 sticky top-0">
+    <div className="flex flex-wrap space-x-1 space-y-1 sm:space-x-2 sm:space-y-0 border-b pb-2 mb-2 rounded-t-lg bg-gray-100 p-2 sticky-toolbar">
       <input
         type="file"
         ref={fileInputRef}
@@ -477,18 +571,25 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
       <div className=" flex items-center gap-1">
         <button
           onClick={() => {
-            if (editor.isActive('link')) {
+            if (isLinkActive() || isImageLinkActive()) {
               removeLink();
             } else {
+              // Check if an image is selected and show appropriate feedback
+              if (isImageSelected()) {
+                toast({
+                  title: 'Link Image',
+                  description: 'Enter the URL to make this image clickable.',
+                });
+              }
               setShowLinkInput(!showLinkInput);
             }
           }}
           className={`p-1.5 hover:bg-gray-200 rounded ${
-            editor.isActive('link') ? 'bg-gray-200' : ''
+            isLinkActive() || isImageLinkActive() ? 'bg-gray-200' : ''
           }`}
-          title={editor.isActive('link') ? 'Remove Link' : 'Add Link'}
+          title={isLinkActive() || isImageLinkActive() ? 'Remove Link' : 'Add Link'}
         >
-          {editor.isActive('link') ? (
+          {isLinkActive() || isImageLinkActive() ? (
             <Link2Off size={16} />
           ) : (
             <Link2 size={16} />
@@ -496,8 +597,13 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
         </button>
 
         {showLinkInput && (
-          <div className="absolute top-full left-1/4  mt-1 bg-white border rounded-md shadow-lg p-3 z-50 min-w-[200px] lg:min-w-[400px]">
+          <div className="absolute -top-44 left-1/3 -translate-x-1/2 mt-1 bg-white border rounded-md shadow-lg p-3 z-[99999] min-w-[200px] lg:min-w-[400px]">
             <div className="space-y-2">
+              {isImageSelected() && (
+                <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                  <strong>Image Link:</strong> This will make the selected image clickable.
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   URL *
@@ -546,7 +652,7 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
                   onClick={addLink}
                   className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                 >
-                  Add Link
+                  {isImageSelected() ? 'Link Image' : 'Add Link'}
                 </button>
                 <button
                   onClick={() => {
@@ -797,13 +903,25 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
       )}
       
       {/* Editor */}
-      <div className="rounded-lg border bg-white rounded-b-lg border-gray-300">
+      <div className="rounded-lg border bg-white rounded-b-lg border-gray-300 relative">
         <MenuBar editor={editor} onCoverImageUpload={handleCoverImageUpload} />
         <EditorContent 
           editor={editor} 
           className="p-4 min-h-[600px] h-full rounded-b-lg prose max-w-none bg-white"
+          style={{ paddingTop: '1rem' }}
         />
         <style>{`
+          /* Sticky toolbar styles */
+          .sticky-toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+          }
+          
           @keyframes shimmer {
             0% {
               background-position: -700px 0;
@@ -885,6 +1003,43 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
             background-color: rgba(37, 99, 235, 0.1);
             border-radius: 0.25rem;
             padding: 0 2px;
+          }
+          
+          /* Linked image styling */
+          .ProseMirror a img {
+            transition: opacity 0.2s ease;
+          }
+          
+          .ProseMirror a:hover img {
+            opacity: 0.8;
+          }
+          
+          /* Visual indicator for linked images */
+          .ProseMirror a:has(img) {
+            display: inline-block;
+            position: relative;
+          }
+          
+          .ProseMirror a:has(img)::after {
+            content: '🔗';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(37, 99, 235, 0.9);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+          }
+          
+          .ProseMirror a:has(img):hover::after {
+            opacity: 1;
           }
         `}</style>
       </div>

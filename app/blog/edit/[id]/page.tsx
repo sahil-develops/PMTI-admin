@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 
 import { Trash2, Eye, X } from 'lucide-react';
 import Head from 'next/head';
-import 'react-quill/dist/quill.snow.css';
 import BlogEditor from '@/app/components/Blog/Addblog/BlogEditor';
 
 // Define types
@@ -38,12 +37,6 @@ interface BlogPost {
   };
 }
 
-interface SingleBlogResponse {
-  message: string;
-  error: string;
-  success: boolean;
-  data: BlogPost;
-}
 
 export default function EditBlog({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -79,6 +72,27 @@ export default function EditBlog({ params }: { params: { id: string } }) {
     script: ''
   });
 
+  // Helper functions for base64 encoding/decoding
+  const decodeBase64 = (str: string): string => {
+    if (!str) return '';
+    try {
+      return atob(str);
+    } catch (error) {
+      console.warn('Failed to decode base64, returning original string:', error);
+      return str;
+    }
+  };
+
+  const encodeBase64 = (str: string): string => {
+    if (!str) return '';
+    try {
+      return btoa(str);
+    } catch (error) {
+      console.warn('Failed to encode base64, returning original string:', error);
+      return str;
+    }
+  };
+
   useEffect(() => {
     const fetchBlogPost = async () => {
       try {
@@ -104,10 +118,15 @@ export default function EditBlog({ params }: { params: { id: string } }) {
           setEditedSlug(result.data.slug);
           setEditedDescription(result.data.description || '');
           setEditedTags(result.data.tags ? result.data.tags.map((tag: Tag) => tag.name).join(', ') : '');
-          setEditedHead(result.data.metadata?.head || '');
-          setEditedScript(result.data.metadata?.script || '');
           
-          // Store original values for comparison
+          // Decode base64 metadata
+          const decodedHead = decodeBase64(result.data.metadata?.head || '');
+          const decodedScript = decodeBase64(result.data.metadata?.script || '');
+          
+          setEditedHead(decodedHead);
+          setEditedScript(decodedScript);
+          
+          // Store original values for comparison (store decoded values)
           setOriginalValues({
             title: result.data.title,
             content: result.data.content || '',
@@ -116,8 +135,8 @@ export default function EditBlog({ params }: { params: { id: string } }) {
             slug: result.data.slug,
             description: result.data.description || '',
             tags: result.data.tags ? result.data.tags.map((tag: Tag) => tag.name).join(', ') : '',
-            head: result.data.metadata?.head || '',
-            script: result.data.metadata?.script || ''
+            head: decodedHead,
+            script: decodedScript
           });
         } else {
           throw new Error(result.error || 'Failed to fetch blog post');
@@ -184,10 +203,10 @@ export default function EditBlog({ params }: { params: { id: string } }) {
       if (metadataChanged) {
         updateData.metadata = {};
         if (editedHead !== originalValues.head) {
-          updateData.metadata.head = editedHead;
+          updateData.metadata.head = encodeBase64(editedHead);
         }
         if (editedScript !== originalValues.script) {
-          updateData.metadata.script = editedScript;
+          updateData.metadata.script = encodeBase64(editedScript);
         }
       }
 
@@ -273,6 +292,19 @@ export default function EditBlog({ params }: { params: { id: string } }) {
       <Head>
         <title>Edit Blog | PMTI Dashboard</title>
       </Head>
+      <style jsx>{`
+        /* Ensure the sticky toolbar works properly within this page layout */
+        .sticky-toolbar {
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 100 !important;
+        }
+        
+        /* Ensure modals appear above the sticky toolbar */
+        .modal-overlay {
+          z-index: 200 !important;
+        }
+      `}</style>
 
       <div className="max-w-full mx-auto">
         <div className="bg-white shadow-md rounded-lg p-6">
@@ -478,44 +510,56 @@ export default function EditBlog({ params }: { params: { id: string } }) {
             </div>
 
             {/* Content Editor */}
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Content
               </label>
-              <BlogEditor content={editedContent} onChange={setEditedContent} />
+              <div className="border border-gray-300 rounded-lg overflow-hidden">
+                <BlogEditor content={editedContent} onChange={setEditedContent} />
+              </div>
             </div>
 
             {/* Head Metadata */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Head Metadata
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Head Metadata
+                </label>
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  Base64 Encoded
+                </span>
+              </div>
               <textarea
                 value={editedHead}
                 onChange={(e) => setEditedHead(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-sm"
                 rows={8}
                 placeholder="Enter HTML head metadata (meta tags, title, etc.)"
               />
               <p className="mt-1 text-sm text-gray-500">
-                Add custom HTML head metadata like meta tags, title, and other head elements.
+                Add custom HTML head metadata like meta tags, title, and other head elements. Content is automatically encoded/decoded.
               </p>
             </div>
 
             {/* Script Metadata */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Script Metadata
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Script Metadata
+                </label>
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                  Base64 Encoded
+                </span>
+              </div>
               <textarea
                 value={editedScript}
                 onChange={(e) => setEditedScript(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-sm"
                 rows={6}
                 placeholder="Enter custom JavaScript code"
               />
               <p className="mt-1 text-sm text-gray-500">
-                Add custom JavaScript code that will be included in the blog post.
+                Add custom JavaScript code that will be included in the blog post. Content is automatically encoded/decoded.
               </p>
             </div>
 
@@ -552,7 +596,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
 
       {/* Cover Image Modal */}
       {showCoverImageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center modal-overlay p-4">
           <div className="relative max-w-4xl max-h-full">
             <button
               onClick={() => setShowCoverImageModal(false)}
@@ -571,7 +615,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
 
       {/* Thumbnail Modal */}
       {showThumbnailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center modal-overlay p-4">
           <div className="relative max-w-4xl max-h-full">
             <button
               onClick={() => setShowThumbnailModal(false)}
@@ -591,16 +635,4 @@ export default function EditBlog({ params }: { params: { id: string } }) {
   );
 }
 
-// Add this CSS to handle the ReactQuill editor height
-const styles = `
-.ql-container {
-  height: calc(500px - 42px) !important;
-}
-`;
-
-// Add the styles to the document
-if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement('style');
-  styleSheet.innerText = styles;
-  document.head.appendChild(styleSheet);
-} 
+// Note: The BlogEditor component now includes its own styling and sticky toolbar functionality 
