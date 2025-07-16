@@ -473,19 +473,21 @@ export default function EditBlog({ params }: { params: { id: string } }) {
       <Head>
         <title>Edit Blog | PMTI Dashboard</title>
       </Head>
-      <style jsx>{`
-        /* Ensure the sticky toolbar works properly within this page layout */
-        .sticky-toolbar {
-          position: sticky !important;
-          top: 0 !important;
-          z-index: 100 !important;
-        }
-        
-        /* Ensure modals appear above the sticky toolbar */
-        .modal-overlay {
-          z-index: 200 !important;
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          /* Ensure the sticky toolbar works properly within this page layout */
+          .sticky-toolbar {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 100 !important;
+          }
+          
+          /* Ensure modals appear above the sticky toolbar */
+          .modal-overlay {
+            z-index: 200 !important;
+          }
+        `
+      }} />
 
       <div className="max-w-full mx-auto">
         <div className="bg-white shadow-md rounded-lg p-6">
