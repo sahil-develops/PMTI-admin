@@ -340,22 +340,7 @@ const TableShimmer = () => (
 
 
 // Update this helper function to handle dates consistently
-const formatDateFromAPI = (dateString: string): string => {
-  if (!dateString) return "N/A";
-  try {
-    // Create a date object in local timezone
-    const date = new Date(dateString.split('T')[0]);
-    
-    // Format the date using local timezone
-    const month = date.toLocaleString('default', { month: 'long' });
-    const day = date.getDate();
-    const year = date.getFullYear().toString().slice(-2);
-    return `${month} ${day}, ${year}`;
-  } catch (error) {
-    console.error("Error formatting date:", error);
-    return dateString;
-  }
-};
+
 
 // Update this helper function as well
 const formatDate = (dateString: string): string => {
