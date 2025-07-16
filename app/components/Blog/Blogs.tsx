@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { Plus, Search, Trash2, Edit, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, X, ChevronLeft, ChevronRight, Tag, Globe } from 'lucide-react';
 import { Tooltip } from 'react-tooltip';
 import ReactQuill from 'react-quill';
 import { useRouter } from 'next/navigation';
@@ -66,6 +66,17 @@ export default function Blogs() {
   const [totalItems, setTotalItems] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   
+  // Page Assignment Modal State
+  const [showPageAssignmentModal, setShowPageAssignmentModal] = useState(false);
+  const [selectedPage, setSelectedPage] = useState<string>('');
+  const [availablePages, setAvailablePages] = useState<string[]>([]);
+  const [allArticlesForAssignment, setAllArticlesForAssignment] = useState<BlogPost[]>([]);
+  const [selectedArticles, setSelectedArticles] = useState<BlogPost[]>([]);
+  const [isLoadingArticles, setIsLoadingArticles] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [pageSearchTerm, setPageSearchTerm] = useState('');
+  const [articleSearchTerm, setArticleSearchTerm] = useState('');
+  
   const router = useRouter();
   const { toast } = useToast();
 
@@ -79,6 +90,17 @@ export default function Blogs() {
       }
     }
     return 'An unexpected error occurred. Please try again.';
+  };
+
+  // Extract unique pages (tags) from blog posts
+  const extractPagesFromPosts = (posts: BlogPost[]): string[] => {
+    const pages = new Set<string>();
+    posts.forEach(post => {
+      post.tags.forEach(tag => {
+        pages.add(tag.name);
+      });
+    });
+    return Array.from(pages).sort();
   };
 
   const fetchBlogPosts = async (page = 1) => {
@@ -128,6 +150,10 @@ export default function Blogs() {
         setTotalItems(result.data.meta.total);
         setCurrentPage(result.data.meta.page);
         setError(null); // Clear any previous errors
+        
+        // Extract available pages from the fetched posts
+        const pages = extractPagesFromPosts(result.data.data);
+        setAvailablePages(pages);
       } else {
         const errorMessage = extractErrorMessage(result);
         setError(errorMessage);
@@ -140,6 +166,136 @@ export default function Blogs() {
       setIsLoading(false);
     }
   };
+
+  // Fetch all articles for page assignment
+  const fetchAllArticlesForAssignment = async () => {
+    try {
+      setIsLoadingArticles(true);
+      
+      const authToken = localStorage.getItem('accessToken');
+      if (!authToken) {
+        throw new Error('Authentication token not found');
+      }
+      
+      const response = await fetch(`https://api.4pmti.com/blog?page=1&limit=100`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch articles for assignment');
+      }
+      
+      const result = await response.json();
+      if (result.success && result.data) {
+        setAllArticlesForAssignment(result.data.data || []);
+      } else {
+        throw new Error('Failed to fetch articles for assignment');
+      }
+    } catch (error) {
+      console.error('Error fetching articles for assignment:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch articles for assignment. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoadingArticles(false);
+    }
+  };
+
+  // Handle page assignment
+  const handleAssignArticlesToPage = async () => {
+    if (!selectedPage || selectedArticles.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Please select a page and at least one article.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      setIsAssigning(true);
+      
+      const authToken = localStorage.getItem('accessToken');
+      if (!authToken) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Assign each selected article to the page
+      const assignmentPromises = selectedArticles.map(async (article) => {
+        const response = await fetch(`https://api.4pmti.com/blog/${article.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tagNames: [selectedPage]
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to assign article "${article.title}" to page "${selectedPage}"`);
+        }
+
+        return response.json();
+      });
+
+      await Promise.all(assignmentPromises);
+
+      toast({
+        title: 'Success',
+        description: `Successfully assigned ${selectedArticles.length} article(s) to "${selectedPage}" page.`,
+      });
+
+      // Reset modal state
+      setShowPageAssignmentModal(false);
+      setSelectedPage('');
+      setSelectedArticles([]);
+      setPageSearchTerm('');
+      setArticleSearchTerm('');
+
+      // Refresh the blog posts to show updated data
+      fetchBlogPosts(currentPage);
+    } catch (error) {
+      console.error('Error assigning articles to page:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to assign articles to page. Please try again.';
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  // Handle article selection for page assignment
+  const handleArticleSelection = (article: BlogPost) => {
+    setSelectedArticles(prev => {
+      const isSelected = prev.some(selected => selected.id === article.id);
+      if (isSelected) {
+        return prev.filter(selected => selected.id !== article.id);
+      } else {
+        return [...prev, article];
+      }
+    });
+  };
+
+  // Filter articles based on search term
+  const filteredArticlesForAssignment = allArticlesForAssignment.filter(article =>
+    article.title.toLowerCase().includes(articleSearchTerm.toLowerCase()) ||
+    article.content.toLowerCase().includes(articleSearchTerm.toLowerCase()) ||
+    article.tags.some(tag => tag.name.toLowerCase().includes(articleSearchTerm.toLowerCase()))
+  );
+
+  // Filter pages based on search term
+  const filteredPages = availablePages.filter(page =>
+    page.toLowerCase().includes(pageSearchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     fetchBlogPosts(currentPage);
@@ -334,6 +490,12 @@ export default function Blogs() {
     });
   };
 
+  // Handle opening page assignment modal
+  const handleOpenPageAssignmentModal = () => {
+    setShowPageAssignmentModal(true);
+    fetchAllArticlesForAssignment();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Head>
@@ -343,14 +505,23 @@ export default function Blogs() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <h1 className="text-2xl font-semibold text-gray-800">Blogs</h1>
-          <Link href={'/blog/add'}>
+          <div className="flex gap-2">
             <button 
-              className="bg-black text-white px-4 py-2 rounded-md flex items-center gap-2 transition duration-300"
+              onClick={handleOpenPageAssignmentModal}
+              className="bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition duration-300 hover:bg-green-700"
             >
-              <Plus size={16} />
-              <span>Add Blog</span>
+              <Globe size={16} />
+              <span>Assign Articles to Pages</span>
             </button>
-          </Link>
+            <Link href={'/blog/add'}>
+              <button 
+                className="bg-black text-white px-4 py-2 rounded-md flex items-center gap-2 transition duration-300"
+              >
+                <Plus size={16} />
+                <span>Add Blog</span>
+              </button>
+            </Link>
+          </div>
         </div>
         
         {/* Error Display */}
@@ -678,6 +849,218 @@ export default function Blogs() {
                 >
                   OK
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Page Assignment Modal */}
+        {showPageAssignmentModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+              <div className="flex justify-between items-center p-6 border-b">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Assign Articles to Pages</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Select articles and assign them to specific pages (tags)
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPageAssignmentModal(false);
+                    setSelectedPage('');
+                    setSelectedArticles([]);
+                    setPageSearchTerm('');
+                    setArticleSearchTerm('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Page Selection */}
+                  <div>
+                    <h4 className="text-md font-medium text-gray-900 mb-4">Select Page</h4>
+                    <div className="relative mb-4">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                      <input
+                        type="text"
+                        placeholder="Search pages..."
+                        value={pageSearchTerm}
+                        onChange={(e) => setPageSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-md">
+                      {filteredPages.length > 0 ? (
+                        <div className="divide-y divide-gray-200">
+                          {filteredPages.map((page) => (
+                            <button
+                              key={page}
+                              onClick={() => setSelectedPage(page)}
+                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                                selectedPage === page ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                              }`}
+                            >
+                              <div className="flex items-center space-x-2">
+                                <Tag size={16} className="text-gray-400" />
+                                <span className="font-medium text-gray-900">{page}</span>
+                                {selectedPage === page && (
+                                  <span className="ml-auto text-blue-600 text-sm">Selected</span>
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center text-gray-500">
+                          {pageSearchTerm ? 'No pages found matching your search.' : 'No pages available.'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Article Selection */}
+                  <div>
+                    <h4 className="text-md font-medium text-gray-900 mb-4">Select Articles</h4>
+                    <div className="relative mb-4">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                      <input
+                        type="text"
+                        placeholder="Search articles..."
+                        value={articleSearchTerm}
+                        onChange={(e) => setArticleSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    {isLoadingArticles ? (
+                      <div className="flex justify-center items-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                        <span className="ml-3 text-gray-600">Loading articles...</span>
+                      </div>
+                    ) : (
+                      <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-md">
+                        {filteredArticlesForAssignment.length > 0 ? (
+                          <div className="divide-y divide-gray-200">
+                            {filteredArticlesForAssignment.map((article) => {
+                              const isSelected = selectedArticles.some(selected => selected.id === article.id);
+                              return (
+                                <button
+                                  key={article.id}
+                                  onClick={() => handleArticleSelection(article)}
+                                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                                    isSelected ? 'bg-green-50 border-l-4 border-green-500' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-start space-x-3">
+                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center mt-1 ${
+                                      isSelected ? 'bg-green-500 border-green-500' : 'border-gray-300'
+                                    }`}>
+                                      {isSelected && (
+                                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                                      )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h5 className="font-medium text-gray-900 truncate">{article.title}</h5>
+                                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                        {getPreview(article.content, 80)}
+                                      </p>
+                                      <div className="flex flex-wrap gap-1 mt-2">
+                                        {article.tags.map((tag) => (
+                                          <span 
+                                            key={tag.id} 
+                                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                                          >
+                                            {tag.name}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="p-4 text-center text-gray-500">
+                            {articleSearchTerm ? 'No articles found matching your search.' : 'No articles available.'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Selected Articles Summary */}
+                {selectedArticles.length > 0 && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h5 className="text-sm font-medium text-gray-900 mb-3">
+                      Selected Articles ({selectedArticles.length})
+                    </h5>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedArticles.map((article) => (
+                        <span
+                          key={article.id}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                        >
+                          {article.title}
+                          <button
+                            onClick={() => handleArticleSelection(article)}
+                            className="ml-2 text-blue-600 hover:text-blue-800"
+                          >
+                            <X size={14} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between items-center p-6 border-t bg-gray-50">
+                <div className="text-sm text-gray-600">
+                  {selectedPage && selectedArticles.length > 0 && (
+                    <span>
+                      {selectedArticles.length} article{selectedArticles.length !== 1 ? 's' : ''} will be assigned to "{selectedPage}"
+                    </span>
+                  )}
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowPageAssignmentModal(false);
+                      setSelectedPage('');
+                      setSelectedArticles([]);
+                      setPageSearchTerm('');
+                      setArticleSearchTerm('');
+                    }}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAssignArticlesToPage}
+                    disabled={!selectedPage || selectedArticles.length === 0 || isAssigning}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    {isAssigning ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        <span>Assigning...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Tag size={16} />
+                        <span>Assign to Page</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
