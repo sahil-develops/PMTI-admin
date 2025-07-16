@@ -1230,10 +1230,10 @@ useEffect(() => {
                       {classItem.location?.location || "1"}
                     </TableCell>
                     <TableCell>
-                      {formatDateFromAPI(classItem.startDate)}
+                      {classItem.startDate}
                     </TableCell>
                     <TableCell>
-                      {formatDateFromAPI(classItem.endDate)}
+                      {classItem.endDate}
                     </TableCell>
                     <TableCell>
                       {/* This line is really important */}

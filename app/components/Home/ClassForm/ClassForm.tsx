@@ -355,8 +355,9 @@ const ClassForm = () => {
     const selectedClassType = classTypes.find(ct => ct.id === classTypeId);
     
     // If we have a start date and class type with duration, calculate end date
-    if (selectedClassType?.duration && watch("startDate")) {
-      const startDate = new Date(watch("startDate"));
+    const currentStartDate = watch("startDate");
+    if (selectedClassType?.duration && currentStartDate) {
+      const startDate = new Date(currentStartDate);
       const endDate = new Date(startDate);
       
       // Add duration-1 days (since start date counts as day 1)
@@ -372,26 +373,25 @@ const ClassForm = () => {
     if (!date) return;
     
     const localDate = normalizeDate(date);
-    // @ts-ignore
-    setValue("startDate", localDate);
-    
-    // Get the selected class type
-    const classTypeId = watch("classTypeId");
-    const selectedClassType = classTypes.find(ct => ct.id === classTypeId);
-    
-    // If we have a class type with duration, calculate end date
-    if (selectedClassType?.duration && localDate) {
-      const endDate = new Date(localDate);
+    if (localDate) {
+      setValue("startDate", localDate);
       
-      // Add duration-1 days (since start date counts as day 1)
-      endDate.setDate(localDate.getDate() + (selectedClassType.duration - 1));
-      // Set the end date
-      // @ts-ignore
-      setValue("endDate", endDate);
-    } else if (watch("endDate") && localDate && watch("endDate") < localDate) {
-      // Reset end date if it's before new start date
-      // @ts-ignore
-      setValue("endDate", undefined);
+      // Get the selected class type
+      const classTypeId = watch("classTypeId");
+      const selectedClassType = classTypes.find(ct => ct.id === classTypeId);
+      
+      // If we have a class type with duration, calculate end date
+      if (selectedClassType?.duration && localDate) {
+        const endDate = new Date(localDate);
+        
+        // Add duration-1 days (since start date counts as day 1)
+        endDate.setDate(localDate.getDate() + (selectedClassType.duration - 1));
+        // Set the end date
+        setValue("endDate", endDate);
+      } else if (watch("endDate") && localDate && watch("endDate") < localDate) {
+        // Reset end date if it's before new start date
+        setValue("endDate", null as any);
+      }
     }
   };
 
@@ -466,18 +466,27 @@ const formatTime = (time: string) => {
   }
 };
 
-// Update the normalizeDate function
+// Fix timezone issues by creating a proper date normalization function
+// This function creates a new Date object using local year, month, and day
+// to avoid timezone conversion issues that cause dates to shift by one day
 const normalizeDate = (date: Date | undefined) => {
   if (!date) return undefined;
-  return date;
+  
+  // Create a new date using the local year, month, and day to avoid timezone issues
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  
+  // Create date in local timezone (no timezone conversion)
+  return new Date(year, month, day);
 };
 
-// Update this function to format dates properly
-// Replace the existing formatDateForAPI function with this improved version
+// Fix the date formatting to use toLocaleString properly
+// This function formats dates as MM-dd-YYYY using toLocaleString
 const formatDateForAPI = (date: Date | undefined): string => {
   if (!date) return '';
   
-  // Format as MM-dd-YYYY using toLocaleString
+  // Use toLocaleString with local timezone to get the correct date
   return date.toLocaleString('en-US', {
     month: '2-digit',
     day: '2-digit',
@@ -987,8 +996,9 @@ const onSubmit = async (data: ClassFormData) => {
                       onSelect={(date) => {
                         if (date) {
                           const localDate = normalizeDate(date);
-                          // @ts-ignore
-                          setValue("endDate", localDate);
+                          if (localDate) {
+                            setValue("endDate", localDate);
+                          }
                         }
                       }}
                       disabled={(date) => 
