@@ -348,10 +348,10 @@ export default function EditClass({ params }: PageProps) {
     return isValid;
   };
 
-  // Update the convertStatusToBoolean function to convertStatusToString
+  // Update the convertStatusToString function to handle the new status format
   const convertStatusToString = (status: string): string => {
-    // Return "active" if status is "1", "inactive" for any other value
-    return status === "1" ? "active" : "inactive";
+    // Return the status as is since it's already in the correct format
+    return status === "active" ? "active" : "inactive";
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -382,8 +382,8 @@ export default function EditClass({ params }: PageProps) {
         ...(classData || {}),
         // Convert price from string to number
         price: classData ? parseFloat(classData.price as string) : 0,
-        // Convert status from string to "active"/"inactive"
-        status: classData ? convertStatusToString(classData.status as string) : "inactive",
+        // Status is already in the correct format ("active"/"inactive")
+        status: classData ? classData.status : "inactive",
         // Send dates in MM-DD-YYYY format to match the API expected format
         startDate: startDateFormatted,
         endDate: endDateFormatted,
@@ -621,17 +621,15 @@ export default function EditClass({ params }: PageProps) {
               <div>
                 <Label>Status</Label>
                 <Select
-                  value={typeof classData.status === 'boolean' 
-                    ? (classData.status ? "1" : "0") 
-                    : classData.status}
+                  value={classData.status === "active" ? "active" : "inactive"}
                   onValueChange={(value) => setClassData({ ...classData, status: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Active</SelectItem>
-                    <SelectItem value="0">Inactive</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
