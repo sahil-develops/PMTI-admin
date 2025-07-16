@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { Trash2, Eye, X } from 'lucide-react';
+import { Trash2, Eye, X, Plus, Search } from 'lucide-react';
 import Head from 'next/head';
 import BlogEditor from '@/app/components/Blog/Addblog/BlogEditor';
 
@@ -35,8 +35,17 @@ interface BlogPost {
     head?: string;
     script?: string;
   };
+  relatedArticleIds?: number[];
 }
 
+interface RelatedArticle {
+  id: number;
+  title: string;
+  slug: string;
+  cover_image: string;
+  thumbnail: string;
+  description: string | null;
+}
 
 export default function EditBlog({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -59,6 +68,21 @@ export default function EditBlog({ params }: { params: { id: string } }) {
   const [showCoverImageModal, setShowCoverImageModal] = useState(false);
   const [showThumbnailModal, setShowThumbnailModal] = useState(false);
   
+  // Related articles state
+  const [relatedArticleIds, setRelatedArticleIds] = useState<number[]>([]);
+  const [relatedArticles, setRelatedArticles] = useState<RelatedArticle[]>([]);
+  const [allArticles, setAllArticles] = useState<RelatedArticle[]>([]);
+  const [isLoadingRelated, setIsLoadingRelated] = useState(false);
+  const [isLoadingAllArticles, setIsLoadingAllArticles] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [showArticleSelector, setShowArticleSelector] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  
   // Store original values to compare changes
   const [originalValues, setOriginalValues] = useState({
     title: '',
@@ -69,7 +93,8 @@ export default function EditBlog({ params }: { params: { id: string } }) {
     description: '',
     tags: '',
     head: '',
-    script: ''
+    script: '',
+    relatedArticleIds: [] as number[]
   });
 
   // Helper functions for base64 encoding/decoding
@@ -90,6 +115,116 @@ export default function EditBlog({ params }: { params: { id: string } }) {
     } catch (error) {
       console.warn('Failed to encode base64, returning original string:', error);
       return str;
+    }
+  };
+
+  // Fetch all articles for selection
+  const fetchAllArticles = async (page = 1, append = false) => {
+    try {
+      if (page === 1) {
+        setIsLoadingAllArticles(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+      
+      const authToken = localStorage.getItem('accessToken');
+      if (!authToken) {
+        throw new Error('Authentication token not found');
+      }
+      
+      const response = await fetch(`https://api.4pmti.com/blog?page=${page}&limit=10`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch articles');
+      }
+      const result = await response.json();
+      if (result.success) {
+        // Handle nested data structure: result.data.data contains the articles array
+        const articlesData = result.data.data || result.data;
+        const meta = result.data.meta;
+        
+        // Filter out the current article and format the data
+        const filteredArticles = articlesData
+          .filter((article: any) => article.id !== parseInt(params.id))
+          .map((article: any) => ({
+            id: article.id,
+            title: article.title,
+            slug: article.slug,
+            cover_image: article.cover_image,
+            thumbnail: article.thumbnail,
+            description: article.description
+          }));
+        
+        if (append) {
+          setAllArticles(prev => [...prev, ...filteredArticles]);
+        } else {
+          setAllArticles(filteredArticles);
+        }
+        
+        // Update pagination state
+        setCurrentPage(page);
+        setTotalPages(meta?.totalPages || 1);
+        setHasMore(page < (meta?.totalPages || 1));
+        
+        console.log('Fetched articles:', filteredArticles.length, 'Page:', page, 'Total pages:', meta?.totalPages);
+      }
+    } catch (error) {
+      console.error('Failed to fetch all articles:', error);
+    } finally {
+      setIsLoadingAllArticles(false);
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Fetch related articles data
+  const fetchRelatedArticles = async (articleIds: number[]) => {
+    if (articleIds.length === 0) {
+      setRelatedArticles([]);
+      return;
+    }
+
+    try {
+      setIsLoadingRelated(true);
+      const authToken = localStorage.getItem('accessToken');
+      if (!authToken) {
+        throw new Error('Authentication token not found');
+      }
+
+      const relatedArticlesData: RelatedArticle[] = [];
+      
+      for (const id of articleIds) {
+        try {
+          const response = await fetch(`https://api.4pmti.com/blog/${id}`, {
+            headers: {
+              'Authorization': `Bearer ${authToken}`
+            }
+          });
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              relatedArticlesData.push({
+                id: result.data.id,
+                title: result.data.title,
+                slug: result.data.slug,
+                cover_image: result.data.cover_image,
+                thumbnail: result.data.thumbnail,
+                description: result.data.description
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch article ${id}:`, error);
+        }
+      }
+      
+      setRelatedArticles(relatedArticlesData);
+    } catch (error) {
+      console.error('Failed to fetch related articles:', error);
+    } finally {
+      setIsLoadingRelated(false);
     }
   };
 
@@ -119,6 +254,10 @@ export default function EditBlog({ params }: { params: { id: string } }) {
           setEditedDescription(result.data.description || '');
           setEditedTags(result.data.tags ? result.data.tags.map((tag: Tag) => tag.name).join(', ') : '');
           
+          // Set related articles
+          const relatedIds = result.data.relatedArticleIds || [];
+          setRelatedArticleIds(relatedIds);
+          
           // Decode base64 metadata
           const decodedHead = decodeBase64(result.data.metadata?.head || '');
           const decodedScript = decodeBase64(result.data.metadata?.script || '');
@@ -136,8 +275,12 @@ export default function EditBlog({ params }: { params: { id: string } }) {
             description: result.data.description || '',
             tags: result.data.tags ? result.data.tags.map((tag: Tag) => tag.name).join(', ') : '',
             head: decodedHead,
-            script: decodedScript
+            script: decodedScript,
+            relatedArticleIds: relatedIds
           });
+
+          // Fetch related articles data
+          await fetchRelatedArticles(relatedIds);
         } else {
           throw new Error(result.error || 'Failed to fetch blog post');
         }
@@ -148,9 +291,41 @@ export default function EditBlog({ params }: { params: { id: string } }) {
       }
     };
     fetchBlogPost();
+    fetchAllArticles();
   }, [params.id]);
 
+  // Handle adding related article
+  const handleAddRelatedArticle = (articleId: number) => {
+    if (!relatedArticleIds.includes(articleId)) {
+      const newRelatedIds = [...relatedArticleIds, articleId];
+      setRelatedArticleIds(newRelatedIds);
+      fetchRelatedArticles(newRelatedIds);
+    }
+  };
 
+  // Handle removing related article
+  const handleRemoveRelatedArticle = (articleId: number) => {
+    const newRelatedIds = relatedArticleIds.filter(id => id !== articleId);
+    setRelatedArticleIds(newRelatedIds);
+    fetchRelatedArticles(newRelatedIds);
+  };
+
+  // Filter articles based on search term
+  const filteredArticles = allArticles.filter(article =>
+    article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    article.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (article.description && article.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  // Handle scroll to load more articles
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px from bottom
+    
+    if (isNearBottom && hasMore && !isLoadingMore && !isLoadingAllArticles) {
+      fetchAllArticles(currentPage + 1, true);
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -196,6 +371,12 @@ export default function EditBlog({ params }: { params: { id: string } }) {
       
       if (tagsChanged) {
         updateData.tagNames = currentTags;
+      }
+
+      // Check if related articles have changed
+      const relatedArticlesChanged = JSON.stringify(relatedArticleIds.sort()) !== JSON.stringify(originalValues.relatedArticleIds.sort());
+      if (relatedArticlesChanged) {
+        updateData.relatedArticleIds = relatedArticleIds;
       }
 
       // Check if metadata has changed
@@ -509,6 +690,64 @@ export default function EditBlog({ params }: { params: { id: string } }) {
               </p>
             </div>
 
+            {/* Related Articles Section */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Related Articles
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowArticleSelector(true)}
+                  className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-800"
+                >
+                  <Plus size={16} />
+                  <span>Add Articles</span>
+                </button>
+              </div>
+              
+              {isLoadingRelated ? (
+                <div className="flex justify-center items-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : relatedArticles.length > 0 ? (
+                <div className="space-y-3">
+                  {relatedArticles.map((article) => (
+                    <div key={article.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        {article.thumbnail && (
+                          <img
+                            src={article.thumbnail}
+                            alt={article.title}
+                            className="w-12 h-12 object-cover rounded"
+                          />
+                        )}
+                        <div>
+                          <h4 className="font-medium text-gray-900">{article.title}</h4>
+                          <p className="text-sm text-gray-500">{article.slug}</p>
+                          {article.description && (
+                            <p className="text-sm text-gray-600 mt-1">{article.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveRelatedArticle(article.id)}
+                        className="text-red-500 hover:text-red-700 p-1"
+                        title="Remove article"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <p>No related articles found</p>
+                  <p className="text-sm mt-1">Click "Add Articles" to select related articles</p>
+                </div>
+              )}
+            </div>
+
             {/* Content Editor */}
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -593,6 +832,193 @@ export default function EditBlog({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
+
+      {/* Article Selector Modal */}
+      {showArticleSelector && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center modal-overlay p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Select Related Articles</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {relatedArticleIds.length} article{relatedArticleIds.length !== 1 ? 's' : ''} selected
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowArticleSelector(false);
+                  setSearchTerm('');
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {/* Search and Stats */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    placeholder="Search articles by title, slug, or description..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => fetchAllArticles(1, false)}
+                    disabled={isLoadingAllArticles}
+                    className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoadingAllArticles ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                  <div className="text-sm text-gray-500">
+                    {filteredArticles.length} of {allArticles.length} articles
+                    {totalPages > 1 && (
+                      <span className="ml-2 text-xs text-gray-400">
+                        (Page {currentPage} of {totalPages})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+                            {/* Articles List */}
+              <div className="max-h-[60vh] overflow-y-auto" onScroll={handleScroll}>
+                {isLoadingAllArticles ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                    <span className="ml-3 text-gray-600">Loading articles...</span>
+                  </div>
+                ) : filteredArticles.length > 0 ? (
+                  <>
+                    <div className="grid gap-3">
+                      {filteredArticles.map((article) => (
+                        <div
+                          key={article.id}
+                          className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
+                            relatedArticleIds.includes(article.id)
+                              ? 'bg-blue-50 border-blue-300 shadow-sm'
+                              : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                          }`}
+                          onClick={() => {
+                            if (relatedArticleIds.includes(article.id)) {
+                              handleRemoveRelatedArticle(article.id);
+                            } else {
+                              handleAddRelatedArticle(article.id);
+                            }
+                          }}
+                        >
+                          <div className="flex items-center space-x-4 flex-1">
+                            {article.thumbnail ? (
+                              <img
+                                src={article.thumbnail}
+                                alt={article.title}
+                                className="w-16 h-16 object-cover rounded-lg shadow-sm"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <span className="text-gray-400 text-xs">No image</span>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 truncate">{article.title}</h4>
+                              <p className="text-sm text-gray-500 mt-1">/{article.slug}</p>
+                              {article.description && (
+                                <p className="text-sm text-gray-600 mt-2 line-clamp-2">{article.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3 ml-4">
+                            {relatedArticleIds.includes(article.id) && (
+                              <span className="text-blue-600 text-sm font-medium bg-blue-100 px-2 py-1 rounded-full">
+                                Selected
+                              </span>
+                            )}
+                            <div
+                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                relatedArticleIds.includes(article.id)
+                                  ? 'bg-blue-500 border-blue-500'
+                                  : 'border-gray-300 hover:border-blue-300'
+                              }`}
+                            >
+                              {relatedArticleIds.includes(article.id) && (
+                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Loading more indicator */}
+                    {isLoadingMore && (
+                      <div className="flex justify-center items-center py-6">
+                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+                        <span className="ml-3 text-gray-600 text-sm">Loading more articles...</span>
+                      </div>
+                    )}
+                    
+                    {/* End of list indicator */}
+                    {!hasMore && filteredArticles.length > 0 && (
+                      <div className="text-center py-4 text-gray-500 text-sm">
+                        No more articles to load
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 text-lg font-medium">No articles found</p>
+                    {searchTerm ? (
+                      <p className="text-sm text-gray-400 mt-2">Try adjusting your search terms</p>
+                    ) : (
+                      <p className="text-sm text-gray-400 mt-2">No articles available to select</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center p-6 border-t bg-gray-50">
+              <div className="text-sm text-gray-600">
+                {relatedArticleIds.length > 0 && (
+                  <span>
+                    {relatedArticleIds.length} article{relatedArticleIds.length !== 1 ? 's' : ''} will be related
+                  </span>
+                )}
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setRelatedArticleIds([]);
+                    setRelatedArticles([]);
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  Clear All
+                </button>
+                <button
+                  onClick={() => {
+                    setShowArticleSelector(false);
+                    setSearchTerm('');
+                  }}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cover Image Modal */}
       {showCoverImageModal && (

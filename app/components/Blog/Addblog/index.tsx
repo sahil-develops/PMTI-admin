@@ -3000,6 +3000,108 @@ const Index = () => {
   const [script, setScript] = useState('');
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const editorRef = useRef<{ insertFaqsIntoContent: () => void } | null>(null);
+  
+  // Related Articles state
+  const [relatedArticles, setRelatedArticles] = useState<Array<{id: number, title: string, cover_image?: string}>>([]);
+  const [selectedRelatedArticles, setSelectedRelatedArticles] = useState<number[]>([]);
+  const [isLoadingRelatedArticles, setIsLoadingRelatedArticles] = useState(false);
+  const [relatedArticlesError, setRelatedArticlesError] = useState('');
+  const [isRelatedArticlesOpen, setIsRelatedArticlesOpen] = useState(false);
+  const [relatedArticlesSearch, setRelatedArticlesSearch] = useState('');
+
+  // Function to fetch all blog posts for related articles
+  const fetchRelatedArticles = async () => {
+    setIsLoadingRelatedArticles(true);
+    setRelatedArticlesError('');
+    
+    try {
+      const authToken = localStorage.getItem('accessToken');
+      if (!authToken) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Get user data from localStorage
+      const userDataString = localStorage.getItem('userData');
+      if (!userDataString) {
+        throw new Error('User data not found');
+      }
+      
+      let userData;
+      try {
+        userData = JSON.parse(userDataString);
+      } catch (parseError) {
+        throw new Error('Invalid user data');
+      }
+      
+      if (!userData.data || !userData.data.id) {
+        throw new Error('User ID not found');
+      }
+      
+      const userId = userData.data.id;
+      
+      // Fetch all blog posts
+      const response = await fetch(`https://api.4pmti.com/blog?userId=${userId}&page=1&limit=1000`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch blog posts');
+      }
+      
+      const result = await response.json();
+      if (result.success && result.data) {
+        setRelatedArticles(result.data.data.map((post: any) => ({
+          id: post.id,
+          title: post.title,
+          cover_image: post.cover_image
+        })));
+      } else {
+        throw new Error(result.error || 'Failed to fetch blog posts');
+      }
+    } catch (error) {
+      console.error('Error fetching related articles:', error);
+      setRelatedArticlesError(error instanceof Error ? error.message : 'Failed to fetch blog posts');
+    } finally {
+      setIsLoadingRelatedArticles(false);
+    }
+  };
+
+  // Load related articles on component mount
+  useEffect(() => {
+    fetchRelatedArticles();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.related-articles-dropdown')) {
+        setIsRelatedArticlesOpen(false);
+      }
+    };
+
+    if (isRelatedArticlesOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isRelatedArticlesOpen]);
+
+  // Function to handle related article selection
+  const handleRelatedArticleToggle = (articleId: number) => {
+    setSelectedRelatedArticles(prev => {
+      if (prev.includes(articleId)) {
+        return prev.filter(id => id !== articleId);
+      } else {
+        return [...prev, articleId];
+      }
+    });
+  };
+
+  // Filter articles based on search
+  const filteredRelatedArticles = relatedArticles.filter(article =>
+    article.title.toLowerCase().includes(relatedArticlesSearch.toLowerCase())
+  );
 
   // Function to sanitize content by removing script tags
   const sanitizeContent = (content: string): string => {
@@ -3057,7 +3159,7 @@ const Index = () => {
       title,
       content: sanitizeContent(content),
       tagNames,
-      relatedArticleIds: [101, 102, 103],
+      relatedArticleIds: selectedRelatedArticles, // Use selected related articles
       coverImage: coverImageUrl || '',
       thumbnail: thumbnailUrl || '',
       slug,
@@ -3119,6 +3221,7 @@ const Index = () => {
       setHead('');
       setScript('');
       setFaqs([]);
+      setSelectedRelatedArticles([]);
       setValidationErrors({});
    
     } catch (error) {
@@ -3477,6 +3580,155 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
                 className="w-full border border-gray-300 rounded-md p-2"
                 placeholder="e.g., technology, programming, web-development"
               />
+            </div>
+          </div>
+
+          {/* Related Articles Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Related Articles
+              <span className="ml-1 text-xs text-gray-500">(Select articles to link)</span>
+            </label>
+            
+            {/* Selected Articles Navbar */}
+            {selectedRelatedArticles.length > 0 && (
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex flex-wrap gap-2">
+                  {selectedRelatedArticles.map((articleId) => {
+                    const article = relatedArticles.find(a => a.id === articleId);
+                    return article ? (
+                      <div
+                        key={articleId}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-blue-300 rounded-full text-sm text-blue-800 shadow-sm hover:shadow-md transition-shadow"
+                      >
+                        {article.cover_image ? (
+                          <img
+                            src={article.cover_image}
+                            alt={article.title}
+                            className="w-5 h-5 rounded-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center">
+                            <span className="text-xs text-gray-600">📄</span>
+                          </div>
+                        )}
+                        <span className="max-w-[150px] truncate" title={article.title}>
+                          {article.title}
+                        </span>
+                        <button
+                          onClick={() => handleRelatedArticleToggle(articleId)}
+                          className="ml-1 text-blue-600 hover:text-blue-800 font-medium"
+                          title="Remove article"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Dropdown Button */}
+            <div className="relative related-articles-dropdown">
+              <button
+                onClick={() => setIsRelatedArticlesOpen(!isRelatedArticlesOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <span className="text-sm text-gray-700">
+                  {selectedRelatedArticles.length > 0 
+                    ? `${selectedRelatedArticles.length} article${selectedRelatedArticles.length > 1 ? 's' : ''} selected`
+                    : 'Select related articles...'
+                  }
+                </span>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform ${isRelatedArticlesOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Content */}
+              {isRelatedArticlesOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-80 overflow-hidden">
+                  {/* Search Bar */}
+                  <div className="p-3 border-b border-gray-200">
+                    <input
+                      type="text"
+                      placeholder="Search articles..."
+                      value={relatedArticlesSearch}
+                      onChange={(e) => setRelatedArticlesSearch(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Articles List */}
+                  <div className="max-h-60 overflow-y-auto">
+                    {isLoadingRelatedArticles ? (
+                      <div className="flex items-center justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+                        <span className="ml-2 text-sm text-gray-600">Loading articles...</span>
+                      </div>
+                    ) : relatedArticlesError ? (
+                      <div className="p-3 text-red-500 text-sm">
+                        {relatedArticlesError}
+                        <button
+                          onClick={fetchRelatedArticles}
+                          className="ml-2 text-blue-600 hover:text-blue-700 underline"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : filteredRelatedArticles.length === 0 ? (
+                      <div className="p-3 text-gray-500 text-sm">
+                        {relatedArticlesSearch ? 'No articles found matching your search.' : 'No articles found. Create some blog posts first.'}
+                      </div>
+                    ) : (
+                      filteredRelatedArticles.map((article) => (
+                        <div
+                          key={article.id}
+                          onClick={() => handleRelatedArticleToggle(article.id)}
+                          className={`flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                            selectedRelatedArticles.includes(article.id) ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedRelatedArticles.includes(article.id)}
+                            onChange={() => {}} // Handled by parent div onClick
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          {article.cover_image ? (
+                            <img
+                              src={article.cover_image}
+                              alt={article.title}
+                              className="w-8 h-8 rounded object-cover flex-shrink-0"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs text-gray-500">📄</span>
+                            </div>
+                          )}
+                          <span className="flex-1 text-sm text-gray-700 truncate">
+                            {article.title}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
