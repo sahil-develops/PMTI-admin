@@ -83,7 +83,8 @@ interface ClassData {
   carConfirmation: string;
   hotelConfirmation: string;
   createdAt: string;
-  updateAt: string;
+  updatedAt?: string;
+  updateAt?: string;
   instructor: {
     id: number;
     name: string;
@@ -387,8 +388,8 @@ export default function EditClass({ params }: PageProps) {
         // Send dates in MM-DD-YYYY format to match the API expected format
         startDate: startDateFormatted,
         endDate: endDateFormatted,
-        // Always set isCorpClass to true
-        isCorpClass: true,
+        // Use the actual checkbox value from the form state
+        isCorpClass: classData ? classData.isCorpClass : false,
       };
   
       console.log("Submitting payload:", payload);
@@ -799,7 +800,7 @@ export default function EditClass({ params }: PageProps) {
                 <div>
                   <Label>Last Updated</Label>
                   <Input
-                    value={new Date(classData.updateAt).toLocaleString()}
+                    value={classData.updatedAt || classData.updateAt ? new Date(classData.updatedAt || classData.updateAt!).toLocaleString() : 'Not available'}
                     disabled
                   />
                 </div>
