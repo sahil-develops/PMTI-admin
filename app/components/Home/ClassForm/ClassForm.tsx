@@ -34,7 +34,8 @@ const classFormSchema = z.object({
   categoryId: z.coerce.number().positive("Category ID is required"),
   classTypeId: z.coerce.number().positive("Class Type ID is required"),
   countryId: z.coerce.number().positive("Country ID is required"),
-  locationId: z.coerce.number().positive("Location ID is required"),
+  locationId: z.coerce.number()
+    .refine((val) => !isNaN(val) && val > 0, "Please select a location"),
   instructorId: z.coerce.number().positive("Instructor ID is required"),
   stateId: z.coerce.number().positive("State ID is required"),
   // Students and Price
@@ -514,7 +515,7 @@ const onSubmit = async (data: ClassFormData) => {
       categoryId: Number(data.categoryId),
       classTypeId: Number(data.classTypeId),
       countryId: Number(data.countryId),
-      locationId: Number(data.locationId),
+      locationId: Number(data.locationId) || 0,
       instructorId: Number(data.instructorId),
       stateId: Number(data.stateId) || 1, // Add default value if not set
       maxStudent: Number(data.maxStudent),
@@ -895,17 +896,29 @@ const onSubmit = async (data: ClassFormData) => {
                       errors.locationId ? 'border-red-500' : 'border-gray-300'
                     }`}
                   >
-                    <SelectValue placeholder="Select a location" className="bg-white" />
+                    <SelectValue placeholder={
+                      !watch('countryId') 
+                        ? "Please select a country first" 
+                        : locations.length === 0 
+                          ? "No locations available" 
+                          : "Select a location"
+                    } className="bg-white" />
                   </SelectTrigger>
                   <SelectContent>
-                    {locations.map((location) => (
-                      <SelectItem 
-                        key={location.id} 
-                        value={location.id.toString()}
-                      >
-                        {location.location}
+                    {locations.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        No locations available for this country
                       </SelectItem>
-                    ))}
+                    ) : (
+                      locations.map((location) => (
+                        <SelectItem 
+                          key={location.id} 
+                          value={location.id.toString()}
+                        >
+                          {location.location}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.locationId && (
