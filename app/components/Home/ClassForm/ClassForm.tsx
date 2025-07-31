@@ -906,7 +906,7 @@ const onSubmit = async (data: ClassFormData) => {
                   </SelectTrigger>
                   <SelectContent>
                     {locations.length === 0 ? (
-                      <SelectItem value="" disabled>
+                      <SelectItem value="no-locations" disabled>
                         No locations available for this country
                       </SelectItem>
                     ) : (
