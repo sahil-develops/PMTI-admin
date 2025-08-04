@@ -301,7 +301,9 @@ const ClassForm = () => {
     const selectedCountry = countries.find(country => country.id === Number(countryId));
     if (selectedCountry) {
       const activeLocations = selectedCountry.__locations__.filter(loc => loc.isDelete === false);
-      setLocations(activeLocations);
+      // Sort locations alphabetically by location name
+      const sortedLocations = activeLocations.sort((a, b) => a.location.localeCompare(b.location));
+      setLocations(sortedLocations);
     } else {
       setLocations([]);
     }

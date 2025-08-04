@@ -31,6 +31,9 @@ interface Country {
   CountryName: string;
   currency: string;
   isActive: boolean;
+  addedBy: number;
+  updatedBy: number | null;
+  __locations__: Location[];
 }
 
 interface ClassType {
@@ -150,6 +153,18 @@ const LoadingSkeleton = () => (
   </div>
 );
 
+// Add loading spinner component
+const LoadingSpinner = () => (
+  <div className="flex items-center space-x-3 bg-zinc-50/50 rounded-md px-3 py-2 border border-zinc-200">
+    <div className="flex space-x-1">
+      <div className="h-2 w-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+      <div className="h-2 w-2 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+      <div className="h-2 w-2 bg-zinc-400 rounded-full animate-bounce"></div>
+    </div>
+    <span className="text-sm text-zinc-500 font-medium">Loading...</span>
+  </div>
+);
+
 // Custom hook for form error handling
 const useFormErrors = () => {
   const [errors, setErrors] = useState<{
@@ -174,13 +189,7 @@ const useFormErrors = () => {
 };
 
 // Update the helper function to format dates as MM/DD/YY
-const formatDateForInput = (dateString: string) => {
-  const date = new Date(dateString);
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const year = String(date.getFullYear()).slice(-2);
-  return `${month}/${day}/${year}`;
-};
+
 
 // Update the formatForDateInput function to format as MM/DD/YYYY
 // Update the formatForDateInput function to handle timezone issues
@@ -194,12 +203,7 @@ const formatForDateInput = (dateString: string) => {
   return `${month}/${day}/${year}`;
 };
 
-// Helper function to convert MM/DD/YYYY to a date string without timezone issues
-const formatDateForSubmission = (dateStr: string) => {
-  const [month, day, year] = dateStr.split('/');
-  // Create date string in YYYY-MM-DD format
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-};
+
 
 // Update the formatDateForInput function to format as MM/DD/YY
 const formatDateForDisplay = (dateString: string) => {
@@ -222,6 +226,11 @@ export default function EditClass({ params }: PageProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateError, setDateError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  
+  // Add new state variables for countries and locations
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loadingCountries, setLoadingCountries] = useState(false);
 
   const { errors, setError, clearError, clearAllErrors } = useFormErrors();
 
@@ -301,6 +310,52 @@ export default function EditClass({ params }: PageProps) {
     fetchInstructors();
   }, []);
 
+  // Add useEffect for fetching countries
+  useEffect(() => {
+    const fetchCountries = async () => {
+      setLoadingCountries(true);
+      try {
+        const response = await fetch('https://api.4pmti.com/country', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch countries');
+        }
+
+        const result = await response.json();
+        if (result.success && result.data) {
+          setCountries(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching countries:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load countries",
+        });
+      } finally {
+        setLoadingCountries(false);
+      }
+    };
+
+    fetchCountries();
+  }, []);
+
+  // Add useEffect for updating locations when country changes
+  useEffect(() => {
+    const countryId = classData?.country?.id;
+    const selectedCountry = countries.find(country => country.id === Number(countryId));
+    if (selectedCountry) {
+      const activeLocations = selectedCountry.__locations__.filter(loc => loc.isDelete === false);
+      setLocations(activeLocations);
+    } else {
+      setLocations([]);
+    }
+  }, [classData?.country?.id, countries]);
+
   const validateDates = (startDate: string, endDate: string) => {
     // Create Date objects from the ISO strings
     const start = new Date(startDate);
@@ -343,6 +398,16 @@ export default function EditClass({ params }: PageProps) {
 
     if (classData && !classData.instructor?.id) {
       setError('instructor', 'Please select an instructor');
+      isValid = false;
+    }
+
+    if (classData && !classData.country?.id) {
+      setError('country', 'Please select a country');
+      isValid = false;
+    }
+
+    if (classData && !classData.location?.id) {
+      setError('location', 'Please select a location');
       isValid = false;
     }
 
@@ -390,6 +455,17 @@ export default function EditClass({ params }: PageProps) {
         endDate: endDateFormatted,
         // Use the actual checkbox value from the form state
         isCorpClass: classData ? classData.isCorpClass : false,
+        // Add country and location IDs
+        countryId: classData ? classData.country?.id : 0,
+        locationId: classData ? classData.location?.id : 0,
+        // Include updated category information
+        category: classData ? {
+          id: classData.category?.id,
+          name: classData.category?.name,
+          description: classData.category?.description,
+          isDelete: classData.category?.isDelete || false,
+          active: classData.category?.active || true
+        } : undefined,
       };
   
       console.log("Submitting payload:", payload);
@@ -737,19 +813,99 @@ export default function EditClass({ params }: PageProps) {
               <h3 className="text-lg font-medium mb-4">Additional Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Location</Label>
-                  <Input
-                    value={classData.location?.location || ''}
-                    disabled
-                  />
+                  <Label>Country <span className="text-red-500">*</span></Label>
+                  <Select
+                    value={classData.country?.id?.toString()}
+                    onValueChange={(value) => {
+                      const selectedCountry = countries.find(country => country.id.toString() === value);
+                      if (selectedCountry) {
+                        setClassData({
+                          ...classData,
+                          country: selectedCountry,
+                          location: { id: 0, location: '', addedBy: '', updatedBy: '', isDelete: false, createdAt: '', updateAt: '' } // Reset location when country changes
+                        });
+                        clearError('country');
+                      }
+                    }}
+                  >
+                    <SelectTrigger 
+                      className={`mt-1 bg-white w-full ${
+                        errors.country ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    >
+                      {loadingCountries ? (
+                        <LoadingSpinner />
+                      ) : (
+                        <SelectValue placeholder="Select a country" className="bg-white" />
+                      )}
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem 
+                          key={country.id} 
+                          value={country.id.toString()}
+                        >
+                          {country.CountryName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.country && (
+                    <p className="mt-1 text-sm text-red-500">{errors.country}</p>
+                  )}
                 </div>
 
                 <div>
-                  <Label>Country</Label>
-                  <Input
-                    value={classData.country?.CountryName || ''}
-                    disabled
-                  />
+                  <Label>Location <span className="text-red-500">*</span></Label>
+                  <Select
+                    value={classData.location?.id?.toString()}
+                    onValueChange={(value) => {
+                      const selectedLocation = locations.find(location => location.id.toString() === value);
+                      if (selectedLocation) {
+                        setClassData({
+                          ...classData,
+                          location: selectedLocation
+                        });
+                        clearError('location');
+                      }
+                    }}
+                    disabled={!classData.country?.id || locations.length === 0}
+                  >
+                    <SelectTrigger 
+                      className={`mt-1 bg-white w-full ${
+                        errors.location ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    >
+                      <SelectValue placeholder={
+                        !classData.country?.id 
+                          ? "Please select a country first" 
+                          : locations.length === 0 
+                            ? "No locations available" 
+                            : "Select a location"
+                      } className="bg-white" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.length === 0 ? (
+                        <SelectItem value="no-locations" disabled>
+                          No locations available for this country
+                        </SelectItem>
+                      ) : (
+                        locations
+                          .sort((a, b) => a.location.localeCompare(b.location))
+                          .map((location) => (
+                            <SelectItem 
+                              key={location.id} 
+                              value={location.id.toString()}
+                            >
+                              {location.location}
+                            </SelectItem>
+                          ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {errors.location && (
+                    <p className="mt-1 text-sm text-red-500">{errors.location}</p>
+                  )}
                 </div>
 
                 <div>
@@ -778,9 +934,18 @@ export default function EditClass({ params }: PageProps) {
 
                 <div>
                   <Label>Category Description</Label>
-                  <Input
+                  <textarea
                     value={classData.category?.description || ''}
-                    disabled
+                    onChange={(e) => setClassData({
+                      ...classData,
+                      category: {
+                        ...classData.category!,
+                        description: e.target.value
+                      }
+                    })}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={3}
+                    placeholder="Enter category description"
                   />
                 </div>
               </div>
