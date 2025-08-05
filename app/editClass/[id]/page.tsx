@@ -226,6 +226,7 @@ export default function EditClass({ params }: PageProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateError, setDateError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
   
   // Add new state variables for countries and locations
   const [countries, setCountries] = useState<Country[]>([]);
@@ -374,6 +375,52 @@ export default function EditClass({ params }: PageProps) {
     
     setDateError('');
     return true;
+  };
+
+  // Function to update category description
+  const updateCategoryDescription = async (categoryId: number, name: string, description: string) => {
+    setIsUpdatingCategory(true);
+    try {
+      const response = await fetch(`https://api.4pmti.com/category/${categoryId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify({
+          name: name,
+          description: description
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(Array.isArray(errorData.error) ? errorData.error[0] : errorData.error || 'Failed to update category');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Category description updated successfully",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: Array.isArray(data.error) ? data.error[0] : data.error || "Failed to update category",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating category:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while updating category",
+      });
+    } finally {
+      setIsUpdatingCategory(false);
+    }
   };
 
   // Validate form fields
@@ -934,19 +981,47 @@ export default function EditClass({ params }: PageProps) {
 
                 <div>
                   <Label>Category Description</Label>
-                  <textarea
-                    value={classData.category?.description || ''}
-                    onChange={(e) => setClassData({
-                      ...classData,
-                      category: {
-                        ...classData.category!,
-                        description: e.target.value
-                      }
-                    })}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    rows={3}
-                    placeholder="Enter category description"
-                  />
+                  <div className="relative">
+                    <textarea
+                      value={classData.category?.description || ''}
+                      onChange={(e) => setClassData({
+                        ...classData,
+                        category: {
+                          ...classData.category!,
+                          description: e.target.value
+                        }
+                      })}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={3}
+                      placeholder="Enter category description"
+                    />
+                    {classData.category?.id && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          if (classData.category?.id && classData.category?.name && classData.category?.description) {
+                            updateCategoryDescription(
+                              classData.category.id,
+                              classData.category.name,
+                              classData.category.description
+                            );
+                          }
+                        }}
+                        disabled={isUpdatingCategory}
+                        className="absolute top-2 right-2 h-6 px-2 text-xs"
+                      >
+                        {isUpdatingCategory ? (
+                          <>
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          'Update Category'
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
