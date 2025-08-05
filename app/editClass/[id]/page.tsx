@@ -191,12 +191,20 @@ const useFormErrors = () => {
 // Update the helper function to format dates as MM/DD/YY
 
 
-// Update the formatForDateInput function to format as MM/DD/YYYY
-// Update the formatForDateInput function to handle timezone issues
+// Format date from backend format (YYYY-MM-DD) to display format (MM/DD/YYYY)
 const formatForDateInput = (dateString: string) => {
-  // Create date object and adjust for timezone
+  if (!dateString) return '';
+  
+  // Handle backend date format (YYYY-MM-DD)
+  if (dateString.includes('-') && dateString.split('-').length === 3) {
+    const [year, month, day] = dateString.split('-');
+    return `${month}/${day}/${year}`;
+  }
+  
+  // Fallback for ISO string format
   const date = new Date(dateString);
-  // Get year, month, day without timezone interference
+  if (isNaN(date.getTime())) return '';
+  
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   const year = date.getFullYear();
@@ -205,9 +213,21 @@ const formatForDateInput = (dateString: string) => {
 
 
 
-// Update the formatDateForInput function to format as MM/DD/YY
+// Format date for display (MM/DD/YY format)
 const formatDateForDisplay = (dateString: string) => {
+  if (!dateString) return '';
+  
+  // Handle backend date format (YYYY-MM-DD)
+  if (dateString.includes('-') && dateString.split('-').length === 3) {
+    const [year, month, day] = dateString.split('-');
+    const shortYear = year.slice(-2);
+    return `${month}/${day}/${shortYear}`;
+  }
+  
+  // Fallback for ISO string format
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   const year = String(date.getFullYear()).slice(-2);
@@ -358,11 +378,25 @@ export default function EditClass({ params }: PageProps) {
   }, [classData?.country?.id, countries]);
 
   const validateDates = (startDate: string, endDate: string) => {
-    // Create Date objects from the ISO strings
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Handle backend date format (YYYY-MM-DD) or ISO strings
+    let start: Date, end: Date;
     
-    // Check if end date comes after start date
+    // Check if dates are in backend format (YYYY-MM-DD)
+    if (startDate.includes('-') && startDate.split('-').length === 3) {
+      const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+      start = new Date(startYear, startMonth - 1, startDay);
+    } else {
+      start = new Date(startDate);
+    }
+    
+    if (endDate.includes('-') && endDate.split('-').length === 3) {
+      const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+      end = new Date(endYear, endMonth - 1, endDay);
+    } else {
+      end = new Date(endDate);
+    }
+    
+    // Check if dates are valid
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       setDateError('Invalid date format');
       return false;
@@ -482,13 +516,27 @@ export default function EditClass({ params }: PageProps) {
     setIsLoading(true);
   
     try {
-      // Format dates properly to avoid timezone issues like in ClassForm component
-      const startDate = new Date(classData.startDate);
-      const endDate = new Date(classData.endDate);
+      // Format dates properly for the API
+      let startDateFormatted: string, endDateFormatted: string;
       
-      // Format dates in MM-DD-YYYY format for the API
-      const startDateFormatted = `${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}-${startDate.getFullYear()}`;
-      const endDateFormatted = `${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}-${endDate.getFullYear()}`;
+      // Handle backend date format (YYYY-MM-DD) or ISO strings
+      if (classData.startDate.includes('-') && classData.startDate.split('-').length === 3) {
+        // If it's already in YYYY-MM-DD format, use it as is
+        startDateFormatted = classData.startDate;
+      } else {
+        // Convert from ISO string to YYYY-MM-DD format
+        const startDate = new Date(classData.startDate);
+        startDateFormatted = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+      }
+      
+      if (classData.endDate.includes('-') && classData.endDate.split('-').length === 3) {
+        // If it's already in YYYY-MM-DD format, use it as is
+        endDateFormatted = classData.endDate;
+      } else {
+        // Convert from ISO string to YYYY-MM-DD format
+        const endDate = new Date(classData.endDate);
+        endDateFormatted = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+      }
       
       // Create a payload with proper data types
       const payload = {
@@ -630,17 +678,12 @@ export default function EditClass({ params }: PageProps) {
                   <PopoverContent className="w-auto p-0">
                     <Calendar
                       mode="single"
-                      selected={classData.startDate ? new Date(classData.startDate) : undefined}
+                      selected={classData.startDate ? (classData.startDate.includes('-') ? new Date(classData.startDate + 'T00:00:00') : new Date(classData.startDate)) : undefined}
                       onSelect={(date) => {
                         if (date) {
-                          // Keep the date as midnight in local time to avoid timezone shifts
-                          const localDate = new Date(
-                            date.getFullYear(),
-                            date.getMonth(),
-                            date.getDate(),
-                            0, 0, 0
-                          );
-                          setClassData({ ...classData, startDate: localDate.toISOString() });
+                          // Format date in YYYY-MM-DD format to match backend
+                          const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                          setClassData({ ...classData, startDate: formattedDate });
                           clearError('startDate');
                         }
                       }}
@@ -668,20 +711,15 @@ export default function EditClass({ params }: PageProps) {
                   <PopoverContent className="w-auto p-0">
                     <Calendar
                       mode="single"
-                      selected={classData.endDate ? new Date(classData.endDate) : undefined}
+                      selected={classData.endDate ? (classData.endDate.includes('-') ? new Date(classData.endDate + 'T00:00:00') : new Date(classData.endDate)) : undefined}
                       onSelect={(date) => {
                         if (date) {
-                          // Keep the date as midnight in local time to avoid timezone shifts
-                          const localDate = new Date(
-                            date.getFullYear(),
-                            date.getMonth(),
-                            date.getDate(),
-                            0, 0, 0
-                          );
-                          setClassData({ ...classData, endDate: localDate.toISOString() });
+                          // Format date in YYYY-MM-DD format to match backend
+                          const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                          setClassData({ ...classData, endDate: formattedDate });
                           // After selecting a date, validate it against the start date
                           if (classData.startDate) {
-                            validateDates(classData.startDate, localDate.toISOString());
+                            validateDates(classData.startDate, formattedDate);
                           }
                           clearError('endDate');
                         }
