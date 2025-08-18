@@ -411,6 +411,33 @@ export default function EditClass({ params }: PageProps) {
     return true;
   };
 
+
+
+  // Fix timezone issues by creating a proper date normalization function
+const normalizeDate = (date: Date | undefined) => {
+  if (!date) return undefined;
+  
+  // Create a new date using the local year, month, and day to avoid timezone issues
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  
+  // Create date in local timezone (no timezone conversion)
+  return new Date(year, month, day);
+};
+
+// Format dates properly in MM-dd-YYYY format for API
+const formatDateForAPI = (date: Date | undefined): string => {
+  if (!date) return '';
+  
+  // Use toLocaleString with local timezone to get the correct date
+  return date.toLocaleString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric'
+  }).replace(/\//g, '-'); // Replace / with -
+};
+
   // Function to update category description
   const updateCategoryDescription = async (categoryId: number, name: string, description: string) => {
     setIsUpdatingCategory(true);
@@ -495,16 +522,12 @@ export default function EditClass({ params }: PageProps) {
     return isValid;
   };
 
-  // Update the convertStatusToString function to handle the new status format
-  const convertStatusToString = (status: string): string => {
-    // Return the status as is since it's already in the correct format
-    return status === "active" ? "active" : "inactive";
-  };
+
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!classData || !validateForm() || !validateDates(classData.startDate, classData.endDate)) {
+    if (!classData || !validateForm()) {
       toast({
         variant: "destructive",
         title: "Validation Error",
@@ -516,50 +539,59 @@ export default function EditClass({ params }: PageProps) {
     setIsLoading(true);
   
     try {
-      // Format dates properly for the API
-      let startDateFormatted: string, endDateFormatted: string;
-      
-      // Handle backend date format (YYYY-MM-DD) or ISO strings
-      if (classData.startDate.includes('-') && classData.startDate.split('-').length === 3) {
-        // If it's already in YYYY-MM-DD format, use it as is
-        startDateFormatted = classData.startDate;
-      } else {
-        // Convert from ISO string to YYYY-MM-DD format
-        const startDate = new Date(classData.startDate);
-        startDateFormatted = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+      // Helper function to normalize dates (fix timezone issues)
+      const normalizeDate = (dateString: string): Date => {
+        if (dateString.includes('-') && dateString.split('-').length === 3) {
+          // Handle YYYY-MM-DD format
+          const [year, month, day] = dateString.split('-').map(Number);
+          return new Date(year, month - 1, day);
+        } else {
+          // Handle ISO string
+          const date = new Date(dateString);
+          return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        }
+      };
+  
+      // Helper function to format dates for API (MM-DD-YYYY)
+      const formatDateForAPI = (date: Date): string => {
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${month}-${day}-${year}`;
+      };
+  
+      // Normalize and format dates
+      const startDate = normalizeDate(classData.startDate);
+      const endDate = normalizeDate(classData.endDate);
+      const startDateFormatted = formatDateForAPI(startDate);
+      const endDateFormatted = formatDateForAPI(endDate);
+  
+      // Validate dates
+      if (endDate < startDate) {
+        toast({
+          variant: "destructive",
+          title: "Date Error",
+          description: "End date must be after start date",
+        });
+        return;
       }
-      
-      if (classData.endDate.includes('-') && classData.endDate.split('-').length === 3) {
-        // If it's already in YYYY-MM-DD format, use it as is
-        endDateFormatted = classData.endDate;
-      } else {
-        // Convert from ISO string to YYYY-MM-DD format
-        const endDate = new Date(classData.endDate);
-        endDateFormatted = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
-      }
-      
-      // Create a payload with proper data types
+  
+      // Create payload with properly formatted dates
       const payload = {
-        ...(classData || {}),
-        // Convert price from string to number
-        price: classData ? parseFloat(classData.price as string) : 0,
-        // Status is already in the correct format ("active"/"inactive")
-        status: classData ? classData.status : "inactive",
-        // Send dates in MM-DD-YYYY format to match the API expected format
+        ...classData,
+        price: parseFloat(classData.price as string),
+        status: classData.status,
         startDate: startDateFormatted,
         endDate: endDateFormatted,
-        // Use the actual checkbox value from the form state
-        isCorpClass: classData ? classData.isCorpClass : false,
-        // Add country and location IDs
-        countryId: classData ? classData.country?.id : 0,
-        locationId: classData ? classData.location?.id : 0,
-        // Include updated category information
-        category: classData ? {
-          id: classData.category?.id,
-          name: classData.category?.name,
-          description: classData.category?.description,
-          isDelete: classData.category?.isDelete || false,
-          active: classData.category?.active || true
+        isCorpClass: classData.isCorpClass,
+        countryId: classData.country?.id || 0,
+        locationId: classData.location?.id || 0,
+        category: classData.category ? {
+          id: classData.category.id,
+          name: classData.category.name,
+          description: classData.category.description,
+          isDelete: classData.category.isDelete || false,
+          active: classData.category.active || true
         } : undefined,
       };
   
@@ -681,10 +713,12 @@ export default function EditClass({ params }: PageProps) {
                       selected={classData.startDate ? (classData.startDate.includes('-') ? new Date(classData.startDate + 'T00:00:00') : new Date(classData.startDate)) : undefined}
                       onSelect={(date) => {
                         if (date) {
-                          // Format date in YYYY-MM-DD format to match backend
-                          const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                          setClassData({ ...classData, startDate: formattedDate });
-                          clearError('startDate');
+                          const localDate = normalizeDate(date);
+                          if (localDate) {
+                            // Store as Date object in state
+                            setClassData({ ...classData, startDate: localDate.toISOString() });
+                            clearError('startDate');
+                          }
                         }
                       }}
                       initialFocus
@@ -714,16 +748,15 @@ export default function EditClass({ params }: PageProps) {
                       selected={classData.endDate ? (classData.endDate.includes('-') ? new Date(classData.endDate + 'T00:00:00') : new Date(classData.endDate)) : undefined}
                       onSelect={(date) => {
                         if (date) {
-                          // Format date in YYYY-MM-DD format to match backend
-                          const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                          setClassData({ ...classData, endDate: formattedDate });
-                          // After selecting a date, validate it against the start date
-                          if (classData.startDate) {
-                            validateDates(classData.startDate, formattedDate);
+                          const localDate = normalizeDate(date);
+                          if (localDate) {
+                            // Store as Date object in state
+                            setClassData({ ...classData, endDate: localDate.toISOString() });
+                            clearError('endDate');
                           }
-                          clearError('endDate');
                         }
                       }}
+                      
                       initialFocus
                     />
                   </PopoverContent>

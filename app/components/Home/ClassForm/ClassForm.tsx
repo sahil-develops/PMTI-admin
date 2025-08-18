@@ -531,7 +531,7 @@ const onSubmit = async (data: ClassFormData) => {
       classTime: `${formattedTimeFrom} - ${formattedTimeTo}`,
       onlineCourseId: data.onlineCourseId || "",
       onlineAvailable: Boolean(data.onlineAvailable),
-      isCorpClass: true,
+      isCorpClass: Boolean(data.isCorpClass), 
       status: data.status,
       isCancel: Boolean(data.isCancel),
       isDelete: Boolean(data.isDelete),
