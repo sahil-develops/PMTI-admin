@@ -25,6 +25,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Country {
   id: number;
@@ -188,50 +189,47 @@ const useFormErrors = () => {
   return { errors, setError, clearError, clearAllErrors };
 };
 
-// Update the helper function to format dates as MM/DD/YY
-
-
-// Format date from backend format (YYYY-MM-DD) to display format (MM/DD/YYYY)
-const formatForDateInput = (dateString: string) => {
-  if (!dateString) return '';
+// Fix timezone issues by creating a proper date normalization function
+// This function creates a new Date object using local year, month, and day
+// to avoid timezone conversion issues that cause dates to shift by one day
+const normalizeDate = (date: Date | undefined) => {
+  if (!date) return undefined;
   
-  // Handle backend date format (YYYY-MM-DD)
-  if (dateString.includes('-') && dateString.split('-').length === 3) {
-    const [year, month, day] = dateString.split('-');
-    return `${month}/${day}/${year}`;
-  }
-  
-  // Fallback for ISO string format
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return '';
-  
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  // Create a new date using the local year, month, and day to avoid timezone issues
   const year = date.getFullYear();
-  return `${month}/${day}/${year}`;
+  const month = date.getMonth();
+  const day = date.getDate();
+  
+  // Create date in local timezone (no timezone conversion)
+  return new Date(year, month, day);
 };
 
+// Fix the date formatting to use toLocaleString properly
+// This function formats dates as MM-dd-YYYY using toLocaleString
+const formatDateForAPI = (date: Date | undefined): string => {
+  if (!date) return '';
+  
+  // Use toLocaleString with local timezone to get the correct date
+  return date.toLocaleString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric'
+  }).replace(/\//g, '-'); // Replace / with -
+};
 
-
-// Format date for display (MM/DD/YY format)
-const formatDateForDisplay = (dateString: string) => {
-  if (!dateString) return '';
+// Convert backend date format (YYYY-MM-DD) to Date object
+const parseBackendDate = (dateString: string): Date | undefined => {
+  if (!dateString) return undefined;
   
   // Handle backend date format (YYYY-MM-DD)
   if (dateString.includes('-') && dateString.split('-').length === 3) {
-    const [year, month, day] = dateString.split('-');
-    const shortYear = year.slice(-2);
-    return `${month}/${day}/${shortYear}`;
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day); // month is 0-indexed in Date constructor
   }
   
   // Fallback for ISO string format
   const date = new Date(dateString);
-  if (isNaN(date.getTime())) return '';
-  
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const year = String(date.getFullYear()).slice(-2);
-  return `${month}/${day}/${year}`;
+  return isNaN(date.getTime()) ? undefined : date;
 };
 
 export default function EditClass({ params }: PageProps) {
@@ -377,32 +375,20 @@ export default function EditClass({ params }: PageProps) {
     }
   }, [classData?.country?.id, countries]);
 
-  const validateDates = (startDate: string, endDate: string) => {
-    // Handle backend date format (YYYY-MM-DD) or ISO strings
-    let start: Date, end: Date;
-    
-    // Check if dates are in backend format (YYYY-MM-DD)
-    if (startDate.includes('-') && startDate.split('-').length === 3) {
-      const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
-      start = new Date(startYear, startMonth - 1, startDay);
-    } else {
-      start = new Date(startDate);
-    }
-    
-    if (endDate.includes('-') && endDate.split('-').length === 3) {
-      const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
-      end = new Date(endYear, endMonth - 1, endDay);
-    } else {
-      end = new Date(endDate);
+  // Updated date validation using the new date handling logic
+  const validateDates = (startDate: Date | undefined, endDate: Date | undefined) => {
+    if (!startDate || !endDate) {
+      setDateError('Both start and end dates are required');
+      return false;
     }
     
     // Check if dates are valid
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       setDateError('Invalid date format');
       return false;
     }
     
-    if (end < start) {
+    if (endDate < startDate) {
       setDateError('End date cannot be before start date');
       return false;
     }
@@ -410,33 +396,6 @@ export default function EditClass({ params }: PageProps) {
     setDateError('');
     return true;
   };
-
-
-
-  // Fix timezone issues by creating a proper date normalization function
-const normalizeDate = (date: Date | undefined) => {
-  if (!date) return undefined;
-  
-  // Create a new date using the local year, month, and day to avoid timezone issues
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
-  
-  // Create date in local timezone (no timezone conversion)
-  return new Date(year, month, day);
-};
-
-// Format dates properly in MM-dd-YYYY format for API
-const formatDateForAPI = (date: Date | undefined): string => {
-  if (!date) return '';
-  
-  // Use toLocaleString with local timezone to get the correct date
-  return date.toLocaleString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric'
-  }).replace(/\//g, '-'); // Replace / with -
-};
 
   // Function to update category description
   const updateCategoryDescription = async (categoryId: number, name: string, description: string) => {
@@ -494,13 +453,22 @@ const formatDateForAPI = (date: Date | undefined): string => {
       isValid = false;
     }
 
-    if (classData && !classData.startDate) {
+    // Parse dates for validation
+    const startDate = parseBackendDate(classData?.startDate || '');
+    const endDate = parseBackendDate(classData?.endDate || '');
+
+    if (!startDate) {
       setError('startDate', 'Start date is required');
       isValid = false;
     }
 
-    if (classData && !classData.endDate) {
+    if (!endDate) {
       setError('endDate', 'End date is required');
+      isValid = false;
+    }
+
+    // Validate date relationship
+    if (startDate && endDate && !validateDates(startDate, endDate)) {
       isValid = false;
     }
 
@@ -522,7 +490,56 @@ const formatDateForAPI = (date: Date | undefined): string => {
     return isValid;
   };
 
+  // Update the convertStatusToString function to handle the new status format
+  const convertStatusToString = (status: string): string => {
+    // Return the status as is since it's already in the correct format
+    return status === "active" ? "active" : "inactive";
+  };
 
+  // Updated date change handlers using the new logic
+  const handleStartDateChange = (date: Date | undefined) => {
+    if (!date || !classData) return;
+    
+    const localDate = normalizeDate(date);
+    if (localDate) {
+      // Format date as YYYY-MM-DD for backend compatibility
+      const year = localDate.getFullYear();
+      const month = String(localDate.getMonth() + 1).padStart(2, '0');
+      const day = String(localDate.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+      
+      setClassData({ ...classData, startDate: formattedDate });
+      
+      // Validate against end date if it exists
+      const endDate = parseBackendDate(classData.endDate);
+      if (endDate) {
+        validateDates(localDate, endDate);
+      }
+      clearError('startDate');
+    }
+  };
+
+  const handleEndDateChange = (date: Date | undefined) => {
+    if (!date || !classData) return;
+    
+    const localDate = normalizeDate(date);
+    if (localDate) {
+      // Format date as YYYY-MM-DD for backend compatibility
+      const year = localDate.getFullYear();
+      const month = String(localDate.getMonth() + 1).padStart(2, '0');
+      const day = String(localDate.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+      
+      setClassData({ ...classData, endDate: formattedDate });
+      
+      // Validate against start date
+      const startDate = parseBackendDate(classData.startDate);
+      if (startDate) {
+        validateDates(startDate, localDate);
+      }
+      clearError('endDate');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -539,59 +556,28 @@ const formatDateForAPI = (date: Date | undefined): string => {
     setIsLoading(true);
   
     try {
-      // Helper function to normalize dates (fix timezone issues)
-      const normalizeDate = (dateString: string): Date => {
-        if (dateString.includes('-') && dateString.split('-').length === 3) {
-          // Handle YYYY-MM-DD format
-          const [year, month, day] = dateString.split('-').map(Number);
-          return new Date(year, month - 1, day);
-        } else {
-          // Handle ISO string
-          const date = new Date(dateString);
-          return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        }
-      };
-  
-      // Helper function to format dates for API (MM-DD-YYYY)
-      const formatDateForAPI = (date: Date): string => {
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${month}-${day}-${year}`;
-      };
-  
-      // Normalize and format dates
-      const startDate = normalizeDate(classData.startDate);
-      const endDate = normalizeDate(classData.endDate);
-      const startDateFormatted = formatDateForAPI(startDate);
-      const endDateFormatted = formatDateForAPI(endDate);
-  
-      // Validate dates
-      if (endDate < startDate) {
-        toast({
-          variant: "destructive",
-          title: "Date Error",
-          description: "End date must be after start date",
-        });
-        return;
-      }
-  
-      // Create payload with properly formatted dates
+      // Create a payload with proper data types
       const payload = {
-        ...classData,
-        price: parseFloat(classData.price as string),
-        status: classData.status,
-        startDate: startDateFormatted,
-        endDate: endDateFormatted,
-        isCorpClass: classData.isCorpClass,
-        countryId: classData.country?.id || 0,
-        locationId: classData.location?.id || 0,
-        category: classData.category ? {
-          id: classData.category.id,
-          name: classData.category.name,
-          description: classData.category.description,
-          isDelete: classData.category.isDelete || false,
-          active: classData.category.active || true
+        ...(classData || {}),
+        // Convert price from string to number
+        price: classData ? parseFloat(classData.price as string) : 0,
+        // Status is already in the correct format ("active"/"inactive")
+        status: classData ? classData.status : "inactive",
+        // Send dates in the existing format (already YYYY-MM-DD)
+        startDate: classData.startDate,
+        endDate: classData.endDate,
+        // Use the actual checkbox value from the form state
+        isCorpClass: classData ? classData.isCorpClass : false,
+        // Add country and location IDs
+        countryId: classData ? classData.country?.id : 0,
+        locationId: classData ? classData.location?.id : 0,
+        // Include updated category information
+        category: classData ? {
+          id: classData.category?.id,
+          name: classData.category?.name,
+          description: classData.category?.description,
+          isDelete: classData.category?.isDelete || false,
+          active: classData.category?.active || true
         } : undefined,
       };
   
@@ -695,32 +681,38 @@ const formatDateForAPI = (date: Date | undefined): string => {
                 )}
               </div>
 
-              <div>
-                <Label>Start Date</Label>
+              <div className="space-y-2">
+                <Label>Start Date <span className="text-red-500">*</span></Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={`w-full justify-start text-left font-normal ${errors.startDate ? 'border-red-500' : ''}`}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        errors.startDate ? 'border-red-500' : 'border-gray-300',
+                        !classData.startDate && "text-muted-foreground"
+                      )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {classData.startDate ? formatForDateInput(classData.startDate) : <span className="text-muted-foreground">Pick a date</span>}
+                      {classData.startDate ? (
+                        format(parseBackendDate(classData.startDate) || new Date(), "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={classData.startDate ? (classData.startDate.includes('-') ? new Date(classData.startDate + 'T00:00:00') : new Date(classData.startDate)) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const localDate = normalizeDate(date);
-                          if (localDate) {
-                            // Store as Date object in state
-                            setClassData({ ...classData, startDate: localDate.toISOString() });
-                            clearError('startDate');
-                          }
-                        }
-                      }}
+                      selected={parseBackendDate(classData.startDate)}
+                      onSelect={handleStartDateChange}
+                      disabled={
+                        classData.endDate && parseBackendDate(classData.endDate)
+                          ? (date) =>
+                              date < new Date() ||
+                              date > parseBackendDate(classData.endDate)!
+                          : (date) => date < new Date()
+                      }
                       initialFocus
                     />
                   </PopoverContent>
@@ -730,33 +722,38 @@ const formatDateForAPI = (date: Date | undefined): string => {
                 )}
               </div>
 
-              <div>
-                <Label>End Date</Label>
+              <div className="space-y-2">
+                <Label>End Date <span className="text-red-500">*</span></Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={`w-full justify-start text-left font-normal ${errors.endDate ? 'border-red-500' : ''}`}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        errors.endDate ? 'border-red-500' : 'border-gray-300',
+                        !classData.endDate && "text-muted-foreground"
+                      )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {classData.endDate ? formatForDateInput(classData.endDate) : <span className="text-muted-foreground">Pick a date</span>}
+                      {classData.endDate ? (
+                        format(parseBackendDate(classData.endDate) || new Date(), "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={classData.endDate ? (classData.endDate.includes('-') ? new Date(classData.endDate + 'T00:00:00') : new Date(classData.endDate)) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const localDate = normalizeDate(date);
-                          if (localDate) {
-                            // Store as Date object in state
-                            setClassData({ ...classData, endDate: localDate.toISOString() });
-                            clearError('endDate');
-                          }
-                        }
-                      }}
-                      
+                      selected={parseBackendDate(classData.endDate)}
+                      onSelect={handleEndDateChange}
+                      disabled={
+                        classData.startDate && parseBackendDate(classData.startDate)
+                          ? (date) =>
+                              date < new Date() ||
+                              date < parseBackendDate(classData.startDate)!
+                          : (date) => date < new Date()
+                      }
                       initialFocus
                     />
                   </PopoverContent>
