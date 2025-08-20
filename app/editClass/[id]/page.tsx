@@ -204,27 +204,41 @@ const normalizeDate = (date: Date | undefined) => {
   return new Date(year, month, day);
 };
 
-// Fix the date formatting to use toLocaleString properly
-// This function formats dates as MM-dd-YYYY using toLocaleString
+// Updated function to format dates as MM-DD-YYYY for the API
 const formatDateForAPI = (date: Date | undefined): string => {
   if (!date) return '';
   
-  // Use toLocaleString with local timezone to get the correct date
-  return date.toLocaleString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric'
-  }).replace(/\//g, '-'); // Replace / with -
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  // Format as MM-DD-YYYY
+  return `${month}-${day}-${year}`;
 };
 
-// Convert backend date format (YYYY-MM-DD) to Date object
+
+
+// Convert backend date format to Date object
+// Handle both DD-MM-YYYY and YYYY-MM-DD formats from backend
+
 const parseBackendDate = (dateString: string): Date | undefined => {
   if (!dateString) return undefined;
   
-  // Handle backend date format (YYYY-MM-DD)
+  // Handle MM-DD-YYYY format (new API format)
   if (dateString.includes('-') && dateString.split('-').length === 3) {
-    const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day); // month is 0-indexed in Date constructor
+    const parts = dateString.split('-');
+    
+    // Check if it's MM-DD-YYYY (month is first and <= 12)
+    if (parts[0].length === 2 && parseInt(parts[0]) <= 12) {
+      const [month, day, year] = parts.map(Number);
+      return new Date(year, month - 1, day);
+    }
+    
+    // Handle YYYY-MM-DD format (legacy format)
+    if (parts[0].length === 4) {
+      const [year, month, day] = parts.map(Number);
+      return new Date(year, month - 1, day);
+    }
   }
   
   // Fallback for ISO string format
@@ -491,22 +505,15 @@ export default function EditClass({ params }: PageProps) {
   };
 
   // Update the convertStatusToString function to handle the new status format
-  const convertStatusToString = (status: string): string => {
-    // Return the status as is since it's already in the correct format
-    return status === "active" ? "active" : "inactive";
-  };
 
-  // Updated date change handlers using the new logic
+  // Updated date change handlers to use DD-MM-YYYY format
   const handleStartDateChange = (date: Date | undefined) => {
     if (!date || !classData) return;
     
     const localDate = normalizeDate(date);
     if (localDate) {
-      // Format date as YYYY-MM-DD for backend compatibility
-      const year = localDate.getFullYear();
-      const month = String(localDate.getMonth() + 1).padStart(2, '0');
-      const day = String(localDate.getDate()).padStart(2, '0');
-      const formattedDate = `${year}-${month}-${day}`;
+      // Format date as DD-MM-YYYY for backend
+      const formattedDate = formatDateForAPI(localDate);
       
       setClassData({ ...classData, startDate: formattedDate });
       
@@ -524,11 +531,8 @@ export default function EditClass({ params }: PageProps) {
     
     const localDate = normalizeDate(date);
     if (localDate) {
-      // Format date as YYYY-MM-DD for backend compatibility
-      const year = localDate.getFullYear();
-      const month = String(localDate.getMonth() + 1).padStart(2, '0');
-      const day = String(localDate.getDate()).padStart(2, '0');
-      const formattedDate = `${year}-${month}-${day}`;
+      // Format date as DD-MM-YYYY for backend
+      const formattedDate = formatDateForAPI(localDate);
       
       setClassData({ ...classData, endDate: formattedDate });
       
@@ -543,7 +547,7 @@ export default function EditClass({ params }: PageProps) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+  
     if (!classData || !validateForm()) {
       toast({
         variant: "destructive",
@@ -556,22 +560,24 @@ export default function EditClass({ params }: PageProps) {
     setIsLoading(true);
   
     try {
+      // Parse and reformat dates to ensure MM-DD-YYYY format
+      const parsedStartDate = parseBackendDate(classData.startDate);
+      const parsedEndDate = parseBackendDate(classData.endDate);
+      
+      const formattedStartDate = formatDateForAPI(parsedStartDate);
+      const formattedEndDate = formatDateForAPI(parsedEndDate);
+  
       // Create a payload with proper data types
       const payload = {
         ...(classData || {}),
-        // Convert price from string to number
         price: classData ? parseFloat(classData.price as string) : 0,
-        // Status is already in the correct format ("active"/"inactive")
         status: classData ? classData.status : "inactive",
-        // Send dates in the existing format (already YYYY-MM-DD)
-        startDate: classData.startDate,
-        endDate: classData.endDate,
-        // Use the actual checkbox value from the form state
+        // Use the reformatted dates instead of the original strings
+        startDate: formattedStartDate,
+        endDate: formattedEndDate,
         isCorpClass: classData ? classData.isCorpClass : false,
-        // Add country and location IDs
         countryId: classData ? classData.country?.id : 0,
         locationId: classData ? classData.location?.id : 0,
-        // Include updated category information
         category: classData ? {
           id: classData.category?.id,
           name: classData.category?.name,
@@ -581,7 +587,9 @@ export default function EditClass({ params }: PageProps) {
         } : undefined,
       };
   
-      console.log("Submitting payload:", payload);
+      console.log("Formatted dates being sent:");
+      console.log("startDate:", formattedStartDate);
+      console.log("endDate:", formattedEndDate);
   
       const response = await fetch(`https://api.4pmti.com/class/${id}`, {
         method: 'PATCH',
@@ -635,6 +643,8 @@ export default function EditClass({ params }: PageProps) {
       </div>
     );
   }
+
+
 
   return (
     <div className="w-full">
