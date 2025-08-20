@@ -885,7 +885,7 @@ export default function EditClass({ params }: PageProps) {
             </div>
 
             {/* Corporate Class Details - Shown only when isCorpClass is true */}
-            {classData.isCorpClass && (
+        
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
                 <div>
                   <Label>Hotel</Label>
@@ -931,8 +931,7 @@ export default function EditClass({ params }: PageProps) {
                   />
                 </div>
               </div>
-            )}
-
+  
             {/* Location, Country, Class Type, and Category Section */}
             <div className="border-t pt-4">
               <h3 className="text-lg font-medium mb-4">Additional Information</h3>
