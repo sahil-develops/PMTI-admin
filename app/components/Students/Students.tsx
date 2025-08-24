@@ -323,56 +323,128 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
 {studentData.enrollments && studentData.enrollments.length > 0 && (
   <div>
     <h3 className="text-lg font-medium mb-4">Enrollment History</h3>
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Title</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Type</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Enrollment Date</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Payment</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Progress</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Status</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-500">Comments</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {studentData.enrollments.map((enrollment: any) => (
-            <tr key={enrollment.ID} className="hover:bg-gray-50">
-              <td className="px-4 py-2">
+    <div className="space-y-6">
+      {studentData.enrollments.map((enrollment: any, index: number) => (
+        <div key={enrollment.ID} className="border border-gray-200 rounded-lg p-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-500">Course/Class Title</p>
+              <p className="font-medium">
                 {enrollment.course ? enrollment.course.courseName : 
                  (enrollment.class ? enrollment.class.title : 'N/A')}
-              </td>
-              <td className="px-4 py-2">
-                {enrollment.enrollmentType || 'N/A'}
-              </td>
-              <td className="px-4 py-2">
-                {enrollment.EnrollmentDate ? 
-                  new Date(enrollment.EnrollmentDate).toLocaleDateString() : 'N/A'}
-              </td>
-              <td className="px-4 py-2">
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-500">Type</p>
+              <p>{enrollment.enrollmentType || 'N/A'}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-500">Enrollment Date</p>
+              <p>{enrollment.EnrollmentDate ? 
+                new Date(enrollment.EnrollmentDate).toLocaleDateString() : 'N/A'}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-500">Payment</p>
+              <p>
                 ${parseFloat(enrollment.Price).toFixed(2)}
                 {enrollment.PaymentMode && ` (${enrollment.PaymentMode})`}
-              </td>
-              <td className="px-4 py-2 capitalize">
-                {enrollment.enrollmentProgress || 'N/A'}
-              </td>
-              <td className="px-4 py-2">
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  enrollment.status 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {enrollment.status ? 'Active' : 'Inactive'}
-                </span>
-              </td>
-              <td className="px-4 py-2">
-                {enrollment.Comments || 'N/A'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-500">Progress</p>
+              <p className="capitalize">{enrollment.enrollmentProgress || 'N/A'}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-500">Status</p>
+              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                enrollment.status 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {enrollment.status ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+          </div>
+
+          {/* Class Details Section */}
+          {enrollment.class && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <h4 className="text-md font-medium mb-3">Class Details</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Start Date</p>
+                  <p>{enrollment.class.startDate ? 
+                    new Date(enrollment.class.startDate).toLocaleDateString() : 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">End Date</p>
+                  <p>{enrollment.class.endDate ? 
+                    new Date(enrollment.class.endDate).toLocaleDateString() : 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Class Time</p>
+                  <p>{enrollment.class.classTime || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Address</p>
+                  <p>{enrollment.class.address || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Max Students</p>
+                  <p>{enrollment.class.maxStudent || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Online Available</p>
+                  <p>{enrollment.class.onlineAvailable ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Instructor Details Section */}
+          {enrollment.class?.instructor && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <h4 className="text-md font-medium mb-3">Instructor Details</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Name</p>
+                  <p className="font-medium">{enrollment.class.instructor.name || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Email</p>
+                  <p>{enrollment.class.instructor.emailID || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Mobile</p>
+                  <p>{enrollment.class.instructor.mobile || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Tel No</p>
+                  <p>{enrollment.class.instructor.telNo || 'N/A'}</p>
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <p className="text-sm font-medium text-gray-500">Address</p>
+                  <p>{enrollment.class.instructor.billingAddress || 'N/A'}</p>
+                </div>
+                {enrollment.class.instructor.profile && (
+                  <div className="space-y-1 md:col-span-3">
+                    <p className="text-sm font-medium text-gray-500">Profile</p>
+                    <p className="text-sm">{enrollment.class.instructor.profile}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Comments Section */}
+          {enrollment.Comments && (
+            <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+              <h4 className="text-md font-medium mb-2">Comments</h4>
+              <p className="text-sm">{enrollment.Comments}</p>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   </div>
 )}

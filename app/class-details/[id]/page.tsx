@@ -291,8 +291,15 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       const data = await response.json();
       if (data.success) {
         const activeLocations = data.data.filter((loc: { isDelete: boolean }) => !loc.isDelete);
-        console.log('Fetched locations:', activeLocations);
-        setLocations(activeLocations);
+        
+        // Sort locations alphabetically by location name
+ // Sort locations alphabetically by location name
+const sortedLocations = activeLocations.sort((a: { location: string }, b: { location: string }) => 
+  a.location.localeCompare(b.location)
+);
+        
+        console.log('Fetched and sorted locations:', sortedLocations);
+        setLocations(sortedLocations);
       } else {
         throw new Error(data.error || 'Failed to fetch locations');
       }
@@ -306,7 +313,6 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       });
     }
   };
-
   const handleRescheduleClick = async (studentId: number, enrollmentId: number) => {
     setSelectedStudent({ studentId, enrollmentId });
     setAvailableClasses([]);
