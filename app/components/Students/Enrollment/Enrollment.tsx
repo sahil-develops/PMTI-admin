@@ -635,7 +635,12 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       });
       const data = await response.json();
       if (data.success) {
-        setLocations(data.data.filter((loc: any) => !loc.isDelete));
+        // Filter out deleted locations and sort alphabetically
+        const sortedLocations = data.data
+          .filter((loc: any) => !loc.isDelete)
+          .sort((a: any, b: any) => a.location.localeCompare(b.location));
+        
+        setLocations(sortedLocations);
       }
     } catch (error) {
       console.error('Error fetching locations:', error);
@@ -646,6 +651,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       });
     }
   };
+  
 
   useEffect(() => {
     fetchStudentInfo();
@@ -660,21 +666,30 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       });
       const data = await response.json();
       if (data.success) {
-        // Update studentInfo with the API response data
         const student = data.data.student;
+        
+        // Update studentInfo with the API response data
         setStudentInfo({
           ...student,
-          // Provide default values for null fields
-          city: student.city || { id: 0, location: '', addedBy: '', updatedBy: '', isDelete: false, createdAt: '', updateAt: '' },
+          // Handle city as string (not object)
+          city: student.city ? { 
+            id: 0, 
+            location: student.city, 
+            addedBy: '', 
+            updatedBy: '', 
+            isDelete: false, 
+            createdAt: '', 
+            updateAt: '' 
+          } : { id: 0, location: '', addedBy: '', updatedBy: '', isDelete: false, createdAt: '', updateAt: '' },
           state: student.state || { id: 0, name: '' },
         });
-
+  
         // Update form data with student information
         setFormData(prev => ({
           ...prev,
           name: student.name || "",
           address: student.address || "",
-          city: student.city?.id?.toString() || "",
+          city: student.city || "", // Use city as string directly
           state: student.state?.id?.toString() || "",
           country: student.country?.id?.toString() || "52", // Default to US if null
           phone: student.phone || "",
@@ -684,7 +699,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
           companyName: student.companyName || "",
           downloadedInfoPac: student.downloadedInfoPac || false,
         }));
-
+  
         // Set default country and fetch states
         setSelectedCountry1(student.country?.id?.toString() || "52");
         fetchStates(student.country?.id?.toString() || "52");
@@ -706,34 +721,55 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         ...prev,
         BillingName: studentInfo.name || "",
         BillingAddress: studentInfo.address || "",
-        BillingCity: studentInfo.city?.id?.toString() || "",
-        BillingState: studentInfo.state?.id?.toString() || "",
-        BillCountry: studentInfo.country?.id?.toString() || "52", // Default to US
+        BillingCity: typeof studentInfo.city === "object" && studentInfo.city !== null
+          ? studentInfo.city.location
+          : studentInfo.city || "",
+        BillingState: typeof studentInfo.state === "object" && studentInfo.state !== null
+          ? studentInfo.state.id?.toString() || ""
+          : "",
+        BillCountry: typeof studentInfo.country === "object" && studentInfo.country !== null
+          ? studentInfo.country.id?.toString() || "52"
+          : "52",
         BillPhone: studentInfo.phone || "",
         BillMail: studentInfo.email || "",
         // Also set the student data
         name: studentInfo.name || "",
         address: studentInfo.address || "",
-        city: studentInfo.city?.id?.toString() || "",
-        state: studentInfo.state?.id?.toString() || "",
-        country: studentInfo.country?.id?.toString() || "52", // Default to US
+        city: typeof studentInfo.city === "object" && studentInfo.city !== null
+          ? studentInfo.city.location
+          : studentInfo.city || "",
+        state: typeof studentInfo.state === "object" && studentInfo.state !== null
+          ? studentInfo.state.id?.toString() || ""
+          : "",
+        country: typeof studentInfo.country === "object" && studentInfo.country !== null
+          ? studentInfo.country.id?.toString() || "52"
+          : "52",
         phone: studentInfo.phone || "",
         profession: studentInfo.profession || "",
         email: studentInfo.email || "",
         zipCode: studentInfo.zipCode || "",
         companyName: studentInfo.companyName || "",
       }));
-      
+
       // Fetch states and locations for the student's country or use default
-      const countryId = studentInfo.country?.id?.toString() || "52";
+      const countryId =
+        typeof studentInfo.country === "object" && studentInfo.country !== null
+          ? studentInfo.country.id?.toString() || "52"
+          : "52";
       fetchBillingStates(countryId);
-      
-      if (studentInfo.state) {
-        const stateId = studentInfo.state.id.toString();
-        fetchBillingLocations(countryId, stateId);
-      }
+    }
+    if (studentInfo && studentInfo.state && studentInfo.state.id) {
+      const stateId = studentInfo.state.id.toString();
+      // countryId is defined above in the checked block
+      fetchBillingLocations(
+        typeof studentInfo.country === "object" && studentInfo.country !== null
+          ? studentInfo.country.id?.toString() || "52"
+          : "52",
+        stateId
+      );
     }
   };
+  
 
   
 
@@ -895,15 +931,17 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
           },
         }
       );
-
+  
       if (!response.ok) {
         throw new Error('Failed to fetch locations');
       }
-
+  
       const data = await response.json();
+      // Filter out deleted locations and sort alphabetically
       const sortedLocations = [...data.data]
         .filter((loc: Location) => !loc.isDelete)
         .sort((a, b) => a.location.localeCompare(b.location));
+      
       setBillingLocations(sortedLocations);
     } catch (error) {
       console.error('Error fetching billing locations:', error);
@@ -915,7 +953,6 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       setBillingLocations([]);
     }
   };
-
   useEffect(() => {
     if (studentInfo) {
       // Use optional chaining and default values to handle nulls
