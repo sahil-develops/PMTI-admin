@@ -7,6 +7,59 @@ import { Button } from "@/components/ui/button";
 
 import Loader from "@/components/ui/Loader";
 
+// Custom Tooltip Component
+const CustomTooltip = ({ 
+  children, 
+  content, 
+  className = "" 
+}: { 
+  children: React.ReactNode; 
+  content: string;
+  className?: string;
+}) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  const handleMouseEnter = () => {
+    setIsVisible(true);
+  };
+
+  const handleMouseLeave = () => {
+    // Add a small delay to allow moving to tooltip
+    setTimeout(() => {
+      setIsVisible(false);
+    }, 100);
+  };
+
+  const handleTooltipMouseEnter = () => {
+    setIsVisible(true);
+  };
+
+  const handleTooltipMouseLeave = () => {
+    setIsVisible(false);
+  };
+
+  return (
+    <div 
+      className={`relative inline-block ${className}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {children}
+      {isVisible && content && (
+        <div 
+          className="absolute z-50 px-3 py-2 lg:w-72 text-sm text-white bg-gray-900 rounded-lg shadow-lg whitespace-pre-wrap max-w-md max-h-32 overflow-y-auto break-words -top-1 left-1/2 transform -translate-x-1/2 -translate-y-full"
+          onMouseEnter={handleTooltipMouseEnter}
+          onMouseLeave={handleTooltipMouseLeave}
+          style={{ marginTop: '8px' }}
+        >
+          {content}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface Enrollment {
   ID: number; // Changed from id: string to ID: number based on ClassDetailsPage usage
   day4Input?: string;
@@ -343,10 +396,11 @@ export const EnrollmentTable = ({
               </StyledTableCell>
               <StyledTableCell>{enrollment.student.phone}</StyledTableCell>
               <StyledTableCell>{enrollment.Price}</StyledTableCell>
-              <StyledTableCell>
+              <StyledTableCell >
                 {enrollment.Comments ? (
-                  <div className="whitespace-pre-wrap">
-                    {enrollment.Comments.split('\n').map((line, index) => {
+                  <CustomTooltip  content={(() => {
+                    // Format the comments with proper date formatting
+                    const formattedComments = enrollment.Comments.split('\n').map((line) => {
                       // Check if the line contains a date pattern (ISO date format)
                       const dateMatch = line.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)/);
                       if (dateMatch) {
@@ -367,8 +421,14 @@ export const EnrollmentTable = ({
                         return line.replace(dateStr, formattedDate);
                       }
                       return line;
-                    }).join('\n')}
-                  </div>
+                    }).join('\n');
+                    return formattedComments;
+                  })()}>
+                    <span className="line-clamp-1 whitespace-pre-wrap">
+                      {enrollment.Comments.substring(0, 20)}
+                      {enrollment.Comments.length > 20 && '...'}
+                    </span>
+                  </CustomTooltip>
                 ) : "N/A"}
               </StyledTableCell>
               
