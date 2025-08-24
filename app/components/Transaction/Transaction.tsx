@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useRef, FormEvent, ChangeEvent, useCallback, useEffect } from 'react';
+import React, { useState, useRef, FormEvent, ChangeEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ import {
 
 // Define the form values type
 type TransactionFormValues = {
-  // Payment Information
   cardNumber: string;
   expiryDate: string;
   cvv: string;
@@ -50,7 +49,6 @@ type ValidationErrors = {
 }
 
 const Transaction = () => {
-  // Add formValues state back
   const [formValues, setFormValues] = useState<TransactionFormValues>({
     cardNumber: '',
     expiryDate: '',
@@ -78,64 +76,53 @@ const Transaction = () => {
     studentPhone: '',
     studentEmail: '',
   });
+  
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [focusedField, setFocusedField] = useState<keyof TransactionFormValues | null>(null);
+  
+  const formRef = useRef<HTMLDivElement>(null);
 
-  // Create a ref for the form
-  const formRef = useRef<HTMLFormElement>(null);
-
-  // Handle expiry date formatting
-// Handle expiry date formatting
-const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
-  let value = e.target.value;
-  
-  // Remove any non-digit characters
-  value = value.replace(/\D/g, '');
-  
-  // Add slash after first 2 digits
-  if (value.length >= 2) {
-    value = value.substring(0, 2) + '/' + value.substring(2);
-  }
-  
-  // Limit to MM/YY format (5 characters)
-  value = value.substring(0, 5);
-  
-  // Use functional update to ensure we're always working with the latest state
-  setFormValues(prevValues => ({
-    ...prevValues,
-    expiryDate: value
-  }));
-};
-
-  // Add a general change handler
-  const handleInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    
-    // Use functional update to ensure we're always working with the latest state
-    setFormValues(prevValues => ({
-      ...prevValues,
-      [name]: value,
+  // Single input change handler
+  const handleInputChange = (fieldName: keyof TransactionFormValues, value: string) => {
+    setFormValues(prev => ({
+      ...prev,
+      [fieldName]: value
     }));
     
-    // Clear any error for this field when user starts typing
-    if (errors[name as keyof TransactionFormValues]) {
-      setErrors(prevErrors => {
-        const newErrors = { ...prevErrors };
-        delete newErrors[name as keyof TransactionFormValues];
+    // Clear error for this field
+    if (errors[fieldName]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
         return newErrors;
       });
     }
-  }, [errors]);
-  // Update validateForm to work with form data
-  const validateForm = (formData: FormData): boolean => {
+  };
+
+  // Special handler for expiry date formatting
+  const handleExpiryChange = (value: string) => {
+    // Remove any non-digit characters
+    let cleanValue = value.replace(/\D/g, '');
+    
+    // Add slash after first 2 digits
+    if (cleanValue.length >= 2) {
+      cleanValue = cleanValue.substring(0, 2) + '/' + cleanValue.substring(2);
+    }
+    
+    // Limit to MM/YY format (5 characters)
+    cleanValue = cleanValue.substring(0, 5);
+    
+    handleInputChange('expiryDate', cleanValue);
+  };
+
+  const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
     let isValid = true;
 
-    // Required field validation - check all fields
+    // Required field validation
     const requiredFields: (keyof TransactionFormValues)[] = [
       'cardNumber', 'expiryDate', 'cvv', 'amount', 'invoiceNumber', 'description', 
       'billingFirstName', 'billingLastName', 'billingCompany', 'billingAddress', 
@@ -146,103 +133,84 @@ const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
     ];
 
     requiredFields.forEach(field => {
-      const value = formData.get(field) as string;
-      if (!value || value.trim() === '') {
+      if (!formValues[field] || formValues[field].trim() === '') {
         newErrors[field] = "This field is required";
         isValid = false;
       }
     });
 
     // Card number validation
-    const cardNumber = formData.get('cardNumber') as string;
-    if (cardNumber && !/^\d{16}$/.test(cardNumber)) {
+    if (formValues.cardNumber && !/^\d{16}$/.test(formValues.cardNumber)) {
       newErrors.cardNumber = "Card number must be 16 digits";
       isValid = false;
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const billingEmail = formData.get('billingEmail') as string;
-    const studentEmail = formData.get('studentEmail') as string;
-
-    if (billingEmail && !emailRegex.test(billingEmail)) {
+    if (formValues.billingEmail && !emailRegex.test(formValues.billingEmail)) {
       newErrors.billingEmail = "Please enter a valid email address";
       isValid = false;
     }
-    if (studentEmail && !emailRegex.test(studentEmail)) {
+    if (formValues.studentEmail && !emailRegex.test(formValues.studentEmail)) {
       newErrors.studentEmail = "Please enter a valid email address";
       isValid = false;
     }
 
     // Expiry date validation
-    const expiryDate = formData.get('expiryDate') as string;
-    if (expiryDate && !/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiryDate)) {
+    if (formValues.expiryDate && !/^(0[1-9]|1[0-2])\/\d{2}$/.test(formValues.expiryDate)) {
       newErrors.expiryDate = "Format should be MM/YY";
       isValid = false;
     }
 
     // CVV validation
-    const cvv = formData.get('cvv') as string;
-    if (cvv && !/^\d{3,4}$/.test(cvv)) {
+    if (formValues.cvv && !/^\d{3,4}$/.test(formValues.cvv)) {
       newErrors.cvv = "CVV must be 3 or 4 digits";
       isValid = false;
     }
 
     // Phone number validation
     const phoneRegex = /^\d{10}$/;
-    const billingPhone = formData.get('billingPhone') as string;
-    const studentPhone = formData.get('studentPhone') as string;
-
-    if (billingPhone && !phoneRegex.test(billingPhone.replace(/\D/g, ''))) {
+    if (formValues.billingPhone && !phoneRegex.test(formValues.billingPhone.replace(/\D/g, ''))) {
       newErrors.billingPhone = "Please enter a valid 10-digit phone number";
       isValid = false;
     }
-    if (studentPhone && !phoneRegex.test(studentPhone.replace(/\D/g, ''))) {
+    if (formValues.studentPhone && !phoneRegex.test(formValues.studentPhone.replace(/\D/g, ''))) {
       newErrors.studentPhone = "Please enter a valid 10-digit phone number";
       isValid = false;
     }
 
     // ZIP code validation
     const zipRegex = /^\d{5}(-\d{4})?$/;
-    const billingZip = formData.get('billingZip') as string;
-    const studentZip = formData.get('studentZip') as string;
-
-    if (billingZip && !zipRegex.test(billingZip)) {
+    if (formValues.billingZip && !zipRegex.test(formValues.billingZip)) {
       newErrors.billingZip = "Please enter a valid ZIP code (12345 or 12345-6789)";
       isValid = false;
     }
-    if (studentZip && !zipRegex.test(studentZip)) {
+    if (formValues.studentZip && !zipRegex.test(formValues.studentZip)) {
       newErrors.studentZip = "Please enter a valid ZIP code (12345 or 12345-6789)";
       isValid = false;
     }
 
-    // Amount validation - must be a positive number
-    const amount = formData.get('amount') as string;
-    if (amount && (isNaN(Number(amount)) || Number(amount) <= 0)) {
+    // Amount validation
+    if (formValues.amount && (isNaN(Number(formValues.amount)) || Number(formValues.amount) <= 0)) {
       newErrors.amount = "Please enter a valid positive amount";
       isValid = false;
     }
 
-    // Name validation - only letters, spaces, hyphens, and apostrophes
+    // Name validation
     const nameRegex = /^[A-Za-z\s\-']+$/;
-    const billingFirstName = formData.get('billingFirstName') as string;
-    const billingLastName = formData.get('billingLastName') as string;
-    const studentFirstName = formData.get('studentFirstName') as string;
-    const studentLastName = formData.get('studentLastName') as string;
-
-    if (billingFirstName && !nameRegex.test(billingFirstName)) {
+    if (formValues.billingFirstName && !nameRegex.test(formValues.billingFirstName)) {
       newErrors.billingFirstName = "Please enter a valid name";
       isValid = false;
     }
-    if (billingLastName && !nameRegex.test(billingLastName)) {
+    if (formValues.billingLastName && !nameRegex.test(formValues.billingLastName)) {
       newErrors.billingLastName = "Please enter a valid name";
       isValid = false;
     }
-    if (studentFirstName && !nameRegex.test(studentFirstName)) {
+    if (formValues.studentFirstName && !nameRegex.test(formValues.studentFirstName)) {
       newErrors.studentFirstName = "Please enter a valid name";
       isValid = false;
     }
-    if (studentLastName && !nameRegex.test(studentLastName)) {
+    if (formValues.studentLastName && !nameRegex.test(formValues.studentLastName)) {
       newErrors.studentLastName = "Please enter a valid name";
       isValid = false;
     }
@@ -251,31 +219,23 @@ const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
     return isValid;
   };
 
-  // Update handleSubmit
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    const formData = new FormData(formRef.current!);
-    if (!validateForm(formData)) {
-      return; // Don't proceed if validation fails
+    if (!validateForm()) {
+      return;
     }
     
     setIsSubmitting(true);
     
     try {
-      // Format the data for the API with proper structure
       const formattedData = {
-        // Payment details
         cardNumber: formValues.cardNumber,
         expirationDate: formValues.expiryDate,
         cvv: formValues.cvv,
         amount: Number(formValues.amount),
-        
-        // Order information
         invoiceNumber: formValues.invoiceNumber,
         description: formValues.description,
-        
-        // Address information (using billing info)
         firstName: formValues.billingFirstName,
         lastName: formValues.billingLastName,
         company: formValues.billingCompany,
@@ -286,8 +246,6 @@ const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
         country: formValues.billingCountry,
         phone: formValues.billingPhone,
         email: formValues.billingEmail,
-        
-        // Student information
         studentFirstName: formValues.studentFirstName,
         studentLastName: formValues.studentLastName,
         studentAddress: formValues.studentAddress,
@@ -298,8 +256,6 @@ const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
         studentPhone: formValues.studentPhone,
         studentEmail: formValues.studentEmail
       };
-
-      console.log("Sending payment data:", formattedData); // Debugging
 
       const response = await fetch(`https://api.4pmti.com/payment/charge`, {
         method: 'POST',
@@ -313,11 +269,7 @@ const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
       const responseData = await response.json();
       
       if (!response.ok) {
-        console.error("API Error:", responseData); // Debugging
-        
-        // Check if we have validation errors from the API
         if (responseData.error && Array.isArray(responseData.error)) {
-          // Map API errors to form fields when possible
           const apiErrors: ValidationErrors = {};
           
           responseData.error.forEach((error: string) => {
@@ -334,7 +286,6 @@ const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
             if (error.includes('studentEmail')) apiErrors.studentEmail = error;
           });
           
-          // Update the errors state with API validation errors
           if (Object.keys(apiErrors).length > 0) {
             setErrors(prev => ({ ...prev, ...apiErrors }));
           }
@@ -343,7 +294,6 @@ const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
         throw new Error(responseData.message || 'Payment failed. Please try again.');
       }
 
-      // Only reset form values on success
       setShowSuccessModal(true);
       setFormValues({
         cardNumber: '',
@@ -374,64 +324,12 @@ const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
       });
       setErrors({});
     } catch (error) {
-      console.error("Submission error:", error); // Debugging
       setErrorMessage(error instanceof Error ? error.message : 'An error occurred');
       setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // UUpdate FormInput component to handle special inputs
-const FormInput = ({ 
-  name, 
-  label, 
-  placeholder = "", 
-  type = "text",
-  onChange
-}: { 
-  name: keyof TransactionFormValues; 
-  label: string; 
-  placeholder?: string; 
-  type?: string;
-  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
-}) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  
-  // Handle focus
-  const handleFocus = () => {
-    setFocusedField(name);
-  };
-  
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={name}>{label} <span className="text-red-500">*</span></Label>
-      <Input 
-        ref={inputRef}
-        id={name}
-        placeholder={placeholder} 
-        type={type}
-        name={name}
-        autoComplete="off"
-        className={errors[name] ? "border-red-500" : ""}
-        required
-        value={formValues[name]}
-        onChange={(e) => {
-          // Important: Stop propagation if causing issues
-          // e.stopPropagation();
-          
-          if (onChange) {
-            onChange(e);
-          } else {
-            handleInputChange(e);
-          }
-        }}
-        onFocus={handleFocus}
-      />
-      {errors[name] && <p className="text-sm font-medium text-red-500">{errors[name]}</p>}
-    </div>
-  );
-};
 
   return (
     <div className="mx-auto py-8 px-4">
@@ -440,150 +338,349 @@ const FormInput = ({
           <CardTitle className="text-2xl font-bold">Transaction</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} ref={formRef} className="space-y-8">
-              {/* Payment Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Payment Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormInput
-                    name="cardNumber"
-                    label="Card Number"
+          <div className="space-y-8">
+            {/* Payment Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Payment Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="cardNumber">Card Number <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="cardNumber"
                     placeholder="Enter number without spaces"
+                    type="text"
+                    autoComplete="off"
+                    className={errors.cardNumber ? "border-red-500" : ""}
+                    value={formValues.cardNumber}
+                    onChange={(e) => handleInputChange('cardNumber', e.target.value)}
                   />
-                  <FormInput
-                    name="expiryDate"
-                    label="Expiry Date"
+                  {errors.cardNumber && <p className="text-sm font-medium text-red-500">{errors.cardNumber}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="expiryDate">Expiry Date <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="expiryDate"
                     placeholder="MM/YY"
-                    onChange={handleExpiryDateChange}
+                    type="text"
+                    autoComplete="off"
+                    className={errors.expiryDate ? "border-red-500" : ""}
+                    value={formValues.expiryDate}
+                    onChange={(e) => handleExpiryChange(e.target.value)}
                   />
-                  <FormInput
-                    name="cvv"
-                    label="CVV Code"
+                  {errors.expiryDate && <p className="text-sm font-medium text-red-500">{errors.expiryDate}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cvv">CVV Code <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="cvv"
                     placeholder="3 or 4 digit code"
+                    type="text"
+                    autoComplete="off"
+                    className={errors.cvv ? "border-red-500" : ""}
+                    value={formValues.cvv}
+                    onChange={(e) => handleInputChange('cvv', e.target.value)}
                   />
-                  <FormInput
-                    name="amount"
-                    label="Amount"
+                  {errors.cvv && <p className="text-sm font-medium text-red-500">{errors.cvv}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="amount"
                     type="number"
+                    autoComplete="off"
+                    className={errors.amount ? "border-red-500" : ""}
+                    value={formValues.amount}
+                    onChange={(e) => handleInputChange('amount', e.target.value)}
                   />
+                  {errors.amount && <p className="text-sm font-medium text-red-500">{errors.amount}</p>}
                 </div>
               </div>
+            </div>
 
-              {/* Order Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Order Information</h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <FormInput
-                    name="invoiceNumber"
-                    label="Invoice Number"
+            {/* Order Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Order Information</h3>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="invoiceNumber">Invoice Number <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="invoiceNumber"
+                    autoComplete="off"
+                    className={errors.invoiceNumber ? "border-red-500" : ""}
+                    value={formValues.invoiceNumber}
+                    onChange={(e) => handleInputChange('invoiceNumber', e.target.value)}
                   />
-                  <FormInput
-                    name="description"
-                    label="Description"
+                  {errors.invoiceNumber && <p className="text-sm font-medium text-red-500">{errors.invoiceNumber}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="description"
+                    autoComplete="off"
+                    className={errors.description ? "border-red-500" : ""}
+                    value={formValues.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
                   />
+                  {errors.description && <p className="text-sm font-medium text-red-500">{errors.description}</p>}
                 </div>
               </div>
+            </div>
 
-              {/* Billing Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Customer Billing Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormInput
-                    name="billingFirstName"
-                    label="First Name"
+            {/* Billing Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Customer Billing Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="billingFirstName">First Name <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="billingFirstName"
+                    autoComplete="off"
+                    className={errors.billingFirstName ? "border-red-500" : ""}
+                    value={formValues.billingFirstName}
+                    onChange={(e) => handleInputChange('billingFirstName', e.target.value)}
                   />
-                  <FormInput
-                    name="billingLastName"
-                    label="Last Name"
+                  {errors.billingFirstName && <p className="text-sm font-medium text-red-500">{errors.billingFirstName}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="billingLastName">Last Name <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="billingLastName"
+                    autoComplete="off"
+                    className={errors.billingLastName ? "border-red-500" : ""}
+                    value={formValues.billingLastName}
+                    onChange={(e) => handleInputChange('billingLastName', e.target.value)}
                   />
-                  <FormInput
-                    name="billingCompany"
-                    label="Company"
+                  {errors.billingLastName && <p className="text-sm font-medium text-red-500">{errors.billingLastName}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="billingCompany">Company <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="billingCompany"
+                    autoComplete="off"
+                    className={errors.billingCompany ? "border-red-500" : ""}
+                    value={formValues.billingCompany}
+                    onChange={(e) => handleInputChange('billingCompany', e.target.value)}
                   />
-                  <FormInput
-                    name="billingAddress"
-                    label="Address"
+                  {errors.billingCompany && <p className="text-sm font-medium text-red-500">{errors.billingCompany}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="billingAddress">Address <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="billingAddress"
+                    autoComplete="off"
+                    className={errors.billingAddress ? "border-red-500" : ""}
+                    value={formValues.billingAddress}
+                    onChange={(e) => handleInputChange('billingAddress', e.target.value)}
                   />
-                  <FormInput
-                    name="billingCity"
-                    label="City"
+                  {errors.billingAddress && <p className="text-sm font-medium text-red-500">{errors.billingAddress}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="billingCity">City <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="billingCity"
+                    autoComplete="off"
+                    className={errors.billingCity ? "border-red-500" : ""}
+                    value={formValues.billingCity}
+                    onChange={(e) => handleInputChange('billingCity', e.target.value)}
                   />
-                  <FormInput
-                    name="billingState"
-                    label="State"
+                  {errors.billingCity && <p className="text-sm font-medium text-red-500">{errors.billingCity}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="billingState">State <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="billingState"
+                    autoComplete="off"
+                    className={errors.billingState ? "border-red-500" : ""}
+                    value={formValues.billingState}
+                    onChange={(e) => handleInputChange('billingState', e.target.value)}
                   />
-                  <FormInput
-                    name="billingZip"
-                    label="ZIP Code"
+                  {errors.billingState && <p className="text-sm font-medium text-red-500">{errors.billingState}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="billingZip">ZIP Code <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="billingZip"
+                    autoComplete="off"
+                    className={errors.billingZip ? "border-red-500" : ""}
+                    value={formValues.billingZip}
+                    onChange={(e) => handleInputChange('billingZip', e.target.value)}
                   />
-                  <FormInput
-                    name="billingCountry"
-                    label="Country"
+                  {errors.billingZip && <p className="text-sm font-medium text-red-500">{errors.billingZip}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="billingCountry">Country <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="billingCountry"
+                    autoComplete="off"
+                    className={errors.billingCountry ? "border-red-500" : ""}
+                    value={formValues.billingCountry}
+                    onChange={(e) => handleInputChange('billingCountry', e.target.value)}
                   />
-                  <FormInput
-                    name="billingPhone"
-                    label="Phone"
+                  {errors.billingCountry && <p className="text-sm font-medium text-red-500">{errors.billingCountry}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="billingPhone">Phone <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="billingPhone"
+                    autoComplete="off"
+                    className={errors.billingPhone ? "border-red-500" : ""}
+                    value={formValues.billingPhone}
+                    onChange={(e) => handleInputChange('billingPhone', e.target.value)}
                   />
-                  <FormInput
-                    name="billingEmail"
-                    label="Email"
+                  {errors.billingPhone && <p className="text-sm font-medium text-red-500">{errors.billingPhone}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="billingEmail">Email <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="billingEmail"
                     type="email"
+                    autoComplete="off"
+                    className={errors.billingEmail ? "border-red-500" : ""}
+                    value={formValues.billingEmail}
+                    onChange={(e) => handleInputChange('billingEmail', e.target.value)}
                   />
+                  {errors.billingEmail && <p className="text-sm font-medium text-red-500">{errors.billingEmail}</p>}
                 </div>
               </div>
+            </div>
 
-              {/* Student Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Student Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormInput
-                    name="studentFirstName"
-                    label="Student First Name"
+            {/* Student Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Student Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="studentFirstName">Student First Name <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="studentFirstName"
+                    autoComplete="off"
+                    className={errors.studentFirstName ? "border-red-500" : ""}
+                    value={formValues.studentFirstName}
+                    onChange={(e) => handleInputChange('studentFirstName', e.target.value)}
                   />
-                  <FormInput
-                    name="studentLastName"
-                    label="Student Last Name"
+                  {errors.studentFirstName && <p className="text-sm font-medium text-red-500">{errors.studentFirstName}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="studentLastName">Student Last Name <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="studentLastName"
+                    autoComplete="off"
+                    className={errors.studentLastName ? "border-red-500" : ""}
+                    value={formValues.studentLastName}
+                    onChange={(e) => handleInputChange('studentLastName', e.target.value)}
                   />
-                  <FormInput
-                    name="studentAddress"
-                    label="Student Address"
+                  {errors.studentLastName && <p className="text-sm font-medium text-red-500">{errors.studentLastName}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="studentAddress">Student Address <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="studentAddress"
+                    autoComplete="off"
+                    className={errors.studentAddress ? "border-red-500" : ""}
+                    value={formValues.studentAddress}
+                    onChange={(e) => handleInputChange('studentAddress', e.target.value)}
                   />
-                  <FormInput
-                    name="studentCity"
-                    label="Student City"
+                  {errors.studentAddress && <p className="text-sm font-medium text-red-500">{errors.studentAddress}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="studentCity">Student City <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="studentCity"
+                    autoComplete="off"
+                    className={errors.studentCity ? "border-red-500" : ""}
+                    value={formValues.studentCity}
+                    onChange={(e) => handleInputChange('studentCity', e.target.value)}
                   />
-                  <FormInput
-                    name="studentState"
-                    label="Student State"
+                  {errors.studentCity && <p className="text-sm font-medium text-red-500">{errors.studentCity}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="studentState">Student State <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="studentState"
+                    autoComplete="off"
+                    className={errors.studentState ? "border-red-500" : ""}
+                    value={formValues.studentState}
+                    onChange={(e) => handleInputChange('studentState', e.target.value)}
                   />
-                  <FormInput
-                    name="studentZip"
-                    label="Student ZIP Code"
+                  {errors.studentState && <p className="text-sm font-medium text-red-500">{errors.studentState}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="studentZip">Student ZIP Code <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="studentZip"
+                    autoComplete="off"
+                    className={errors.studentZip ? "border-red-500" : ""}
+                    value={formValues.studentZip}
+                    onChange={(e) => handleInputChange('studentZip', e.target.value)}
                   />
-                  <FormInput
-                    name="studentCountry"
-                    label="Student Country"
+                  {errors.studentZip && <p className="text-sm font-medium text-red-500">{errors.studentZip}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="studentCountry">Student Country <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="studentCountry"
+                    autoComplete="off"
+                    className={errors.studentCountry ? "border-red-500" : ""}
+                    value={formValues.studentCountry}
+                    onChange={(e) => handleInputChange('studentCountry', e.target.value)}
                   />
-                  <FormInput
-                    name="studentPhone"
-                    label="Student Phone"
+                  {errors.studentCountry && <p className="text-sm font-medium text-red-500">{errors.studentCountry}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="studentPhone">Student Phone <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="studentPhone"
+                    autoComplete="off"
+                    className={errors.studentPhone ? "border-red-500" : ""}
+                    value={formValues.studentPhone}
+                    onChange={(e) => handleInputChange('studentPhone', e.target.value)}
                   />
-                  <FormInput
-                    name="studentEmail"
-                    label="Student Email"
+                  {errors.studentPhone && <p className="text-sm font-medium text-red-500">{errors.studentPhone}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="studentEmail">Student Email <span className="text-red-500">*</span></Label>
+                  <Input 
+                    id="studentEmail"
                     type="email"
+                    autoComplete="off"
+                    className={errors.studentEmail ? "border-red-500" : ""}
+                    value={formValues.studentEmail}
+                    onChange={(e) => handleInputChange('studentEmail', e.target.value)}
                   />
+                  {errors.studentEmail && <p className="text-sm font-medium text-red-500">{errors.studentEmail}</p>}
                 </div>
               </div>
+            </div>
 
-              <Button 
-                type="submit" 
-                className="w-full md:w-auto bg-zinc-700 hover:bg-zinc-800"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Processing...' : 'SUBMIT'}
-              </Button>
-            </form>
+            <Button 
+              type="button"
+              onClick={handleSubmit}
+              className="w-full md:w-auto bg-zinc-700 hover:bg-zinc-800"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Processing...' : 'SUBMIT'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
