@@ -411,7 +411,7 @@ export const EnrollmentTable = ({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => handleRescheduleClick(enrollment.ID, enrollment.ID)}
+                  onClick={() => handleRescheduleClick(enrollment.student.id, enrollment.ID)}
                 >
                   Reschedule
                 </Button>
