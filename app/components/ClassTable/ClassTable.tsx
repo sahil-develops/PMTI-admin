@@ -78,6 +78,7 @@ interface State {
 }
 
 interface ClassData {
+  activeEnrollmentCount: number;
   minStudent: number;
   maxStudent: number;
   enrolledStudents: number;
@@ -160,13 +161,16 @@ const ActionDropdown = ({
   const router = useRouter();
   const { toast } = useToast();
 
-  // Get enrolled count from either enrollmentCount or enrolledStudents
-  const enrolledCount = classItem.enrollmentCount 
-    ? parseInt(classItem.enrollmentCount, 10) 
-    : classItem.enrolledStudents || 0;
+  // Get enrolled count from either activeEnrollmentCount or enrolledStudents
+  const enrolledCount =
+    typeof classItem.activeEnrollmentCount === "string"
+      ? parseInt(classItem.activeEnrollmentCount, 10)
+      : typeof classItem.activeEnrollmentCount === "number"
+      ? classItem.activeEnrollmentCount
+      : classItem.enrolledStudents || 0;
 
   const handleViewRoster = (id: string) => {
-    router.push(`/view-roaster/${id}`);
+    router.push(`/view-roster/${id}`);
   };
 
   const handleDelete = async () => {
@@ -535,12 +539,13 @@ useEffect(() => {
   const calculateAvailableSpots = (classItem: ClassData) => {
     // Get enrolled count from enrollmentCount (preferred) or enrolledStudents
     // Convert to number and default to 0 if null/undefined
-    const enrolled = classItem.enrollmentCount 
-      ? parseInt(classItem.enrollmentCount, 10) 
-      : classItem.enrolledStudents || 0;
-      
+    const enrolled =
+      classItem.activeEnrollmentCount != null
+        ? Number(classItem.activeEnrollmentCount) || 0
+        : Number(classItem.enrolledStudents) || 0;
+
     // Calculate remaining spots
-    return classItem.maxStudent - enrolled;
+    return Number(classItem.maxStudent) - enrolled;
   };
 
   // Initial data fetch
@@ -1242,7 +1247,7 @@ useEffect(() => {
                           : "Cancelled"}
                       </span>
                     </TableCell>
-                    <TableCell>{classItem.enrollmentCount || "N/A"}</TableCell>
+                    <TableCell>{classItem.activeEnrollmentCount ?? "N/A"}</TableCell>
                     <TableCell>{calculateAvailableSpots(classItem)}</TableCell>
                     <TableCell>
                       <ActionDropdown
