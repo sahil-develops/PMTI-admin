@@ -2984,11 +2984,9 @@ const Index = () => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
-  const [isCoverImageUploading, setIsCoverImageUploading] = useState(false);
-  const [coverImageError, setCoverImageError] = useState('');
+
   const [thumbnailUrl, setThumbnailUrl] = useState('');
-  const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
-  const [thumbnailError, setThumbnailError] = useState('');
+
   const [validationErrors, setValidationErrors] = useState<{
     title?: string;
     category?: string;
@@ -3237,79 +3235,11 @@ const Index = () => {
     }
   };
 
-  const handleCoverImageUpload = async (file: File) => {
-    setIsCoverImageUploading(true);
-    setCoverImageError('');
-  
-    const formData = new FormData();
-    formData.append('file', file);
-  
-    try {
-      const authToken = localStorage.getItem('accessToken');
-      if (!authToken) {
-        throw new Error('Authentication token not found');
-      }
 
-      const response = await fetch('https://api.4pmti.com/upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-        },
-        body: formData,
-      });
-  
-      if (!response.ok) throw new Error('Upload failed');
-      
-      const data = await response.json();
-      setCoverImageUrl(data.data.url);
-    } catch (error) {
-      setCoverImageError('Failed to upload cover image. Please try again.');
-    } finally {
-      setIsCoverImageUploading(false);
-    }
-  };
 
-  const handleDeleteCoverImage = () => {
-    setCoverImageUrl('');
-    setCoverImageError('');
-  };
 
-  const handleThumbnailUpload = async (file: File) => {
-    setIsThumbnailUploading(true);
-    setThumbnailError('');
-  
-    const formData = new FormData();
-    formData.append('file', file);
-  
-    try {
-      const authToken = localStorage.getItem('accessToken');
-      if (!authToken) {
-        throw new Error('Authentication token not found');
-      }
 
-      const response = await fetch('https://api.4pmti.com/upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-        },
-        body: formData,
-      });
-  
-      if (!response.ok) throw new Error('Upload failed');
-      
-      const data = await response.json();
-      setThumbnailUrl(data.data.url);
-    } catch (error) {
-      setThumbnailError('Failed to upload thumbnail. Please try again.');
-    } finally {
-      setIsThumbnailUploading(false);
-    }
-  };
 
-  const handleDeleteThumbnail = () => {
-    setThumbnailUrl('');
-    setThumbnailError('');
-  };
 
   const handleSlugChange = (value: string) => {
     // Convert to lowercase and replace spaces with hyphens
@@ -3447,93 +3377,58 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
               This will be the URL of your blog post. Use hyphens to separate words.
             </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cover Image
-            </label>
-            <div className="flex flex-col gap-2">
-              <input
-                type="file"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleCoverImageUpload(file);
-                }}
-                accept="*/*"
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
-              
-              {coverImageError && (
-                <p className="text-red-500 text-sm">{coverImageError}</p>
-              )}
-              
-              {isCoverImageUploading && (
-                <div className="mt-2 w-full h-48 bg-gray-100 rounded-lg relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-shimmer" />
-                </div>
-              )}
-              
-              {coverImageUrl && !isCoverImageUploading && (
-                <div className="mt-2 border rounded-lg overflow-hidden relative group">
-                  <img
-                    src={coverImageUrl}
-                    alt="Cover preview"
-                    className="w-full h-48 object-cover"
-                  />
-                  <button
-                    onClick={handleDeleteCoverImage}
-                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
-                    title="Delete cover image"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+       <div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Cover Image URL
+  </label>
+  <input
+  
+    type="url"
+    value={coverImageUrl}
+    onChange={(e) => setCoverImageUrl(e.target.value)}
+    className="w-full border border-gray-300 rounded-md p-2"
+    placeholder="Enter cover image URL..."
+  />
+  {coverImageUrl && (
+    <div className="mt-2 border rounded-lg overflow-hidden">
+      <img
+        src={coverImageUrl}
+        alt="Cover preview"
+        className="w-full h-48 object-cover"
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          target.style.opacity = '0.5';
+        }}
+      />
+    </div>
+  )}
+</div>
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Thumbnail URL
+  </label>
+  <input
+    type="url"
+    value={thumbnailUrl}
+    onChange={(e) => setThumbnailUrl(e.target.value)}
+    className="w-full border border-gray-300 rounded-md p-2"
+    placeholder="Enter thumbnail URL..."
+  />
+  {thumbnailUrl && (
+    <div className="mt-2 border rounded-lg overflow-hidden">
+      <img
+        src={thumbnailUrl}
+        alt="Thumbnail preview"
+        className="w-full h-48 object-cover"
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          target.style.opacity = '0.5';
+        }}
+      />
+    </div>
+  )}
+</div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Thumbnail
-            </label>
-            <div className="flex flex-col gap-2">
-              <input
-                type="file"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleThumbnailUpload(file);
-                }}
-                accept="*/*"
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
-              
-              {thumbnailError && (
-                <p className="text-red-500 text-sm">{thumbnailError}</p>
-              )}
-              
-              {isThumbnailUploading && (
-                <div className="mt-2 w-full h-48 bg-gray-100 rounded-lg relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 animate-shimmer" />
-                </div>
-              )}
-              
-              {thumbnailUrl && !isThumbnailUploading && (
-                <div className="mt-2 border rounded-lg overflow-hidden relative group">
-                  <img
-                    src={thumbnailUrl}
-                    alt="Thumbnail preview"
-                    className="w-full h-48 object-cover"
-                  />
-                  <button
-                    onClick={handleDeleteThumbnail}
-                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
-                    title="Delete thumbnail"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
             <textarea
