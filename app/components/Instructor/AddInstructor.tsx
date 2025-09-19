@@ -238,7 +238,7 @@ const AddInstructor = () => {
                       required 
                       maxLength={200}
                       // @ts-ignore
-                      pattern="^[A-Za-z0-9\s,.''-]{10,200}$"
+                      pattern="^[A-Za-z0-9\s,.'&\-<>\/]{10,200}$"
                       title="Address should be between 10 and 200 characters"
                     />
                   </div>
@@ -251,7 +251,7 @@ const AddInstructor = () => {
                       required 
                       maxLength={200}
                       // @ts-ignore
-                      pattern="^[A-Za-z0-9\s,.''-]{10,200}$"
+                      pattern="^[A-Za-z0-9\s,.'&\-<>\/]{10,200}$"
                       title="Address should be between 10 and 200 characters"
                     />
                   </div>
