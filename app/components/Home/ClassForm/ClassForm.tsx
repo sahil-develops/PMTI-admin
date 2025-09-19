@@ -52,7 +52,7 @@ const classFormSchema = z.object({
   address: z.string()
     .min(5, "Address must be at least 5 characters")
     .max(200, "Address must not exceed 200 characters")
-    .regex(/^[a-zA-Z0-9\s,.-]+$/, "Please enter a valid address"),
+    .regex(/^[a-zA-Z0-9\s,.'-]+$/, "Please enter a valid address"),
 
   // Dates
   startDate: z.date({
