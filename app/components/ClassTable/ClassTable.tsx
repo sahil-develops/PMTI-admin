@@ -642,7 +642,7 @@ useEffect(() => {
       }
 
       const response = await fetch(
-        `https://api.4pmti.com/class?${queryParams.toString()}`,
+        `https://api.projectmanagementtraininginstitute.com/class/admin/all?${queryParams.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,

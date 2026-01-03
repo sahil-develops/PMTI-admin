@@ -336,7 +336,7 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
       });
 
       const response = await fetch(
-        `https://api.4pmti.com/class?page=${page}&limit=10&countryId=${selectedCountry}&locationId=${selectedLocation}`,
+        `https://api.projectmanagementtraininginstitute.com/class/admin/all?page=${page}&limit=10&countryId=${selectedCountry}&locationId=${selectedLocation}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
