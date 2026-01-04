@@ -67,7 +67,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
   const [editedSlug, setEditedSlug] = useState('');
   const [showCoverImageModal, setShowCoverImageModal] = useState(false);
   const [showThumbnailModal, setShowThumbnailModal] = useState(false);
-  
+
   // Related articles state
   const [relatedArticleIds, setRelatedArticleIds] = useState<number[]>([]);
   const [relatedArticles, setRelatedArticles] = useState<RelatedArticle[]>([]);
@@ -77,12 +77,12 @@ export default function EditBlog({ params }: { params: { id: string } }) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showArticleSelector, setShowArticleSelector] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  
+
   // Store original values to compare changes
   const [originalValues, setOriginalValues] = useState({
     title: '',
@@ -126,13 +126,13 @@ export default function EditBlog({ params }: { params: { id: string } }) {
       } else {
         setIsLoadingMore(true);
       }
-      
+
       const authToken = localStorage.getItem('accessToken');
       if (!authToken) {
         throw new Error('Authentication token not found');
       }
-      
-      const response = await fetch(`https://api.4pmti.com/blog?page=${page}&limit=10`, {
+
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/blog?page=${page}&limit=10`, {
         headers: {
           'Authorization': `Bearer ${authToken}`
         }
@@ -145,7 +145,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
         // Handle nested data structure: result.data.data contains the articles array
         const articlesData = result.data.data || result.data;
         const meta = result.data.meta;
-        
+
         // Filter out the current article and format the data
         const filteredArticles = articlesData
           .filter((article: any) => article.id !== parseInt(params.id))
@@ -157,18 +157,18 @@ export default function EditBlog({ params }: { params: { id: string } }) {
             thumbnail: article.thumbnail,
             description: article.description
           }));
-        
+
         if (append) {
           setAllArticles(prev => [...prev, ...filteredArticles]);
         } else {
           setAllArticles(filteredArticles);
         }
-        
+
         // Update pagination state
         setCurrentPage(page);
         setTotalPages(meta?.totalPages || 1);
         setHasMore(page < (meta?.totalPages || 1));
-        
+
         console.log('Fetched articles:', filteredArticles.length, 'Page:', page, 'Total pages:', meta?.totalPages);
       }
     } catch (error) {
@@ -194,10 +194,10 @@ export default function EditBlog({ params }: { params: { id: string } }) {
       }
 
       const relatedArticlesData: RelatedArticle[] = [];
-      
+
       for (const id of articleIds) {
         try {
-          const response = await fetch(`https://api.4pmti.com/blog/${id}`, {
+          const response = await fetch(`https://api.projectmanagementtraininginstitute.com/blog/${id}`, {
             headers: {
               'Authorization': `Bearer ${authToken}`
             }
@@ -219,7 +219,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
           console.error(`Failed to fetch article ${id}:`, error);
         }
       }
-      
+
       setRelatedArticles(relatedArticlesData);
     } catch (error) {
       console.error('Failed to fetch related articles:', error);
@@ -236,7 +236,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
         if (!authToken) {
           throw new Error('Authentication token not found');
         }
-        const response = await fetch(`https://api.4pmti.com/blog/${params.id}`, {
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/blog/${params.id}`, {
           headers: {
             'Authorization': `Bearer ${authToken}`
           }
@@ -253,18 +253,18 @@ export default function EditBlog({ params }: { params: { id: string } }) {
           setEditedSlug(result.data.slug);
           setEditedDescription(result.data.description || '');
           setEditedTags(result.data.tags ? result.data.tags.map((tag: Tag) => tag.name).join(', ') : '');
-          
+
           // Set related articles
           const relatedIds = result.data.relatedArticleIds || [];
           setRelatedArticleIds(relatedIds);
-          
+
           // Decode base64 metadata
           const decodedHead = decodeBase64(result.data.metadata?.head || '');
           const decodedScript = decodeBase64(result.data.metadata?.script || '');
-          
+
           setEditedHead(decodedHead);
           setEditedScript(decodedScript);
-          
+
           // Store original values for comparison (store decoded values)
           setOriginalValues({
             title: result.data.title,
@@ -321,7 +321,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px from bottom
-    
+
     if (isNearBottom && hasMore && !isLoadingMore && !isLoadingAllArticles) {
       fetchAllArticles(currentPage + 1, true);
     }
@@ -368,7 +368,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
       const currentTags = editedTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
       const originalTags = originalValues.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
       const tagsChanged = JSON.stringify(currentTags.sort()) !== JSON.stringify(originalTags.sort());
-      
+
       if (tagsChanged) {
         updateData.tagNames = currentTags;
       }
@@ -397,7 +397,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
         return;
       }
 
-      const response = await fetch(`https://api.4pmti.com/blog/${params.id}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/blog/${params.id}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -441,7 +441,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
       if (!authToken) throw new Error('Authentication token not found');
       const formData = new FormData();
       formData.append('file', file);
-      const response = await fetch('https://api.4pmti.com/upload', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/upload', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authToken}` },
         body: formData
@@ -707,7 +707,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                   <span>Add Articles</span>
                 </button>
               </div>
-              
+
               {isLoadingRelated ? (
                 <div className="flex justify-center items-center py-4">
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
@@ -856,7 +856,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="p-6">
               {/* Search and Stats */}
               <div className="flex items-center justify-between mb-4">
@@ -889,7 +889,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                 </div>
               </div>
 
-                            {/* Articles List */}
+              {/* Articles List */}
               <div className="max-h-[60vh] overflow-y-auto" onScroll={handleScroll}>
                 {isLoadingAllArticles ? (
                   <div className="flex justify-center items-center py-12">
@@ -902,11 +902,10 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                       {filteredArticles.map((article) => (
                         <div
                           key={article.id}
-                          className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
-                            relatedArticleIds.includes(article.id)
+                          className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all duration-200 ${relatedArticleIds.includes(article.id)
                               ? 'bg-blue-50 border-blue-300 shadow-sm'
                               : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-                          }`}
+                            }`}
                           onClick={() => {
                             if (relatedArticleIds.includes(article.id)) {
                               handleRemoveRelatedArticle(article.id);
@@ -946,11 +945,10 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                               </span>
                             )}
                             <div
-                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                relatedArticleIds.includes(article.id)
+                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${relatedArticleIds.includes(article.id)
                                   ? 'bg-blue-500 border-blue-500'
                                   : 'border-gray-300 hover:border-blue-300'
-                              }`}
+                                }`}
                             >
                               {relatedArticleIds.includes(article.id) && (
                                 <div className="w-2 h-2 bg-white rounded-full"></div>
@@ -960,7 +958,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                         </div>
                       ))}
                     </div>
-                    
+
                     {/* Loading more indicator */}
                     {isLoadingMore && (
                       <div className="flex justify-center items-center py-6">
@@ -968,7 +966,7 @@ export default function EditBlog({ params }: { params: { id: string } }) {
                         <span className="ml-3 text-gray-600 text-sm">Loading more articles...</span>
                       </div>
                     )}
-                    
+
                     {/* End of list indicator */}
                     {!hasMore && filteredArticles.length > 0 && (
                       <div className="text-center py-4 text-gray-500 text-sm">

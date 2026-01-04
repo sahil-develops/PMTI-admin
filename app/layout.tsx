@@ -35,7 +35,7 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
           return; // Do nothing if already on the login page
         } else if (accessToken) {
           try {
-            const response = await fetch('https://api.4pmti.com/auth/user', {
+            const response = await fetch('https://api.projectmanagementtraininginstitute.com/auth/user', {
               headers: {
                 Authorization: `Bearer ${accessToken}`
               }

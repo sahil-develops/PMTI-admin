@@ -4,7 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from 'next/link';
-import { ChevronRight,Home } from 'lucide-react';
+import { ChevronRight, Home } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -20,26 +20,26 @@ const adminFormSchema = z.object({
   name: z.string()
     .min(3, "Name must be at least 3 characters")
     .max(100, "Name must not exceed 100 characters"),
-  
+
   designation: z.string()
     .min(2, "Designation must be at least 2 characters")
     .max(100, "Designation must not exceed 100 characters"),
-  
+
   phone: z.string()
     .regex(/^\d{10}$/, "Phone number must be 10 digits"),
-  
+
   email: z.string()
     .email("Please enter a valid email address"),
-  
+
   countryId: z.coerce.number().positive("Country is required"),
-  
+
   password: z.string()
     .min(8, "Password must be at least 8 characters")
     .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
     .regex(/[a-z]/, "Password must contain at least one lowercase letter")
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
-  
+
   isSuperAdmin: z.boolean(),
   isActive: z.boolean(),
 });
@@ -78,12 +78,12 @@ const AddAdmin = () => {
     const fetchCountries = async () => {
       setLoadingCountries(true);
       try {
-        const response = await fetch('https://api.4pmti.com/country', {
+        const response = await fetch('https://api.projectmanagementtraininginstitute.com/country', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch countries');
         }
@@ -107,7 +107,7 @@ const AddAdmin = () => {
     setShowError(false);
 
     try {
-      const response = await fetch('https://api.4pmti.com/auth/signup/admin', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/auth/signup/admin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +153,7 @@ const AddAdmin = () => {
         <ol className="inline-flex items-center space-x-1 text-sm">
           <li>
             <Link href="/" className="text-zinc-500 hover:text-zinc-700">
-           <Home className="w-4 h-4" />
+              <Home className="w-4 h-4" />
             </Link>
           </li>
           <li>
@@ -289,9 +289,8 @@ const AddAdmin = () => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-              loading ? "bg-gray-400" : "bg-zinc-800 hover:bg-zinc-900"
-            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500`}
+            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${loading ? "bg-gray-400" : "bg-zinc-800 hover:bg-zinc-900"
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500`}
           >
             {loading ? "Creating..." : "Create Administrator"}
           </button>

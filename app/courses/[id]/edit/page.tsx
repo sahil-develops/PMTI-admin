@@ -81,7 +81,7 @@ export default function EditCourse({ params }: PageProps) {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('https://api.4pmti.com/category', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/category', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -97,7 +97,7 @@ export default function EditCourse({ params }: PageProps) {
 
   const fetchClassTypes = async () => {
     try {
-      const response = await fetch('https://api.4pmti.com/classtype', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/classtype', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -115,16 +115,16 @@ export default function EditCourse({ params }: PageProps) {
     const fetchCourse = async () => {
       setIsFetching(true);
       try {
-        const response = await fetch(`https://api.4pmti.com/course/${resolvedParams.id}`, {
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/course/${resolvedParams.id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch course');
         }
-        
+
         const data: ApiResponse = await response.json();
         if (data.success && data.data.length > 0) {
           setCourse(data.data[0]); // Set the first course from the array
@@ -162,7 +162,7 @@ export default function EditCourse({ params }: PageProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`https://api.4pmti.com/course/${resolvedParams.id}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/course/${resolvedParams.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -327,8 +327,8 @@ export default function EditCourse({ params }: PageProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
-                    <SelectItem 
-                      key={category.id} 
+                    <SelectItem
+                      key={category.id}
                       value={category.id.toString()}
                     >
                       {category.name}
@@ -352,8 +352,8 @@ export default function EditCourse({ params }: PageProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {classTypes.map((classType) => (
-                    <SelectItem 
-                      key={classType.id} 
+                    <SelectItem
+                      key={classType.id}
                       value={classType.id.toString()}
                     >
                       {classType.name}
@@ -364,24 +364,22 @@ export default function EditCourse({ params }: PageProps) {
             </div>
 
             <div className="flex items-center space-x-2">
-  <label className="flex items-center space-x-2">
-    <div 
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        course.isGuestAccess ? 'bg-green-500' : 'bg-gray-500'
-      }`}
-      onClick={() => setCourse({ ...course, isGuestAccess: !course.isGuestAccess })}
-    >
-      <span 
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          course.isGuestAccess ? 'translate-x-6' : 'translate-x-1'
-        }`} 
-      />
-    </div>
-    <span className="ml-2 text-sm font-medium text-gray-700">
-      {course.isGuestAccess ? 'Active' : 'Inactive'}
-    </span>
-  </label>
-</div>
+              <label className="flex items-center space-x-2">
+                <div
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${course.isGuestAccess ? 'bg-green-500' : 'bg-gray-500'
+                    }`}
+                  onClick={() => setCourse({ ...course, isGuestAccess: !course.isGuestAccess })}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${course.isGuestAccess ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                  />
+                </div>
+                <span className="ml-2 text-sm font-medium text-gray-700">
+                  {course.isGuestAccess ? 'Active' : 'Inactive'}
+                </span>
+              </label>
+            </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button
@@ -393,8 +391,8 @@ export default function EditCourse({ params }: PageProps) {
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isLoading}
                 className="bg-black text-white hover:bg-gray-800 px-4 py-2"
               >

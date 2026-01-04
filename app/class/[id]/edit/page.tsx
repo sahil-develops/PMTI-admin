@@ -113,14 +113,14 @@ export default function EditClass({ params }: PageProps) {
   useEffect(() => {
     const fetchClass = async () => {
       try {
-        const response = await fetch(`https://api.4pmti.com/class/${params.id}`, {
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/class/${params.id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         });
-        
+
         if (!response.ok) throw new Error('Failed to fetch class');
-        
+
         const data: ApiResponse = await response.json();
         if (data.success && data.data.length > 0) {
           setClassData(data.data[0]);
@@ -152,7 +152,7 @@ export default function EditClass({ params }: PageProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`https://api.4pmti.com/class/${params.id}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/class/${params.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -367,8 +367,8 @@ export default function EditClass({ params }: PageProps) {
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isLoading}
                 className="bg-black text-white hover:bg-gray-800"
               >

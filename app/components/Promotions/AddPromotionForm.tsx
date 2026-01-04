@@ -54,7 +54,7 @@ export default function AddPromotionForm() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
-    countryId: '52', 
+    countryId: '52',
     categoryId: '',
     classTypeId: '',
     promotionId: '',
@@ -78,9 +78,9 @@ export default function AddPromotionForm() {
         };
 
         const [countriesRes, categoriesRes, classTypesRes] = await Promise.all([
-          fetch(`https://api.4pmti.com/country`, { headers }),
-          fetch(`https://api.4pmti.com/category`, { headers }),
-          fetch(`https://api.4pmti.com/classtype`, { headers })
+          fetch(`https://api.projectmanagementtraininginstitute.com/country`, { headers }),
+          fetch(`https://api.projectmanagementtraininginstitute.com/category`, { headers }),
+          fetch(`https://api.projectmanagementtraininginstitute.com/classtype`, { headers })
         ]);
 
         const [countriesData, categoriesData, classTypesData] = await Promise.all([
@@ -117,7 +117,7 @@ export default function AddPromotionForm() {
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files[0];
     if (file && (file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif')) {
       await handleImageUpload(file);
@@ -145,12 +145,12 @@ export default function AddPromotionForm() {
 
   const handleImageUpload = async (file: File) => {
     setLoading(true);
-    
+
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const response = await fetch('https://api.4pmti.com/upload', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/upload', {
         method: 'POST',
         body: formData,
       });
@@ -238,7 +238,7 @@ export default function AddPromotionForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -269,7 +269,7 @@ export default function AddPromotionForm() {
         attachedFilePath: uploadedImageUrl || ''
       };
 
-      const response = await fetch(`https://api.4pmti.com/promotions`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/promotions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -282,7 +282,7 @@ export default function AddPromotionForm() {
 
       if (response.ok && data.success) {
         setShowSuccessModal(true);
-        
+
         setTimeout(() => {
           router.push('/promotions');
         }, 2000);
@@ -364,9 +364,9 @@ export default function AddPromotionForm() {
             <Select
               required
               value={formData.countryId}
-                defaultValue="52"
+              defaultValue="52"
               onValueChange={(value) => setFormData({ ...formData, countryId: value })}
-              // className={errors.countryId ? "border-red-500" : ""}
+            // className={errors.countryId ? "border-red-500" : ""}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select country" />
@@ -390,7 +390,7 @@ export default function AddPromotionForm() {
               required
               value={formData.categoryId}
               onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
-           
+
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
@@ -414,7 +414,7 @@ export default function AddPromotionForm() {
               required
               value={formData.classTypeId}
               onValueChange={(value) => setFormData({ ...formData, classTypeId: value })}
-            
+
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select class type" />
@@ -438,7 +438,7 @@ export default function AddPromotionForm() {
               required
               value={formData.promotionType}
               onValueChange={(value) => setFormData({ ...formData, promotionType: value })}
-              // className={errors.promotionType ? "border-red-500" : ""}
+            // className={errors.promotionType ? "border-red-500" : ""}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select promotion type" />
@@ -501,13 +501,12 @@ export default function AddPromotionForm() {
         <div className="space-y-2">
           <Label>Promotion Image <span className="text-xs text-zinc-500">(Optional)</span></Label>
           <div
-            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-              isDragging 
-                ? 'border-zinc-400 bg-zinc-50' 
-                : errors.image 
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragging
+                ? 'border-zinc-400 bg-zinc-50'
+                : errors.image
                   ? 'border-red-500'
                   : 'border-zinc-200 hover:border-zinc-300'
-            }`}
+              }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -520,20 +519,20 @@ export default function AddPromotionForm() {
               accept="image/jpeg,image/png,image/gif"
               onChange={handleFileChange}
             />
-            
+
             {loading ? (
               <div className="relative w-full h-48">
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-100 animate-shimmer" 
-                     style={{
-                       backgroundSize: '700px 100%',
-                       animation: 'shimmer 2s infinite linear'
-                     }}
+                <div className="absolute inset-0 bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-100 animate-shimmer"
+                  style={{
+                    backgroundSize: '700px 100%',
+                    animation: 'shimmer 2s infinite linear'
+                  }}
                 />
               </div>
             ) : attachedFile && uploadedImageUrl ? (
               <div className="space-y-4">
                 <div className="relative group">
-                  <img 
+                  <img
                     src={uploadedImageUrl}
                     alt="Preview"
                     className="max-h-48 mx-auto rounded-lg object-contain"
@@ -580,7 +579,7 @@ export default function AddPromotionForm() {
           <Switch
             id="active"
             checked={isActive}
-            onCheckedChange={(checked) => 
+            onCheckedChange={(checked) =>
               setFormData({ ...formData, active: checked ? 1 : 0 })
             }
           />
@@ -621,7 +620,7 @@ export default function AddPromotionForm() {
               Promotion has been created successfully
             </p>
             <div className="w-full bg-green-100 rounded-full h-1 mb-4">
-              <div 
+              <div
                 className="bg-green-500 h-1 rounded-full animate-progress"
                 style={{ width: '100%' }}
               />

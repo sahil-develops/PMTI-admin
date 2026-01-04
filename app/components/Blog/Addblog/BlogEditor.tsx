@@ -21,21 +21,21 @@ const CustomBold = Bold.extend({
         const { state } = editor;
         const { selection } = state;
         const { $from, $to } = selection;
-        
+
         // Check if we're in a heading
         const isInHeading = $from.parent.type.name === 'heading' || $to.parent.type.name === 'heading';
-        
+
         if (isInHeading) {
           // If in heading, don't apply bold formatting
           return false;
         }
-        
+
         // Apply bold only when explicitly triggered by the button
         return commands.toggleMark('bold');
       },
     };
   },
-  
+
   addKeyboardShortcuts() {
     return {
       'Mod-b': () => {
@@ -48,28 +48,28 @@ const CustomBold = Bold.extend({
 
 // Extend the Image extension to support alignment and width
 const CustomImage = Image.extend({
-    addAttributes() {
-      return {
-        ...this.parent?.(),
-        width: {
-          default: '5%',
-          parseHTML: element => element.getAttribute('width'),
-          renderHTML: attributes => ({
-            width: attributes.width,
-          }),
-        },
-        alignment: {
-          default: 'left',
-          parseHTML: element => element.style.float || element.style.textAlign,
-          renderHTML: attributes => ({
-            style: attributes.alignment === 'center' 
-              ? 'display: block; margin: 0 auto; text-align: center;' 
-              : `float: ${attributes.alignment}; margin-bottom: 1rem;`,
-          }),
-        }
-      };
-    },
-  });
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: '5%',
+        parseHTML: element => element.getAttribute('width'),
+        renderHTML: attributes => ({
+          width: attributes.width,
+        }),
+      },
+      alignment: {
+        default: 'left',
+        parseHTML: element => element.style.float || element.style.textAlign,
+        renderHTML: attributes => ({
+          style: attributes.alignment === 'center'
+            ? 'display: block; margin: 0 auto; text-align: center;'
+            : `float: ${attributes.alignment}; margin-bottom: 1rem;`,
+        }),
+      }
+    };
+  },
+});
 
 import { Editor } from '@tiptap/react';
 
@@ -102,24 +102,24 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
   if (!editor) {
     return null;
   }
-  
+
   const uploadImageToServer = async (editor: Editor, file: string | Blob, isCoverImage = false) => {
     // Validate file type
     const fileExtension = file instanceof Blob ? (file as File).name.split('.').pop()?.toLowerCase() : '';
     const allowedTypes = ['png', 'jpg', 'jpeg'];
-    
+
     if (!fileExtension || !allowedTypes.includes(fileExtension)) {
-        // @ts-ignore
+      // @ts-ignore
       setUploadError('Only PNG, JPG, and JPEG files are allowed.');
       return null;
     }
-    
+
     setIsUploading(true);
     setUploadError(null);
-    
+
     // Create a unique ID for this upload
     const placeholderId = `upload-${Date.now()}`;
-    
+
     // For regular images (not cover), insert a temporary node that we can replace
     if (!isCoverImage) {
       editor
@@ -127,10 +127,10 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
         .focus()
         .insertContent(`<div id="${placeholderId}" class="image-upload-placeholder"></div>`)
         .run();
-      
+
       // Find the placeholder node we just inserted
       const placeholderNode = document.getElementById(placeholderId);
-      
+
       if (placeholderNode) {
         // Style the placeholder
         placeholderNode.style.width = '100%';
@@ -140,7 +140,7 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
         placeholderNode.style.borderRadius = '0.375rem';
         placeholderNode.style.position = 'relative';
         placeholderNode.style.overflow = 'hidden';
-        
+
         // Add shimmer effect
         const shimmer = document.createElement('div');
         shimmer.style.position = 'absolute';
@@ -148,24 +148,24 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
         shimmer.style.backgroundImage = 'linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%)';
         shimmer.style.backgroundSize = '700px 100%';
         shimmer.style.animation = 'shimmer 2s infinite linear';
-        
+
         placeholderNode.appendChild(shimmer);
       }
     }
-  
+
     const formData = new FormData();
     formData.append('file', file);
-    
+
     try {
-      const response = await fetch('https://api.4pmti.com/upload', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/upload', {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Upload failed');
       }
-      
+
       const data = await response.json();
 
       if (isCoverImage && onCoverImageUpload) {
@@ -177,28 +177,28 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
         if (placeholderElement) {
           placeholderElement.remove();
         }
-        
+
         // Insert the actual image
-        editor.chain().focus().setImage({ 
+        editor.chain().focus().setImage({
           src: data.data.url,
           // @ts-ignore
           width: '50%',
           alignment: 'left'
         }).run();
       }
-      
+
       return data.data.url;
     } catch (error) {
-        // @ts-ignore
+      // @ts-ignore
       setUploadError('Failed to upload image. Please try again.');
       console.error('Error uploading image:', error);
-      
+
       // Remove placeholder on error
       const placeholderElement = document.getElementById(placeholderId);
       if (placeholderElement) {
         placeholderElement.remove();
       }
-      
+
       return null;
     } finally {
       setIsUploading(false);
@@ -254,23 +254,23 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
   };
 
   const alignImage = (alignment: string) => {
-      const { from } = editor.state.selection;
-      const node = editor.state.doc.nodeAt(from);
-      if (node && node.type.name === 'image') {
-        editor
-          .chain()
-          .focus()
-          .setImage({ 
-            src: node.attrs.src,
-            alt: node.attrs.alt,
-            title: node.attrs.title,
-            // @ts-ignore
-            width: node.attrs.width,
-            alignment: alignment
-          })
-          .run();
-      }
-    };
+    const { from } = editor.state.selection;
+    const node = editor.state.doc.nodeAt(from);
+    if (node && node.type.name === 'image') {
+      editor
+        .chain()
+        .focus()
+        .setImage({
+          src: node.attrs.src,
+          alt: node.attrs.alt,
+          title: node.attrs.title,
+          // @ts-ignore
+          width: node.attrs.width,
+          alignment: alignment
+        })
+        .run();
+    }
+  };
 
   const deleteImage = () => {
     const { from, to } = editor.state.selection;
@@ -290,37 +290,37 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
   const isImageLinkActive = () => {
     const { from } = editor.state.selection;
     const node = editor.state.doc.nodeAt(from);
-    
+
     // Check if we're on a link node that contains an image
     if (node && node.type.name === 'link' && node.content.content[0]?.type.name === 'image') {
       return true;
     }
-    
+
     // Check if we're on an image that's inside a link
     if (node && node.type.name === 'image') {
       const { $from } = editor.state.selection;
       const linkParent = $from.parent;
       return linkParent && linkParent.type.name === 'link';
     }
-    
+
     return false;
   };
 
   const addLink = () => {
     if (!linkUrl || !editor) return;
-    
+
     // Ensure URL has http:// or https://
     const url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
-    
+
     // Check if an image is selected
     const isImageSelected = () => {
       const { from } = editor.state.selection;
       const node = editor.state.doc.nodeAt(from);
       return node && node.type.name === 'image';
     };
-    
+
     const imageSelected = isImageSelected();
-    
+
     // If there's no selection and no image is selected, don't add the link
     if (editor.state.selection.empty && !imageSelected) {
       alert('Please select some text or an image first');
@@ -337,11 +337,11 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
       // Handle linking an image
       const { from } = editor.state.selection;
       const node = editor.state.doc.nodeAt(from);
-      
+
       if (node && node.type.name === 'image') {
         // Create HTML for linked image
         const linkedImageHtml = `<a href="${url}"${linkTitle.trim() ? ` title="${linkTitle.trim()}"` : ''} target="_blank" rel="noopener noreferrer nofollow"><img src="${node.attrs.src}" alt="${node.attrs.alt || ''}" title="${node.attrs.title || ''}" style="width: ${node.attrs.width || 'auto'}; ${node.attrs.alignment === 'center' ? 'display: block; margin: 0 auto;' : node.attrs.alignment === 'right' ? 'float: right;' : 'float: left;'}" /></a>`;
-        
+
         // Replace the image with the linked image using HTML
         editor
           .chain()
@@ -366,11 +366,11 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
 
   const removeLink = () => {
     if (!editor) return;
-    
+
     // Check if we're removing a link from an image
     const { from } = editor.state.selection;
     const node = editor.state.doc.nodeAt(from);
-    
+
     if (node && node.type.name === 'link') {
       // If the link contains an image, extract the image
       const imageNode = node.content.content[0];
@@ -389,12 +389,12 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
       // Check if the image is inside a link (HTML-based approach)
       const { $from } = editor.state.selection;
       const linkParent = $from.parent;
-      
+
       if (linkParent && linkParent.type.name === 'link') {
         // Extract the image from the link
         const imageAttrs = node.attrs;
         const imageHtml = `<img src="${imageAttrs.src}" alt="${imageAttrs.alt || ''}" title="${imageAttrs.title || ''}" style="width: ${imageAttrs.width || 'auto'}; ${imageAttrs.alignment === 'center' ? 'display: block; margin: 0 auto;' : imageAttrs.alignment === 'right' ? 'float: right;' : 'float: left;'}" />`;
-        
+
         editor
           .chain()
           .focus()
@@ -427,17 +427,17 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
         accept="image/*"
         className="hidden"
       />
-      
+
       {/* Text formatting buttons */}
       <button
         onClick={() => {
           const { state } = editor;
           const { selection } = state;
           const { $from, $to } = selection;
-          
+
           // Check if we're in a heading
           const isInHeading = $from.parent.type.name === 'heading' || $to.parent.type.name === 'heading';
-          
+
           if (isInHeading) {
             // Show a toast notification that bold is not available in headings
             toast({
@@ -447,20 +447,18 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
             });
             return;
           }
-          
+
           editor.chain().focus().toggleBold().run();
         }}
-        className={`p-2 hover:bg-gray-200 rounded ${
-          editor.isActive('bold') ? 'bg-gray-200' : ''
-        } ${
-          (() => {
+        className={`p-2 hover:bg-gray-200 rounded ${editor.isActive('bold') ? 'bg-gray-200' : ''
+          } ${(() => {
             const { state } = editor;
             const { selection } = state;
             const { $from, $to } = selection;
             const isInHeading = $from.parent.type.name === 'heading' || $to.parent.type.name === 'heading';
             return isInHeading ? 'opacity-50 cursor-not-allowed' : '';
           })()
-        }`}
+          }`}
         title={(() => {
           const { state } = editor;
           const { selection } = state;
@@ -478,7 +476,7 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
       >
         <Italic size={16} />
       </button>
-      
+
       {/* Heading buttons with improved implementation */}
       <button
         onClick={() => {
@@ -519,9 +517,9 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
       >
         <Heading3 size={16} />
       </button>
-      
+
       <div className="border-l mx-2 h-6"></div>
-      
+
       {/* List buttons with improved implementation */}
       <button
         onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -537,9 +535,9 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
       >
         <ListOrdered size={16} />
       </button>
-      
+
       <div className="border-l mx-2 h-6"></div>
-      
+
       {/* Image upload buttons */}
       <button
         onClick={addCoverImage}
@@ -584,9 +582,8 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
               setShowLinkInput(!showLinkInput);
             }
           }}
-          className={`p-1.5 hover:bg-gray-200 rounded ${
-            isLinkActive() || isImageLinkActive() ? 'bg-gray-200' : ''
-          }`}
+          className={`p-1.5 hover:bg-gray-200 rounded ${isLinkActive() || isImageLinkActive() ? 'bg-gray-200' : ''
+            }`}
           title={isLinkActive() || isImageLinkActive() ? 'Remove Link' : 'Add Link'}
         >
           {isLinkActive() || isImageLinkActive() ? (
@@ -674,7 +671,7 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
       {isImageSelected() && (
         <>
           <div className="border-l mx-2 h-6"></div>
-          
+
           {/* Size controls */}
           <button
             onClick={() => resizeImage('25%')}
@@ -699,7 +696,7 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
           </button>
 
           <div className="border-l mx-2 h-6"></div>
-          
+
           {/* Alignment controls */}
           <button
             onClick={() => alignImage('left')}
@@ -724,7 +721,7 @@ const MenuBar = ({ editor, onCoverImageUpload }: { editor: Editor | null, onCove
           </button>
 
           <div className="border-l mx-2 h-6"></div>
-          
+
           {/* Delete button */}
           <button
             onClick={deleteImage}
@@ -777,12 +774,12 @@ interface BlogEditorProps {
 
 const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: BlogEditorProps) => {
   const [isImgLoading, setIsImgLoading] = useState(false);
-  
+
   // Function to clean up <strong> tags from headings
   const cleanStrongTagsFromHeadings = (html: string): string => {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
+
     // Remove <strong> tags from h1, h2, h3, h4 elements
     const headings = tempDiv.querySelectorAll('h1, h2, h3, h4');
     headings.forEach(heading => {
@@ -793,10 +790,10 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
         strong.parentNode?.replaceChild(textNode, strong);
       });
     });
-    
+
     return tempDiv.innerHTML;
   };
-  
+
   const editor = useEditor({
     extensions: [
       Document,
@@ -812,12 +809,12 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
           }
         },
         bulletList: {
-          keepMarks: true, 
-          keepAttributes: false 
+          keepMarks: true,
+          keepAttributes: false
         },
         orderedList: {
-          keepMarks: true, 
-          keepAttributes: false 
+          keepMarks: true,
+          keepAttributes: false
         }
       }),
       CustomImage,
@@ -837,10 +834,10 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
     content: content ? cleanStrongTagsFromHeadings(content) : '<p></p>',
     onUpdate: ({ editor }) => {
       let html = editor.getHTML();
-      
+
       // Clean up any <strong> tags in headings
       const cleanedHtml = cleanStrongTagsFromHeadings(html);
-      
+
       onChange(cleanedHtml);
     },
     parseOptions: {
@@ -873,7 +870,7 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
           <div className="p-2 bg-gray-100 border-b flex justify-between items-center">
             <span className="font-medium text-sm">Cover Image</span>
             {coverImageUrl && (
-              <button 
+              <button
                 onClick={() => onCoverImageChange && onCoverImageChange('')}
                 className="text-red-500 hover:bg-red-100 p-1 rounded"
                 title="Remove Cover Image"
@@ -882,18 +879,18 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
               </button>
             )}
           </div>
-          
+
           <div className="aspect-[21/9] bg-gray-50 relative">
             {isImgLoading && !coverImageUrl && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
                 <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
             )}
-            
+
             {coverImageUrl && (
-              <img 
-                src={coverImageUrl} 
-                alt="Cover" 
+              <img
+                src={coverImageUrl}
+                alt="Cover"
                 className="w-full h-full object-cover"
                 onLoad={() => setIsImgLoading(false)}
               />
@@ -901,12 +898,12 @@ const BlogEditor = ({ content, onChange, onCoverImageChange, coverImageUrl }: Bl
           </div>
         </div>
       )}
-      
+
       {/* Editor */}
       <div className="rounded-lg border bg-white rounded-b-lg border-gray-300 relative">
         <MenuBar editor={editor} onCoverImageUpload={handleCoverImageUpload} />
-        <EditorContent 
-          editor={editor} 
+        <EditorContent
+          editor={editor}
           className="p-4 min-h-[600px] h-full rounded-b-lg prose max-w-none bg-white"
           style={{ paddingTop: '1rem' }}
         />

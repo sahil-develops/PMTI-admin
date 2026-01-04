@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import Loader from "@/components/ui/Loader";
 
 // Custom Tooltip Component
-const CustomTooltip = ({ 
-  children, 
-  content, 
-  className = "" 
-}: { 
-  children: React.ReactNode; 
+const CustomTooltip = ({
+  children,
+  content,
+  className = ""
+}: {
+  children: React.ReactNode;
   content: string;
   className?: string;
 }) => {
@@ -39,14 +39,14 @@ const CustomTooltip = ({
   };
 
   return (
-    <div 
+    <div
       className={`relative inline-block ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {children}
       {isVisible && content && (
-        <div 
+        <div
           className="absolute z-50 px-3 py-2 lg:w-72 text-sm text-white bg-gray-900 rounded-lg shadow-lg whitespace-pre-wrap max-w-md max-h-32 overflow-y-auto break-words -top-1 left-1/2 transform -translate-x-1/2 -translate-y-full"
           onMouseEnter={handleTooltipMouseEnter}
           onMouseLeave={handleTooltipMouseLeave}
@@ -107,20 +107,19 @@ interface UpdatePayload {
   testDate?: string;
 }
 
-const StyledTableHeader = ({ children, sortable = false, onClick }: { 
-  children: React.ReactNode; 
+const StyledTableHeader = ({ children, sortable = false, onClick }: {
+  children: React.ReactNode;
   sortable?: boolean;
   onClick?: () => void;
 }) => (
-  <th className={`bg-zinc-100 whitespace-nowrap px-3 py-2 text-left text-sm font-medium text-black ${
-    sortable ? 'cursor-pointer hover:bg-zinc-800' : ''
-  }`} onClick={onClick}>
+  <th className={`bg-zinc-100 whitespace-nowrap px-3 py-2 text-left text-sm font-medium text-black ${sortable ? 'cursor-pointer hover:bg-zinc-800' : ''
+    }`} onClick={onClick}>
     {children}
   </th>
 );
 
-const StyledTableCell = ({ children, className = "" }: { 
-  children: React.ReactNode; 
+const StyledTableCell = ({ children, className = "" }: {
+  children: React.ReactNode;
   className?: string;
 }) => (
   <td className={`px-3 py-2 text-sm border-b border-zinc-200 ${className}`}>
@@ -152,19 +151,19 @@ const CompactSelect = ({ value, onChange, options, loading = false }: {
   </Select>
 );
 
-const CompactInput = ({ 
-  value, 
-  onChange, 
-  loading = false, 
-  placeholder = "" 
+const CompactInput = ({
+  value,
+  onChange,
+  loading = false,
+  placeholder = ""
 }: {
   value: string;
   onChange: (value: string) => void;
   loading?: boolean;
   placeholder?: string;
 }) => (
-  <Input 
-    value={value || ""} 
+  <Input
+    value={value || ""}
     onChange={(e) => onChange(e.target.value)}
     disabled={loading}
     placeholder={placeholder}
@@ -173,8 +172,8 @@ const CompactInput = ({
 );
 
 const updateEnrollment = async (studentId: number, payload: UpdatePayload) => {
-  const baseUrl = 'https://api.4pmti.com';
-  
+  const baseUrl = 'https://api.projectmanagementtraininginstitute.com';
+
   try {
     const response = await fetch(`${baseUrl}/enrollment/${studentId}`, {
       method: 'PATCH',
@@ -184,12 +183,12 @@ const updateEnrollment = async (studentId: number, payload: UpdatePayload) => {
       },
       body: JSON.stringify(payload),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Update failed');
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error updating enrollment:', error);
@@ -201,18 +200,18 @@ const getDaysBetweenDates = (startDate: string, endDate: string) => {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const days: Date[] = [];
-  
+
   let currentDate = new Date(start);
   while (currentDate <= end) {
     days.push(new Date(currentDate));
     currentDate.setDate(currentDate.getDate() + 1);
   }
-  
+
   return days;
 };
 
-export const EnrollmentTable = ({ 
-  enrollments: initialEnrollments, 
+export const EnrollmentTable = ({
+  enrollments: initialEnrollments,
   onUpdate,
   startDate,
   endDate,
@@ -220,17 +219,17 @@ export const EnrollmentTable = ({
 }: EnrollmentTableProps) => {
   const [enrollments, setEnrollments] = useState(initialEnrollments);
   const [selectedItems, setSelectedItems] = useState<number[]>([]); // Changed from string[] to number[]
-  const [loading, setLoading] = useState<{[key: string]: boolean}>({});
+  const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
   const [error, setError] = useState<string | null>(null);
 
   const classdays = startDate && endDate ? getDaysBetweenDates(startDate, endDate) : [];
 
   const handleUpdate = async (studentId: number, payload: UpdatePayload) => {
-    
+
     const loadingKey = `${studentId}-${Object.keys(payload)[0]}`;
     setLoading(prev => ({ ...prev, [loadingKey]: true }));
     setError(null);
-  
+
     try {
       const response = await updateEnrollment(studentId, payload);
       if (response.success) {
@@ -289,8 +288,8 @@ export const EnrollmentTable = ({
         <TableHeader>
           <TableRow>
             <StyledTableHeader>
-              <Checkbox 
-                className="bg-white data-[state=checked]:bg-white" 
+              <Checkbox
+                className="bg-white data-[state=checked]:bg-white"
                 checked={selectedItems.length === enrollments.length}
                 onCheckedChange={(checked) => {
                   setSelectedItems(checked ? enrollments.map(e => e.ID) : []);
@@ -307,11 +306,11 @@ export const EnrollmentTable = ({
             <StyledTableHeader>Phone</StyledTableHeader>
             <StyledTableHeader>Price</StyledTableHeader>
             <StyledTableHeader>Comments</StyledTableHeader>
-            
+
             {/* Dynamic day headers */}
             {classdays.map((date, index) => (
               <StyledTableHeader key={date.toISOString()}>
-                Day {index + 1}<br/>
+                Day {index + 1}<br />
                 10hrs
               </StyledTableHeader>
             ))}
@@ -323,14 +322,14 @@ export const EnrollmentTable = ({
         </TableHeader>
         <TableBody>
           {enrollments.map((enrollment) => (
-          
+
             <TableRow key={enrollment.ID} className="hover:bg-zinc-50">
               <StyledTableCell>
                 <Checkbox
                   checked={selectedItems.includes(enrollment.ID)}
                   onCheckedChange={(checked) => {
-                    setSelectedItems(checked ? 
-                      [...selectedItems, enrollment.ID] : 
+                    setSelectedItems(checked ?
+                      [...selectedItems, enrollment.ID] :
                       selectedItems.filter(id => id !== enrollment.ID)
                     );
                   }}
@@ -398,7 +397,7 @@ export const EnrollmentTable = ({
               <StyledTableCell>{enrollment.Price}</StyledTableCell>
               <StyledTableCell >
                 {enrollment.Comments ? (
-                  <CustomTooltip  content={(() => {
+                  <CustomTooltip content={(() => {
                     // Format the comments with proper date formatting
                     const formattedComments = enrollment.Comments.split('\n').map((line) => {
                       // Check if the line contains a date pattern (ISO date format)
@@ -431,11 +430,11 @@ export const EnrollmentTable = ({
                   </CustomTooltip>
                 ) : "N/A"}
               </StyledTableCell>
-              
+
               {/* Dynamic day input cells */}
               {classdays.map((date, index) => (
                 <StyledTableCell key={date.toISOString()}>
-                  <CompactInput 
+                  <CompactInput
                     value={enrollment[`day${index + 1}Input`] || ""}
                     onChange={(value) => handleUpdate(enrollment.ID, {
                       [`day${index + 1}Input`]: value
@@ -448,7 +447,7 @@ export const EnrollmentTable = ({
 
               {/* Test Date and Signature cells */}
               <StyledTableCell>
-                <CompactInput 
+                <CompactInput
                   value={enrollment.testDate || ""}
                   onChange={(value) => handleUpdate(enrollment.ID, {
                     testDate: value
@@ -458,7 +457,7 @@ export const EnrollmentTable = ({
                 />
               </StyledTableCell>
               <StyledTableCell>
-                <CompactInput 
+                <CompactInput
                   value={enrollment.signatureInput || ""}
                   onChange={(value) => handleUpdate(enrollment.ID, {
                     signatureInput: value
@@ -468,9 +467,9 @@ export const EnrollmentTable = ({
                 />
               </StyledTableCell>
               <StyledTableCell>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleRescheduleClick(enrollment.student.id, enrollment.ID)}
                 >
                   Reschedule

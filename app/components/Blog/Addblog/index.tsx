@@ -30,7 +30,7 @@ import Highlight from '@tiptap/extension-highlight'
 import Superscript from '@tiptap/extension-superscript'
 import Subscript from '@tiptap/extension-subscript'
 import Underline from '@tiptap/extension-underline'
-import {Strike} from '@tiptap/extension-strike'
+import { Strike } from '@tiptap/extension-strike'
 
 
 import { useRouter } from 'next/navigation';
@@ -84,7 +84,7 @@ const FAQInserter = ({ editor }: { editor: Editor | null }) => {
     `
 
     editor.chain().focus().insertContent(faqHTML).run()
-    
+
     // Reset form
     setQuestion('')
     setAnswer('')
@@ -136,7 +136,7 @@ const FAQInserter = ({ editor }: { editor: Editor | null }) => {
               <X size={16} />
             </button>
           </div>
-          
+
           <div className="space-y-4">
             <div>
               <Label className="text-sm font-medium text-gray-700">Question</Label>
@@ -172,7 +172,7 @@ const FAQInserter = ({ editor }: { editor: Editor | null }) => {
                 Cancel
               </Button>
             </div>
-            
+
             {/* Quick Templates */}
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium text-gray-700 mb-2">Quick Templates</h4>
@@ -262,7 +262,7 @@ const BlockInserter = ({ editor, onInsert }: { editor: Editor | null; onInsert?:
     } else if (block.id === 'table') {
       editor?.commands.insertTable({ rows: 3, cols: 3, withHeaderRow: true })
     }
-    
+
     setIsOpen(false)
     setSearchTerm('')
   }
@@ -288,7 +288,7 @@ const BlockInserter = ({ editor, onInsert }: { editor: Editor | null; onInsert?:
               className="w-full"
             />
           </div>
-          
+
           <div className="max-h-64 overflow-y-auto">
             {filteredBlocks.map((block) => (
               <button
@@ -337,7 +337,7 @@ const CustomImage = Image.extend({
         renderHTML: attributes => {
           const layout = attributes.layout;
           const alignment = attributes.alignment;
-          
+
           if (layout === 'inline') {
             return {
               style: `
@@ -353,7 +353,7 @@ const CustomImage = Image.extend({
               `
             };
           }
-          
+
           if (layout === 'wrap') {
             return {
               style: `
@@ -368,7 +368,7 @@ const CustomImage = Image.extend({
               `
             };
           }
-          
+
           return {
             style: `
               display: block;
@@ -386,10 +386,10 @@ const CustomImage = Image.extend({
   },
 });
 
-const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: { 
-  editor: Editor | null; 
-  faqs: FAQ[]; 
-  insertFaqsIntoContent: () => void; 
+const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
+  editor: Editor | null;
+  faqs: FAQ[];
+  insertFaqsIntoContent: () => void;
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -406,7 +406,7 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
   useEffect(() => {
     const handleSelectionChange = () => {
       if (!editor) return;
-      
+
       const { from, to } = editor.state.selection;
       if (from !== to) {
         // Text is selected
@@ -454,23 +454,23 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
   if (!editor) {
     return null;
   }
-  
+
   const uploadImageToServer = async (editor: Editor, file: Blob) => {
     // Fix 3: Validate file type
     const fileExtension = (file as File).name.split('.').pop()?.toLowerCase();
     const allowedTypes = ['png', 'jpg', 'jpeg'];
-    
+
     if (!fileExtension || !allowedTypes.includes(fileExtension)) {
       setUploadError('Only PNG, JPG, and JPEG files are allowed.');
       return null;
     }
-    
+
     setIsUploading(true);
     setUploadError(null);
-    
+
     // Insert placeholder while uploading
     const placeholderId = `upload-${Date.now()}`;
-    
+
     // Insert placeholder component
     editor.chain().focus().insertContent({
       type: 'paragraph',
@@ -480,7 +480,7 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
         text: '' // Empty text node
       }]
     }).run();
-    
+
     // Create placeholder with fixed height to prevent layout shifts
     const placeholder = document.createElement('div');
     placeholder.id = placeholderId;
@@ -492,70 +492,70 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
     placeholder.style.backgroundColor = '#f3f4f6';
     placeholder.style.borderRadius = '0.375rem';
     placeholder.style.overflow = 'hidden';
-    
+
     const shimmer = document.createElement('div');
     shimmer.style.position = 'absolute';
     shimmer.style.inset = '0';
     shimmer.style.background = 'linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%)';
     shimmer.style.backgroundSize = '700px 100%';
     shimmer.style.animation = 'shimmer 2s infinite linear';
-    
+
     placeholder.appendChild(shimmer);
-    
+
     // Find the placeholder paragraph and replace its content
     const placeholderParagraph = document.querySelector(`[id="${placeholderId}"]`);
     if (placeholderParagraph) {
       placeholderParagraph.replaceWith(placeholder);
     }
-  
+
     const formData = new FormData();
     formData.append('file', file);
-    
+
     try {
       const authToken = localStorage.getItem('accessToken');
       if (!authToken) {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch('https://api.4pmti.com/upload', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Upload failed');
       }
-      
+
       const data = await response.json();
-      
+
       // Remove placeholder
       const placeholderElement = document.getElementById(placeholderId);
       if (placeholderElement) {
         placeholderElement.remove();
       }
-      
+
       // Fix 2: Insert the actual image with properly formatted URL
-      editor.chain().focus().setImage({ 
+      editor.chain().focus().setImage({
         src: data.data.url,
         // @ts-ignore
         width: '50%',
         alignment: 'left'
       }).run();
-      
+
       return data.data.url;
     } catch (error) {
       setUploadError('Failed to upload image. Please try again.');
       console.error('Error uploading image:', error);
-      
+
       // Remove placeholder on error
       const placeholderElement = document.getElementById(placeholderId);
       if (placeholderElement) {
         placeholderElement.remove();
       }
-      
+
       return null;
     } finally {
       setIsUploading(false);
@@ -584,7 +584,7 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
       editor
         .chain()
         .focus()
-        .setImage({ 
+        .setImage({
           src: imageNode.attrs.src,
           // @ts-ignore
           width: size,
@@ -601,7 +601,7 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
       editor
         .chain()
         .focus()
-        .setImage({ 
+        .setImage({
           src: imageNode.attrs.src,
           // @ts-ignore
           width: imageNode.attrs.width,
@@ -629,10 +629,10 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
 
   const addLink = () => {
     if (!linkUrl || !editor) return;
-    
+
     // Ensure URL has http:// or https://
     const url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
-    
+
     // If there's no selection, don't add the link
     if (editor.state.selection.empty) {
       alert('Please select some text first');
@@ -735,7 +735,7 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
       editor
         .chain()
         .focus()
-        .setImage({ 
+        .setImage({
           src: imageNode.attrs.src,
           // @ts-ignore
           width: imageNode.attrs.width,
@@ -792,7 +792,7 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
       >
         <Italic size={16} />
       </button>
-      
+
       {/* Heading buttons - Fixed to properly apply heading styles */}
       <button
         onClick={() => handleHeadingToggle(1)}
@@ -815,9 +815,9 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
       >
         <Heading3 size={16} />
       </button>
-      
+
       <div className="border-l mx-2 h-6"></div>
-      
+
       {/* List buttons - Added both bullet and ordered list options */}
       <button
         onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -833,9 +833,9 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
       >
         <ListOrdered size={16} />
       </button>
-      
+
       <div className="border-l mx-2 h-6"></div>
-      
+
       <button
         onClick={addImage}
         className="p-2 hover:bg-gray-200 rounded"
@@ -855,9 +855,8 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
               setShowLinkInput(!showLinkInput);
             }
           }}
-          className={`p-1.5 hover:bg-gray-200 rounded ${
-            editor.isActive('link') ? 'bg-gray-200' : ''
-          }`}
+          className={`p-1.5 hover:bg-gray-200 rounded ${editor.isActive('link') ? 'bg-gray-200' : ''
+            }`}
           title={editor.isActive('link') ? 'Remove Link' : 'Add Link'}
         >
           {editor.isActive('link') ? (
@@ -940,32 +939,29 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
       {isImageSelected() && (
         <>
           <div className="border-l mx-2 h-6"></div>
-          
+
           {/* Layout controls */}
           <div className="flex items-center gap-1 bg-gray-50 p-1 rounded">
             <button
               onClick={() => setImageLayout('inline')}
-              className={`p-1.5 hover:bg-gray-200 rounded text-xs ${
-                editor.isActive('image', { layout: 'inline' }) ? 'bg-gray-200' : ''
-              }`}
+              className={`p-1.5 hover:bg-gray-200 rounded text-xs ${editor.isActive('image', { layout: 'inline' }) ? 'bg-gray-200' : ''
+                }`}
               title="Inline with text"
             >
               Inline
             </button>
             <button
               onClick={() => setImageLayout('wrap')}
-              className={`p-1.5 hover:bg-gray-200 rounded text-xs ${
-                editor.isActive('image', { layout: 'wrap' }) ? 'bg-gray-200' : ''
-              }`}
+              className={`p-1.5 hover:bg-gray-200 rounded text-xs ${editor.isActive('image', { layout: 'wrap' }) ? 'bg-gray-200' : ''
+                }`}
               title="Text wraps around"
             >
               Wrap
             </button>
             <button
               onClick={() => setImageLayout('block')}
-              className={`p-1.5 hover:bg-gray-200 rounded text-xs ${
-                editor.isActive('image', { layout: 'block' }) ? 'bg-gray-200' : ''
-              }`}
+              className={`p-1.5 hover:bg-gray-200 rounded text-xs ${editor.isActive('image', { layout: 'block' }) ? 'bg-gray-200' : ''
+                }`}
               title="Full width block"
             >
               Block
@@ -1012,7 +1008,7 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
           </div>
 
           <div className="border-l mx-2 h-6"></div>
-          
+
           {/* Alignment controls */}
           <button
             onClick={() => alignImage('left')}
@@ -1037,7 +1033,7 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
           </button>
 
           <div className="border-l mx-2 h-6"></div>
-          
+
           {/* Delete button */}
           <button
             onClick={deleteImage}
@@ -1228,42 +1224,42 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
           title="Text Color"
         >
           <Type size={16} />
-          <div 
-            className="w-4 h-4 border rounded" 
+          <div
+            className="w-4 h-4 border rounded"
             style={{ backgroundColor: editor?.getAttributes('textStyle').color || '#000000' }}
           />
         </button>
 
         {showTextColors && (
-  <div
-    className="absolute z-50 bg-white rounded-lg shadow-xl p-2 color-picker-dropdown"
-    style={{
-      top: `${dropdownPosition.top}px`,
-      left: `${dropdownPosition.left}px`,
-      width: '240px',
-    }}
-  >
-    <div className="grid grid-cols-10 gap-1">
-      {colors.map((color) => (
-        <button
-          key={color}  // Add key prop here
-          className="w-6 h-6 rounded border hover:scale-125 transition-transform relative"
-          style={{ backgroundColor: color }}
-          onClick={() => {
-            editor?.chain().focus().setColor(color).run();
-            setShowTextColors(false);
-          }}
-        >
-          {editor?.getAttributes('textStyle').color === color && (
-            <span className="absolute inset-0 flex items-center justify-center">
-              <span className={`text-${color === '#ffffff' ? 'black' : 'white'} text-xs`}>✓</span>
-            </span>
-          )}
-        </button>
-      ))}
-    </div>
-  </div>
-)}
+          <div
+            className="absolute z-50 bg-white rounded-lg shadow-xl p-2 color-picker-dropdown"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: '240px',
+            }}
+          >
+            <div className="grid grid-cols-10 gap-1">
+              {colors.map((color) => (
+                <button
+                  key={color}  // Add key prop here
+                  className="w-6 h-6 rounded border hover:scale-125 transition-transform relative"
+                  style={{ backgroundColor: color }}
+                  onClick={() => {
+                    editor?.chain().focus().setColor(color).run();
+                    setShowTextColors(false);
+                  }}
+                >
+                  {editor?.getAttributes('textStyle').color === color && (
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className={`text-${color === '#ffffff' ? 'black' : 'white'} text-xs`}>✓</span>
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Background Color Picker */}
@@ -1283,8 +1279,8 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
           title="Highlight Color"
         >
           <Highlighter size={16} />
-          <div 
-            className="w-4 h-4 border rounded" 
+          <div
+            className="w-4 h-4 border rounded"
             style={{ backgroundColor: editor?.getAttributes('highlight').color || 'transparent' }}
           />
         </button>
@@ -1367,10 +1363,10 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
 
   const handleDrop = async (e: React.DragEvent, editor: Editor) => {
     e.preventDefault();
-    
+
     const files = Array.from(e.dataTransfer.files);
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    
+
     if (imageFiles.length > 0) {
       for (const file of imageFiles) {
         const reader = new FileReader();
@@ -1423,7 +1419,7 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
               return node.type.name === 'heading' && node.attrs.level === 1;
               // @ts-ignore
             }).some((node: { type: { name: string; }; attrs: { level: number; }; }) => node.type.name === 'heading' && node.attrs.level === 1);
-            
+
             if (hasH1) {
               // If H1 exists, convert to H2 instead
               this.editor.commands.toggleHeading({ level: 2 });
@@ -1481,7 +1477,7 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
         .replace(/<br\s*\/?>/g, '<br />')
         .replace(/(<\/[^>]+>)(<[^>]+>)/g, '$1\n$2')
         .trim();
-      
+
       onChange(html);
     },
     parseOptions: {
@@ -1502,9 +1498,9 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
       .replace(/[^a-z0-9-]/g, '') // Remove any characters that aren't letters, numbers, or hyphens
       .replace(/-+/g, '-') // Replace multiple consecutive hyphens with a single hyphen
       .replace(/^-+|-+$/g, ''); // Remove hyphens from start and end
-    
+
     setSlug(formattedSlug);
-    
+
     // Clear validation error if slug is not empty
     if (formattedSlug) {
       // @ts-ignore
@@ -1532,9 +1528,9 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
   // Function to insert FAQs into editor content
   const insertFaqsIntoContent = () => {
     if (!editor || faqs.length === 0) return;
-    
+
     const faqHtml = generateFaqHtml(faqs);
-    
+
     // Insert FAQ section at the end of the content
     editor.chain().focus().insertContent(faqHtml).run();
   };
@@ -1552,10 +1548,10 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
     (window as any).toggleFAQ = (faqId: string) => {
       const content = document.getElementById(`${faqId}-content`)
       const icon = document.querySelector(`[data-faq-id="${faqId}"] .faq-icon`)
-      
+
       if (content && icon) {
         const isExpanded = content.classList.contains('expanded')
-        
+
         if (isExpanded) {
           content.classList.remove('expanded')
           if (icon instanceof HTMLElement) {
@@ -1593,10 +1589,10 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
 
       {editorMode === 'rich' ? (
         <>
-          <MenuBar 
-            editor={editor} 
-            faqs={faqs} 
-            insertFaqsIntoContent={insertFaqsIntoContent} 
+          <MenuBar
+            editor={editor}
+            faqs={faqs}
+            insertFaqsIntoContent={insertFaqsIntoContent}
           />
           <div
             onDragOver={handleDragOver}
@@ -1606,8 +1602,8 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
             <div className="absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-move opacity-30 hover:opacity-100 transition-opacity">
               <DragHandleDots2Icon className="h-5 w-5 text-gray-500" />
             </div>
-            <EditorContent 
-              editor={editor} 
+            <EditorContent
+              editor={editor}
               className="p-4 pl-8 min-h-[400px] prose max-w-none z-20"
             />
           </div>
@@ -2494,7 +2490,7 @@ const FAQManager: React.FC<FAQManagerProps> = ({ faqs, onFaqsChange, onInsertFaq
       alert('You can only add up to 3 FAQs per blog post.');
       return;
     }
-    
+
     if (!newFaq.question.trim() || !newFaq.answer.trim()) {
       alert('Please fill in both question and answer fields.');
       return;
@@ -2535,14 +2531,14 @@ const FAQManager: React.FC<FAQManagerProps> = ({ faqs, onFaqsChange, onInsertFaq
 
   const editFaq = () => {
     if (!editingFaq) return;
-    
+
     if (!newFaq.question.trim() || !newFaq.answer.trim()) {
       alert('Please fill in both question and answer fields.');
       return;
     }
 
-    const updatedFaqs = faqs.map(faq => 
-      faq.id === editingFaq.id 
+    const updatedFaqs = faqs.map(faq =>
+      faq.id === editingFaq.id
         ? { ...faq, question: newFaq.question.trim(), answer: newFaq.answer.trim() }
         : faq
     );
@@ -2560,7 +2556,7 @@ const FAQManager: React.FC<FAQManagerProps> = ({ faqs, onFaqsChange, onInsertFaq
   };
 
   const toggleFaq = (id: string) => {
-    const updatedFaqs = faqs.map(faq => 
+    const updatedFaqs = faqs.map(faq =>
       faq.id === id ? { ...faq, isExpanded: !faq.isExpanded } : faq
     );
     onFaqsChange(updatedFaqs);
@@ -2579,8 +2575,8 @@ const FAQManager: React.FC<FAQManagerProps> = ({ faqs, onFaqsChange, onInsertFaq
     setShowAddDialog(true);
   };
 
-  const filteredTemplates = selectedCategory === 'All' 
-    ? FAQ_TEMPLATES 
+  const filteredTemplates = selectedCategory === 'All'
+    ? FAQ_TEMPLATES
     : FAQ_TEMPLATES.filter(t => t.category === selectedCategory);
 
   return (
@@ -2752,11 +2748,10 @@ const FAQManager: React.FC<FAQManagerProps> = ({ faqs, onFaqsChange, onInsertFaq
               {filteredTemplates.map(template => (
                 <div
                   key={template.id}
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                    selectedTemplate === template.id
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedTemplate === template.id
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                    }`}
                   onClick={() => setSelectedTemplate(template.id)}
                 >
                   <div className="flex items-start justify-between">
@@ -2786,7 +2781,7 @@ const FAQManager: React.FC<FAQManagerProps> = ({ faqs, onFaqsChange, onInsertFaq
             }}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={addFromTemplate}
               disabled={!selectedTemplate}
             >
@@ -2804,10 +2799,10 @@ const BlogPreview: React.FC<BlogPreviewProps> = ({ title, content }) => (
     <h2 className="text-2xl font-bold mb-4">Preview</h2>
     <div className="prose max-w-none">
       <h1>{title}</h1>
-      <div 
-        dangerouslySetInnerHTML={{ 
+      <div
+        dangerouslySetInnerHTML={{
           __html: content
-        }} 
+        }}
       />
     </div>
     <style>{`
@@ -2998,9 +2993,9 @@ const Index = () => {
   const [script, setScript] = useState('');
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const editorRef = useRef<{ insertFaqsIntoContent: () => void } | null>(null);
-  
+
   // Related Articles state
-  const [relatedArticles, setRelatedArticles] = useState<Array<{id: number, title: string, cover_image?: string}>>([]);
+  const [relatedArticles, setRelatedArticles] = useState<Array<{ id: number, title: string, cover_image?: string }>>([]);
   const [selectedRelatedArticles, setSelectedRelatedArticles] = useState<number[]>([]);
   const [isLoadingRelatedArticles, setIsLoadingRelatedArticles] = useState(false);
   const [relatedArticlesError, setRelatedArticlesError] = useState('');
@@ -3011,7 +3006,7 @@ const Index = () => {
   const fetchRelatedArticles = async () => {
     setIsLoadingRelatedArticles(true);
     setRelatedArticlesError('');
-    
+
     try {
       const authToken = localStorage.getItem('accessToken');
       if (!authToken) {
@@ -3023,27 +3018,27 @@ const Index = () => {
       if (!userDataString) {
         throw new Error('User data not found');
       }
-      
+
       let userData;
       try {
         userData = JSON.parse(userDataString);
       } catch (parseError) {
         throw new Error('Invalid user data');
       }
-      
+
       if (!userData.data || !userData.data.id) {
         throw new Error('User ID not found');
       }
-      
+
       const userId = userData.data.id;
-      
+
       // Fetch all blog posts
-      const response = await fetch(`https://api.4pmti.com/blog?userId=${userId}&page=1&limit=1000`);
-      
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/blog?userId=${userId}&page=1&limit=1000`);
+
       if (!response.ok) {
         throw new Error('Failed to fetch blog posts');
       }
-      
+
       const result = await response.json();
       if (result.success && result.data) {
         setRelatedArticles(result.data.data.map((post: any) => ({
@@ -3114,23 +3109,23 @@ const Index = () => {
       content?: string;
       slug?: string;
     } = {};
-    
+
     if (!title.trim()) {
       errors.title = 'Title is required';
     }
-    
+
     if (!category.trim()) {
       errors.category = 'Category is required';
     }
-    
+
     if (!content.trim() || content === '<p></p>') {
       errors.content = 'Content is required';
     }
-    
+
     if (!slug.trim()) {
       errors.slug = 'Slug is required';
     }
-    
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -3139,7 +3134,7 @@ const Index = () => {
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-    
+
     if (!validateForm()) {
       return;
     }
@@ -3181,7 +3176,7 @@ const Index = () => {
 
       console.log('Sending payload:', JSON.stringify(payload, null, 2));
 
-      const response = await fetch('https://api.4pmti.com/blog', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/blog', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3206,7 +3201,7 @@ const Index = () => {
       setTimeout(() => {
         router.push('/blog');
       }, 1500);
-      
+
       // Reset form
       setTitle('');
       setDescription('');
@@ -3221,7 +3216,7 @@ const Index = () => {
       setFaqs([]);
       setSelectedRelatedArticles([]);
       setValidationErrors({});
-   
+
     } catch (error) {
       console.error('Error:', error);
       if (error instanceof Error) {
@@ -3249,9 +3244,9 @@ const Index = () => {
       .replace(/[^a-z0-9-]/g, '') // Remove any characters that aren't letters, numbers, or hyphens
       .replace(/-+/g, '-') // Replace multiple consecutive hyphens with a single hyphen
       .replace(/^-+|-+$/g, ''); // Remove hyphens from start and end
-    
+
     setSlug(formattedSlug);
-    
+
     // Clear validation error if slug is not empty
     if (formattedSlug) {
       setValidationErrors(prev => ({ ...prev, slug: undefined }));
@@ -3261,12 +3256,12 @@ const Index = () => {
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
-    
+
     // Clear title validation error if title is not empty
     if (newTitle.trim()) {
       setValidationErrors(prev => ({ ...prev, title: undefined }));
     }
-    
+
     // Automatically update slug when title changes if slug is empty
     if (!slug) {
       handleSlugChange(newTitle);
@@ -3327,7 +3322,7 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
   return (
     <div className="max-w-7xl mx-auto px-0 sm:px-2 lg:px-8 py-5">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Create New Blog Post</h1>
-      
+
       <div className="grid grid-cols-1 gap-8">
         <div className="space-y-6">
           <div>
@@ -3338,9 +3333,8 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
               type="text"
               value={title}
               onChange={handleTitleChange}
-              className={`w-full border rounded-md p-2 ${
-                validationErrors.title ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full border rounded-md p-2 ${validationErrors.title ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="Enter blog title..."
             />
             {validationErrors.title && (
@@ -3356,9 +3350,8 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
                 type="text"
                 value={slug}
                 onChange={(e) => handleSlugChange(e.target.value)}
-                className={`w-full border rounded-md p-2 font-mono text-sm ${
-                  validationErrors.slug ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-md p-2 font-mono text-sm ${validationErrors.slug ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 placeholder="enter-your-slug-here"
               />
               <button
@@ -3377,57 +3370,57 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
               This will be the URL of your blog post. Use hyphens to separate words.
             </p>
           </div>
-       <div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Cover Image URL
-  </label>
-  <input
-  
-    type="url"
-    value={coverImageUrl}
-    onChange={(e) => setCoverImageUrl(e.target.value)}
-    className="w-full border border-gray-300 rounded-md p-2"
-    placeholder="Enter cover image URL..."
-  />
-  {coverImageUrl && (
-    <div className="mt-2 border rounded-lg overflow-hidden">
-      <img
-        src={coverImageUrl}
-        alt="Cover preview"
-        className="w-full h-48 object-cover"
-        onError={(e) => {
-          const target = e.target as HTMLImageElement;
-          target.style.opacity = '0.5';
-        }}
-      />
-    </div>
-  )}
-</div>
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Thumbnail URL
-  </label>
-  <input
-    type="url"
-    value={thumbnailUrl}
-    onChange={(e) => setThumbnailUrl(e.target.value)}
-    className="w-full border border-gray-300 rounded-md p-2"
-    placeholder="Enter thumbnail URL..."
-  />
-  {thumbnailUrl && (
-    <div className="mt-2 border rounded-lg overflow-hidden">
-      <img
-        src={thumbnailUrl}
-        alt="Thumbnail preview"
-        className="w-full h-48 object-cover"
-        onError={(e) => {
-          const target = e.target as HTMLImageElement;
-          target.style.opacity = '0.5';
-        }}
-      />
-    </div>
-  )}
-</div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Cover Image URL
+            </label>
+            <input
+
+              type="url"
+              value={coverImageUrl}
+              onChange={(e) => setCoverImageUrl(e.target.value)}
+              className="w-full border border-gray-300 rounded-md p-2"
+              placeholder="Enter cover image URL..."
+            />
+            {coverImageUrl && (
+              <div className="mt-2 border rounded-lg overflow-hidden">
+                <img
+                  src={coverImageUrl}
+                  alt="Cover preview"
+                  className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.opacity = '0.5';
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Thumbnail URL
+            </label>
+            <input
+              type="url"
+              value={thumbnailUrl}
+              onChange={(e) => setThumbnailUrl(e.target.value)}
+              className="w-full border border-gray-300 rounded-md p-2"
+              placeholder="Enter thumbnail URL..."
+            />
+            {thumbnailUrl && (
+              <div className="mt-2 border rounded-lg overflow-hidden">
+                <img
+                  src={thumbnailUrl}
+                  alt="Thumbnail preview"
+                  className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.opacity = '0.5';
+                  }}
+                />
+              </div>
+            )}
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
@@ -3454,9 +3447,8 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
                     setValidationErrors(prev => ({ ...prev, category: undefined }));
                   }
                 }}
-                className={`w-full border rounded-md p-2 ${
-                  validationErrors.category ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-md p-2 ${validationErrors.category ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 placeholder="Add category..."
               />
               {validationErrors.category && (
@@ -3484,7 +3476,7 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
               Related Articles
               <span className="ml-1 text-xs text-gray-500">(Select articles to link)</span>
             </label>
-            
+
             {/* Selected Articles Navbar */}
             {selectedRelatedArticles.length > 0 && (
               <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -3535,7 +3527,7 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
                 className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <span className="text-sm text-gray-700">
-                  {selectedRelatedArticles.length > 0 
+                  {selectedRelatedArticles.length > 0
                     ? `${selectedRelatedArticles.length} article${selectedRelatedArticles.length > 1 ? 's' : ''} selected`
                     : 'Select related articles...'
                   }
@@ -3590,14 +3582,13 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
                         <div
                           key={article.id}
                           onClick={() => handleRelatedArticleToggle(article.id)}
-                          className={`flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${
-                            selectedRelatedArticles.includes(article.id) ? 'bg-blue-50' : ''
-                          }`}
+                          className={`flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedRelatedArticles.includes(article.id) ? 'bg-blue-50' : ''
+                            }`}
                         >
                           <input
                             type="checkbox"
                             checked={selectedRelatedArticles.includes(article.id)}
-                            onChange={() => {}} // Handled by parent div onClick
+                            onChange={() => { }} // Handled by parent div onClick
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                           {article.cover_image ? (
@@ -3680,8 +3671,8 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Content <span className="text-red-500">*</span>
           </label>
-          <BlogEditor 
-            content={content} 
+          <BlogEditor
+            content={content}
             onChange={(newContent) => {
               setContent(newContent);
               if (newContent.trim() && newContent !== '<p></p>') {
@@ -3701,8 +3692,8 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
 
         {/* FAQ Management Section */}
         <div className="border-t pt-8">
-          <FAQManager 
-            faqs={faqs} 
+          <FAQManager
+            faqs={faqs}
             onFaqsChange={setFaqs}
             onInsertFaqs={() => {
               if (editorRef.current) {
@@ -3716,11 +3707,10 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className={`px-6 py-2 rounded-md font-medium ${
-              isSubmitting
+            className={`px-6 py-2 rounded-md font-medium ${isSubmitting
                 ? 'bg-gray-300 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
-            } transition-colors`}
+              } transition-colors`}
           >
             {isSubmitting ? 'Publishing...' : isDraft ? 'Save Draft' : 'Publish Now'}
           </button>

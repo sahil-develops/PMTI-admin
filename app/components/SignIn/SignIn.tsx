@@ -1,5 +1,5 @@
 'use client'
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { Loader2, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -64,8 +64,8 @@ const NotificationModal: React.FC<ModalProps> = ({ isOpen, onClose, type, messag
         <button
           onClick={onClose}
           className={`w-full py-2 px-4 rounded-md text-white font-medium
-            ${type === 'success' 
-              ? 'bg-green-500 hover:bg-green-600' 
+            ${type === 'success'
+              ? 'bg-green-500 hover:bg-green-600'
               : 'bg-red-500 hover:bg-red-600'
             }
             transition duration-200`}
@@ -97,7 +97,7 @@ const SignIn = () => {
   const fetchCountries = async () => {
     setIsLoadingCountries(true);
     try {
-      const response = await fetch('https://api.4pmti.com/country');
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/country');
       if (!response.ok) throw new Error('Failed to fetch countries');
       const data = await response.json();
       setCountries(data.data);
@@ -145,7 +145,7 @@ const SignIn = () => {
     setError(null);
 
     try {
-      const response = await fetch(`https://api.4pmti.com/auth/signup/admin`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/auth/signup/admin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -160,7 +160,7 @@ const SignIn = () => {
       if (!data.success) {
         throw new Error(data.error || 'Signup failed');
       }
-      
+
       showNotification('success', 'Account created successfully! Please log in.');
       setTimeout(() => {
         setIsLogin(true);
@@ -179,7 +179,7 @@ const SignIn = () => {
     setError(null);
 
     try {
-      const response = await fetch(`https://api.4pmti.com/auth/login`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -196,7 +196,7 @@ const SignIn = () => {
       else if (!data.success) {
         throw new Error(data.error || 'Login failed');
       }
-      
+
       // Store token in localStorage
       localStorage.setItem('accessToken', data.data.access_token);
       showNotification('success', 'Login successful! Redirecting...');
@@ -216,7 +216,7 @@ const SignIn = () => {
     }
   };
 
-  
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -302,7 +302,7 @@ const SignIn = () => {
                   onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="designation" className="block text-sm font-medium text-gray-700">
                   Designation
@@ -317,102 +317,102 @@ const SignIn = () => {
                 />
               </div>
               <div className="space-y-2">
-              <div className="space-y-2">
-  <label htmlFor="country" className="block text-sm font-medium text-gray-700">
-    Country
-  </label>
-  <Select 
-    value={signupData.countryId.toString()} 
-    onValueChange={(value) => setSignupData({ ...signupData, countryId: parseInt(value) })}
-  >
-    <SelectTrigger className='bg-white'>
-      <SelectValue placeholder="Select a country" className='bg-white' />
-    </SelectTrigger>
-    <SelectContent>
-      <div className="sticky top-0 p-2 bg-white">
-        <Input
-          placeholder="Search countries..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="h-8 bg-white"
-        />
-      </div>
-      <div className="max-h-[300px] overflow-y-auto">
-        {isLoadingCountries ? (
-          <div className="flex items-center justify-center p-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-          </div>
-        ) : filteredCountries.length > 0 ? (
-          filteredCountries.map((country) => (
-            <SelectItem key={country.id} value={country.id.toString()} className='bg-white'>
-              {country.CountryName} ({country.currency})
-            </SelectItem>
-          ))
-        ) : (
-          <div className="p-2 text-center text-sm text-gray-500">
-            No countries found
-          </div>
-        )}
-      </div>
-    </SelectContent>
-  </Select>
-</div>
-                
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                  Phone
-                </label>
-                <input
-                  id="phone"
-                  type="tel"
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-500"
-                  value={signupData.phone}
-                  onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-500"
-                  value={signupData.email}
-                  onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showSignupPassword ? "text" : "password"}
-                    required
-                    className="mt-1 block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-500"
-                    value={signupData.password}
-                    onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowSignupPassword(!showSignupPassword)}
+                <div className="space-y-2">
+                  <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+                    Country
+                  </label>
+                  <Select
+                    value={signupData.countryId.toString()}
+                    onValueChange={(value) => setSignupData({ ...signupData, countryId: parseInt(value) })}
                   >
-                    {showSignupPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    )}
-                  </button>
+                    <SelectTrigger className='bg-white'>
+                      <SelectValue placeholder="Select a country" className='bg-white' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="sticky top-0 p-2 bg-white">
+                        <Input
+                          placeholder="Search countries..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="h-8 bg-white"
+                        />
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto">
+                        {isLoadingCountries ? (
+                          <div className="flex items-center justify-center p-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        ) : filteredCountries.length > 0 ? (
+                          filteredCountries.map((country) => (
+                            <SelectItem key={country.id} value={country.id.toString()} className='bg-white'>
+                              {country.CountryName} ({country.currency})
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-center text-sm text-gray-500">
+                            No countries found
+                          </div>
+                        )}
+                      </div>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                    Phone
+                  </label>
+                  <input
+                    id="phone"
+                    type="tel"
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-500"
+                    value={signupData.phone}
+                    onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-500"
+                    value={signupData.email}
+                    onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showSignupPassword ? "text" : "password"}
+                      required
+                      className="mt-1 block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-500"
+                      value={signupData.password}
+                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowSignupPassword(!showSignupPassword)}
+                    >
+                      {showSignupPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
             </div>
 
             <div>

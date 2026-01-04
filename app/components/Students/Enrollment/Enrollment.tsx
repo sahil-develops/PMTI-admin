@@ -173,14 +173,14 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const [showError, setShowError] = useState(false);
   const [sameAsStudent, setSameAsStudent] = useState(false);
   const [classes, setClasses] = useState<ClassData[]>([]);
-    const [countries, setCountries] = useState<Array<{ id: number; CountryName: string }>>([]);
+  const [countries, setCountries] = useState<Array<{ id: number; CountryName: string }>>([]);
   const [locations, setLocations] = useState<Array<{ id: number; location: string }>>([]);
   const [selectedCountry, setSelectedCountry] = useState<string>("52");
   const [selectedLocation, setSelectedLocation] = useState<string>("");
 
   const [items, setItems] = useState<ItemData[]>([])
 
- const [selectedCountry1, setSelectedCountry1] = useState<string>("52"); // Default to US
+  const [selectedCountry1, setSelectedCountry1] = useState<string>("52"); // Default to US
   const [selectedState, setSelectedState] = useState<string>("");
   const [cities, setCities] = useState<Location[]>([]);
   const [states, setStates] = useState<State[]>([]);
@@ -190,18 +190,18 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const [billingLocations, setBillingLocations] = useState<Location[]>([]);
 
   const enrollmentType = isCourseEnrollment ? 'Course' : 'Class';
-  const typeNameChecker =  isCourseEnrollment ? 'courseId' : 'classId';
+  const typeNameChecker = isCourseEnrollment ? 'courseId' : 'classId';
 
 
   const [selectedItem, setSelectedItem] = useState("");
 
   // Form data structure updated to handle both types
- 
+
 
   const fetchStates = async (countryId: string) => {
     try {
       const response = await fetch(
-        `https://api.4pmti.com/state/?countryId=${countryId}`,
+        `https://api.projectmanagementtraininginstitute.com/state/?countryId=${countryId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -225,8 +225,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     }
   };
 
-   // Add handler for country change with updated naming
-   const handleCountryChange1 = async (countryId: string) => {
+  // Add handler for country change with updated naming
+  const handleCountryChange1 = async (countryId: string) => {
     setSelectedCountry1(countryId);
     setFormData(prev => ({
       ...prev,
@@ -234,11 +234,11 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       state: '',
       city: ''
     }));
-    
+
     // Reset states and cities
     setStates([]);
     setCities([]);
-    
+
     // Fetch states for selected country
     fetchStates(countryId);
 
@@ -258,7 +258,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
 
     try {
       const response = await fetch(
-        `https://api.4pmti.com/location?countryId=${selectedCountry1}&stateId=${stateId}`,
+        `https://api.projectmanagementtraininginstitute.com/location?countryId=${selectedCountry1}&stateId=${stateId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -293,184 +293,184 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     CVV: '',
   });
 
-    // Credit card validation functions
-    const validateCreditCard = (number: string) => {
-      // Basic Luhn algorithm for credit card validation
-      const digits = number.replace(/\D/g, '');
-      if (digits.length < 13 || digits.length > 19) return false;
-      
-      let sum = 0;
-      let isEven = false;
-      
-      for (let i = digits.length - 1; i >= 0; i--) {
-        let digit = parseInt(digits[i]);
-        
-        if (isEven) {
-          digit *= 2;
-          if (digit > 9) digit -= 9;
-        }
-        
-        sum += digit;
-        isEven = !isEven;
-      }
-      
-      return sum % 10 === 0;
-    };
-  
-    const validateExpiryDate = (expiry: string) => {
-      const [month, year] = expiry.split('/').map(num => parseInt(num.trim()));
-      if (!month || !year) return false;
-      
-      const currentDate = new Date();
-      const currentYear = currentDate.getFullYear() % 100;
-      const currentMonth = currentDate.getMonth() + 1;
-      
-      if (year < currentYear) return false;
-      if (year === currentYear && month < currentMonth) return false;
-      if (month < 1 || month > 12) return false;
-      
-      return true;
-    };
-  
-    const validateCVV = (cvv: string) => {
-      const cvvRegex = /^\d{3,4}$/;
-      return cvvRegex.test(cvv);
-    };
-  
-    // Format credit card number with spaces
-    const formatCreditCard = (value: string) => {
-      const digits = value.replace(/\D/g, '');
-      const groups = digits.match(/.{1,4}/g) || [];
-      return groups.join(' ');
-    };
-    
-    
-  
-    // Format expiry date
-    const formatExpiry = (value: string) => {
-      const digits = value.replace(/\D/g, '');
-      if (digits.length >= 2) {
-        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}`;
-      }
-      return digits;
-    };
-  
-    const handleCreditCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const inputValue = e.target.value;
-      // Remove all non-digit characters and store raw number
-      const rawValue = inputValue.replace(/\D/g, '');
-      
-      // Update form data with raw value (no spaces)
-      setFormData(prev => ({ ...prev, CCNo: rawValue }));
-      
-      // Validate the raw value
-      setErrors(prev => ({
-        ...prev,
-        CCNo: validateCreditCard(rawValue) ? '' : 'Invalid credit card number'
-      }));
-    };
-  
-    const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const formattedValue = formatExpiry(e.target.value);
-      setFormData(prev => ({ ...prev, CCExpiry: formattedValue }));
-      setErrors(prev => ({
-        ...prev,
-        CCExpiry: validateExpiryDate(formattedValue) ? '' : 'Invalid expiry date'
-      }));
-    };
-  
-    const handleCVVChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value.replace(/\D/g, '').substr(0, 4);
-      setFormData(prev => ({ ...prev, CVV: value }));
-      setErrors(prev => ({
-        ...prev,
-        CVV: validateCVV(value) ? '' : 'Invalid CVV'
-      }));
-    };
-  
-    // Modify your existing handleSubmit to include validation and properly format the data
-    const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      
-      // Validate credit card fields if using credit card payment
-      if (paymentMode === 'cc' || paymentMode === 'both') {
-        const newErrors = {
-          CCNo: validateCreditCard(formData.CCNo) ? '' : 'Invalid credit card number',
-          CCExpiry: validateExpiryDate(formData.CCExpiry) ? '' : 'Invalid expiry date',
-          CVV: validateCVV(formData.CVV) ? '' : 'Invalid CVV',
-        };
-        
-        setErrors(newErrors);
-        
-        if (Object.values(newErrors).some(error => error !== '')) {
-          return;
-        }
-      }
-      
-      // Determine if payment is made via credit card
-      const isPaid = paymentMode === 'cc' || paymentMode === 'both';
-      
-      // Get the selected location details
-      const selectedLocationData = locations.find(loc => loc.id.toString() === selectedLocation);
-      const selectedCountryData = countries.find(c => c.id.toString() === selectedCountry);
-      const selectedStateData = states.find(s => s.id.toString() === selectedState);
+  // Credit card validation functions
+  const validateCreditCard = (number: string) => {
+    // Basic Luhn algorithm for credit card validation
+    const digits = number.replace(/\D/g, '');
+    if (digits.length < 13 || digits.length > 19) return false;
 
-      // Ensure we have all required student data from the studentInfo
-      const dataToSubmit = {
-        ...formData,
-        isPaid,
-        // Add missing required fields from studentInfo
-        name: studentInfo?.name || formData.name,
-        address: studentInfo?.address || formData.address,
-        // Use location names instead of IDs
-        city: selectedLocationData?.location || "",
-        state: selectedStateData?.name || "",
-        country: selectedCountryData?.CountryName || "",
-        phone: studentInfo?.phone || formData.phone,
-        profession: studentInfo?.profession || formData.profession,
-        email: studentInfo?.email || formData.email,
-        zipCode: studentInfo?.zipCode || formData.zipCode,
-        // For billing info, keep both BillingState and BillCountry as numbers
-        BillingCity: formData.BillingCity,
-        BillingState: parseInt(formData.BillingState) || 0, // Send the ID as a number
-        BillCountry: parseInt(formData.BillCountry), // Convert to number
-        // Add Location ID for reference
-        location: parseInt(selectedLocation || "0"),
+    let sum = 0;
+    let isEven = false;
+
+    for (let i = digits.length - 1; i >= 0; i--) {
+      let digit = parseInt(digits[i]);
+
+      if (isEven) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+
+      sum += digit;
+      isEven = !isEven;
+    }
+
+    return sum % 10 === 0;
+  };
+
+  const validateExpiryDate = (expiry: string) => {
+    const [month, year] = expiry.split('/').map(num => parseInt(num.trim()));
+    if (!month || !year) return false;
+
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear() % 100;
+    const currentMonth = currentDate.getMonth() + 1;
+
+    if (year < currentYear) return false;
+    if (year === currentYear && month < currentMonth) return false;
+    if (month < 1 || month > 12) return false;
+
+    return true;
+  };
+
+  const validateCVV = (cvv: string) => {
+    const cvvRegex = /^\d{3,4}$/;
+    return cvvRegex.test(cvv);
+  };
+
+  // Format credit card number with spaces
+  const formatCreditCard = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    const groups = digits.match(/.{1,4}/g) || [];
+    return groups.join(' ');
+  };
+
+
+
+  // Format expiry date
+  const formatExpiry = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length >= 2) {
+      return `${digits.slice(0, 2)}/${digits.slice(2, 4)}`;
+    }
+    return digits;
+  };
+
+  const handleCreditCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    // Remove all non-digit characters and store raw number
+    const rawValue = inputValue.replace(/\D/g, '');
+
+    // Update form data with raw value (no spaces)
+    setFormData(prev => ({ ...prev, CCNo: rawValue }));
+
+    // Validate the raw value
+    setErrors(prev => ({
+      ...prev,
+      CCNo: validateCreditCard(rawValue) ? '' : 'Invalid credit card number'
+    }));
+  };
+
+  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatExpiry(e.target.value);
+    setFormData(prev => ({ ...prev, CCExpiry: formattedValue }));
+    setErrors(prev => ({
+      ...prev,
+      CCExpiry: validateExpiryDate(formattedValue) ? '' : 'Invalid expiry date'
+    }));
+  };
+
+  const handleCVVChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').substr(0, 4);
+    setFormData(prev => ({ ...prev, CVV: value }));
+    setErrors(prev => ({
+      ...prev,
+      CVV: validateCVV(value) ? '' : 'Invalid CVV'
+    }));
+  };
+
+  // Modify your existing handleSubmit to include validation and properly format the data
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate credit card fields if using credit card payment
+    if (paymentMode === 'cc' || paymentMode === 'both') {
+      const newErrors = {
+        CCNo: validateCreditCard(formData.CCNo) ? '' : 'Invalid credit card number',
+        CCExpiry: validateExpiryDate(formData.CCExpiry) ? '' : 'Invalid expiry date',
+        CVV: validateCVV(formData.CVV) ? '' : 'Invalid CVV',
       };
-      
-      setLoading(true);
-      try {
-        // Choose endpoint based on whether courseId exists in formData
-        const endpoint = 'courseId' in formData && formData.courseId 
-          ? 'https://api.4pmti.com/enrollment/course' 
-          : 'https://api.4pmti.com/enrollment/class';
-          
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-          body: JSON.stringify(dataToSubmit),
-        });
 
-        const responseData = await response.json();
-        if (response.ok && responseData.success) {
-          setShowSuccess(true);
-        } else {
-          console.error('Enrollment failed:', responseData);
-          setShowError(true);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        setShowError(true);
-      } finally {
-        setLoading(false);
+      setErrors(newErrors);
+
+      if (Object.values(newErrors).some(error => error !== '')) {
+        return;
       }
+    }
+
+    // Determine if payment is made via credit card
+    const isPaid = paymentMode === 'cc' || paymentMode === 'both';
+
+    // Get the selected location details
+    const selectedLocationData = locations.find(loc => loc.id.toString() === selectedLocation);
+    const selectedCountryData = countries.find(c => c.id.toString() === selectedCountry);
+    const selectedStateData = states.find(s => s.id.toString() === selectedState);
+
+    // Ensure we have all required student data from the studentInfo
+    const dataToSubmit = {
+      ...formData,
+      isPaid,
+      // Add missing required fields from studentInfo
+      name: studentInfo?.name || formData.name,
+      address: studentInfo?.address || formData.address,
+      // Use location names instead of IDs
+      city: selectedLocationData?.location || "",
+      state: selectedStateData?.name || "",
+      country: selectedCountryData?.CountryName || "",
+      phone: studentInfo?.phone || formData.phone,
+      profession: studentInfo?.profession || formData.profession,
+      email: studentInfo?.email || formData.email,
+      zipCode: studentInfo?.zipCode || formData.zipCode,
+      // For billing info, keep both BillingState and BillCountry as numbers
+      BillingCity: formData.BillingCity,
+      BillingState: parseInt(formData.BillingState) || 0, // Send the ID as a number
+      BillCountry: parseInt(formData.BillCountry), // Convert to number
+      // Add Location ID for reference
+      location: parseInt(selectedLocation || "0"),
     };
 
-   // Initialize with properly typed form data
-   const [formData, setFormData] = useState<EnrollmentFormData>({
+    setLoading(true);
+    try {
+      // Choose endpoint based on whether courseId exists in formData
+      const endpoint = 'courseId' in formData && formData.courseId
+        ? 'https://api.projectmanagementtraininginstitute.com/enrollment/course'
+        : 'https://api.projectmanagementtraininginstitute.com/enrollment/class';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify(dataToSubmit),
+      });
+
+      const responseData = await response.json();
+      if (response.ok && responseData.success) {
+        setShowSuccess(true);
+      } else {
+        console.error('Enrollment failed:', responseData);
+        setShowError(true);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setShowError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initialize with properly typed form data
+  const [formData, setFormData] = useState<EnrollmentFormData>({
     studentId: parseInt(params.id),
     Comments: "",
     BillingName: "",
@@ -517,15 +517,15 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     fetchCountries();
     fetchClasses();
     fetchStates("52"); // Fetch US states by default
-    
+
     // Also fetch locations for the default country
     fetchLocations("52");
-    
+
     // Fetch billing states for the default country (US)
     fetchBillingStates("52");
   }, []);
 
-  
+
   useEffect(() => {
     if (selectedCountry) {
       fetchLocations(selectedCountry);
@@ -536,8 +536,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const fetchItems = async (countryId?: string, locationId?: string) => {
     try {
       const endpoint = isCourseEnrollment ? 'course' : 'class';
-      let url = `https://api.4pmti.com/${endpoint}`;
-      
+      let url = `https://api.projectmanagementtraininginstitute.com/${endpoint}`;
+
       // Add query parameters if both country and location are selected
       if (countryId && locationId) {
         url += `?countryId=${countryId}&locationId=${locationId}`;
@@ -549,7 +549,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         },
       });
       const result = await response.json();
-      
+
       if (result.success) {
         setItems(result.data.data);
       } else {
@@ -581,12 +581,12 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
     }
   }, [selectedCountry, selectedLocation, isCourseEnrollment]);
 
-  
+
 
 
   const fetchCountries = async () => {
     try {
-      const response = await fetch('https://api.4pmti.com/country', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/country', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -611,10 +611,10 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
 
     if (selected) {
       const currentDate = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
-      
+
       setFormData(prev => ({
         ...prev,
-        ...(isCourseEnrollment 
+        ...(isCourseEnrollment
           ? { courseId: selectedId, classId: undefined }
           : { classId: selectedId, courseId: undefined }
         ),
@@ -628,7 +628,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
 
   const fetchLocations = async (countryId: string) => {
     try {
-      const response = await fetch(`https://api.4pmti.com/location?countryId=${countryId}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/location?countryId=${countryId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -639,7 +639,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         const sortedLocations = data.data
           .filter((loc: any) => !loc.isDelete)
           .sort((a: any, b: any) => a.location.localeCompare(b.location));
-        
+
         setLocations(sortedLocations);
       }
     } catch (error) {
@@ -651,7 +651,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       });
     }
   };
-  
+
 
   useEffect(() => {
     fetchStudentInfo();
@@ -659,7 +659,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
 
   const fetchStudentInfo = async () => {
     try {
-      const response = await fetch(`https://api.4pmti.com/students/${params.id}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/students/${params.id}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -667,23 +667,23 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       const data = await response.json();
       if (data.success) {
         const student = data.data.student;
-        
+
         // Update studentInfo with the API response data
         setStudentInfo({
           ...student,
           // Handle city as string (not object)
-          city: student.city ? { 
-            id: 0, 
-            location: student.city, 
-            addedBy: '', 
-            updatedBy: '', 
-            isDelete: false, 
-            createdAt: '', 
-            updateAt: '' 
+          city: student.city ? {
+            id: 0,
+            location: student.city,
+            addedBy: '',
+            updatedBy: '',
+            isDelete: false,
+            createdAt: '',
+            updateAt: ''
           } : { id: 0, location: '', addedBy: '', updatedBy: '', isDelete: false, createdAt: '', updateAt: '' },
           state: student.state || { id: 0, name: '' },
         });
-  
+
         // Update form data with student information
         setFormData(prev => ({
           ...prev,
@@ -699,7 +699,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
           companyName: student.companyName || "",
           downloadedInfoPac: student.downloadedInfoPac || false,
         }));
-  
+
         // Set default country and fetch states
         setSelectedCountry1(student.country?.id?.toString() || "52");
         fetchStates(student.country?.id?.toString() || "52");
@@ -769,14 +769,14 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       );
     }
   };
-  
 
-  
 
-   // Add class fetching function
-   const fetchClasses = async () => {
+
+
+  // Add class fetching function
+  const fetchClasses = async () => {
     try {
-      const response = await fetch('https://api.4pmti.com/class', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/class', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -819,11 +819,11 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
           >
             <SelectTrigger>
               <SelectValue placeholder={
-                !selectedCountry 
-                  ? "Select a country first" 
-                  : !selectedLocation 
+                !selectedCountry
+                  ? "Select a country first"
+                  : !selectedLocation
                     ? "Select a location first"
-                    : items.length === 0 
+                    : items.length === 0
                       ? "No courses available"
                       : "Select Course"
               } />
@@ -831,8 +831,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
             <SelectContent>
               {items.length > 0 ? (
                 items.map((item) => (
-                  <SelectItem 
-                    key={item.id} 
+                  <SelectItem
+                    key={item.id}
                     value={item.id.toString()}
                     className='text-xs'
                   >
@@ -861,11 +861,11 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         >
           <SelectTrigger>
             <SelectValue placeholder={
-              !selectedCountry 
-                ? "Select a country first" 
-                : !selectedLocation 
+              !selectedCountry
+                ? "Select a country first"
+                : !selectedLocation
                   ? "Select a location first"
-                  : items.length === 0 
+                  : items.length === 0
                     ? "No classes available"
                     : "Select Class"
             } />
@@ -873,8 +873,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
           <SelectContent>
             {items.length > 0 ? (
               items.map((item) => (
-                <SelectItem 
-                  key={item.id} 
+                <SelectItem
+                  key={item.id}
                   value={item.id.toString()}
                   className='text-xs'
                 >
@@ -896,7 +896,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const fetchBillingStates = async (countryId: string) => {
     try {
       const response = await fetch(
-        `https://api.4pmti.com/state/?countryId=${countryId}`,
+        `https://api.projectmanagementtraininginstitute.com/state/?countryId=${countryId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -924,24 +924,24 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const fetchBillingLocations = async (countryId: string, stateId: string) => {
     try {
       const response = await fetch(
-        `https://api.4pmti.com/location?countryId=${countryId}&stateId=${stateId}`,
+        `https://api.projectmanagementtraininginstitute.com/location?countryId=${countryId}&stateId=${stateId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         }
       );
-  
+
       if (!response.ok) {
         throw new Error('Failed to fetch locations');
       }
-  
+
       const data = await response.json();
       // Filter out deleted locations and sort alphabetically
       const sortedLocations = [...data.data]
         .filter((loc: Location) => !loc.isDelete)
         .sort((a, b) => a.location.localeCompare(b.location));
-      
+
       setBillingLocations(sortedLocations);
     } catch (error) {
       console.error('Error fetching billing locations:', error);
@@ -1039,31 +1039,31 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
               <h3 className="text-lg font-semibold">Payment Method</h3>
               <div className="flex flex-col space-y-2 mb-4">
                 <div className="flex items-center space-x-2">
-                  <input 
-                    type="radio" 
-                    id="payment-both" 
+                  <input
+                    type="radio"
+                    id="payment-both"
                     checked={paymentMode === 'both'}
                     onChange={() => setPaymentMode('both')}
                     className="h-4 w-4 text-primary"
                   />
                   <label htmlFor="payment-both">Purchase Order ID + Credit Card Payment</label>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
-                  <input 
-                    type="radio" 
-                    id="payment-po" 
+                  <input
+                    type="radio"
+                    id="payment-po"
                     checked={paymentMode === 'po'}
                     onChange={() => setPaymentMode('po')}
                     className="h-4 w-4 text-primary"
                   />
                   <label htmlFor="payment-po">Purchase Order ID Only</label>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
-                  <input 
-                    type="radio" 
-                    id="payment-cc" 
+                  <input
+                    type="radio"
+                    id="payment-cc"
                     checked={paymentMode === 'cc'}
                     onChange={() => setPaymentMode('cc')}
                     className="h-4 w-4 text-primary"
@@ -1071,7 +1071,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <label htmlFor="payment-cc">Credit Card Payment Only</label>
                 </div>
               </div>
-            
+
               {/* Credit Card Information - Only shows if payment mode includes credit card */}
               {(paymentMode === 'both' || paymentMode === 'cc') && (
                 <div className="space-y-4 pt-4">
@@ -1101,7 +1101,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                         required={paymentMode === 'cc' || paymentMode === 'both'}
                       />
                     </div>
-                    
+
                     <div>
                       <Label>Expiry Date</Label>
                       <Input
@@ -1117,7 +1117,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                         <p className="text-sm text-red-500 mt-1">{errors.CCExpiry}</p>
                       )}
                     </div>
-                    
+
                     <div>
                       <Label>CVV</Label>
                       <Input
@@ -1151,7 +1151,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                       // @ts-ignore
                       setFormData(prev => ({
                         ...prev,
-                        classId: isCourseEnrollment ? prev.classId : 1 ,
+                        classId: isCourseEnrollment ? prev.classId : 1,
                         startDate: "",
                         endDate: ""
                       }));
@@ -1165,8 +1165,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     </SelectTrigger>
                     <SelectContent>
                       {countries.map((country) => (
-                        <SelectItem 
-                          key={country.id} 
+                        <SelectItem
+                          key={country.id}
                           value={country.id.toString()}
                         >
                           {country.CountryName}
@@ -1193,17 +1193,17 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={
-                        !selectedCountry 
-                          ? "Select a country first" 
-                          : locations.length === 0 
-                            ? "No locations available" 
+                        !selectedCountry
+                          ? "Select a country first"
+                          : locations.length === 0
+                            ? "No locations available"
                             : "Select Location"
                       } />
                     </SelectTrigger>
                     <SelectContent>
                       {locations.map((location) => (
-                        <SelectItem 
-                          key={location.id} 
+                        <SelectItem
+                          key={location.id}
                           value={location.id.toString()}
                         >
                           {location.location}
@@ -1220,18 +1220,18 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Start Date</Label>
-                  <Input 
-                    type="date" 
+                  <Input
+                    type="date"
                     value={formData.startDate || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                    required 
+                    required
                     readOnly={!isCourseEnrollment} // Make readonly for class enrollment
                   />
                 </div>
                 <div>
                   <Label>End Date</Label>
-                  <Input 
-                    type="date" 
+                  <Input
+                    type="date"
                     value={formData.endDate || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                     required
@@ -1243,7 +1243,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
 
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Payment Information</h3>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 {(paymentMode === 'both' || paymentMode === 'po') && (
                   <div>
@@ -1267,7 +1267,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                 {(paymentMode === 'both' || paymentMode === 'cc') && (
                   <div>
                     <Label>Payment Mode</Label>
-                    <Select 
+                    <Select
                       required={paymentMode === 'cc' || paymentMode === 'both'}
                       value={formData.cardType}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, cardType: value }))}
@@ -1293,12 +1293,12 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Enrollment Date</Label>
-                  <Input 
-                    type="date" 
+                  <Input
+                    type="date"
                     value={formData.enrollmentDate}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      enrollmentDate: e.target.value 
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      enrollmentDate: e.target.value
                     }))}
                     required
                     readOnly // Make it readonly since it should be the current date
@@ -1307,7 +1307,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                 <div>
                   <Label>Comments</Label>
                   <Textarea
-                  required
+                    required
                     value={formData.Comments}
                     onChange={(e) => setFormData(prev => ({ ...prev, Comments: e.target.value }))}
                   />
@@ -1322,7 +1322,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Select
                     value={formData.MealType}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, MealType: value }))}
-                  required
+                    required
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Meal Type" />
@@ -1338,7 +1338,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Input
                     value={formData.Promotion}
                     onChange={(e) => setFormData(prev => ({ ...prev, Promotion: e.target.value }))}
-                  
+
                   />
                 </div>
               </div>
@@ -1361,16 +1361,16 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Input
                     value={formData.BillingName}
                     onChange={(e) => setFormData(prev => ({ ...prev, BillingName: e.target.value }))}
-                 required
-                 />
+                    required
+                  />
                 </div>
                 <div>
                   <Label>Billing Address</Label>
                   <Textarea
                     value={formData.BillingAddress}
                     onChange={(e) => setFormData(prev => ({ ...prev, BillingAddress: e.target.value }))}
-                 required
-                 />
+                    required
+                  />
                 </div>
                 <div>
                   <Label>Select Country</Label>
@@ -1380,8 +1380,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                       setFormData(prev => ({
                         ...prev,
                         BillCountry: value,
-                        BillingState: "", 
-                        BillingCity: ""  
+                        BillingState: "",
+                        BillingCity: ""
                       }));
                       fetchBillingStates(value);
                     }}
@@ -1394,8 +1394,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     </SelectTrigger>
                     <SelectContent>
                       {countries.map((country) => (
-                        <SelectItem 
-                          key={country.id} 
+                        <SelectItem
+                          key={country.id}
                           value={country.id.toString()}
                         >
                           {country.CountryName}
@@ -1411,13 +1411,13 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     onValueChange={(value) => {
                       // Get the selected state's name
                       const selectedState = billingStates.find(s => s.id.toString() === value);
-                      
-                      setFormData(prev => ({ 
-                        ...prev, 
+
+                      setFormData(prev => ({
+                        ...prev,
                         BillingState: value,
                         BillingCity: "" // Reset city when state changes
                       }));
-                      
+
                       // Fetch locations for the selected billing state
                       fetchBillingLocations(formData.BillCountry, value);
                     }}
@@ -1429,8 +1429,8 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     <SelectContent>
                       {billingStates.length > 0 ? (
                         billingStates.map((state) => (
-                          <SelectItem 
-                            key={state.id} 
+                          <SelectItem
+                            key={state.id}
                             value={state.id.toString()}
                           >
                             {state.name}
@@ -1460,7 +1460,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Input
                     value={formData.zipCode}
                     onChange={(e) => setFormData(prev => ({ ...prev, zipCode: e.target.value }))}
-                  required
+                    required
                   />
                 </div>
                 <div>
@@ -1468,7 +1468,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                   <Input
                     value={formData.BillPhone}
                     onChange={(e) => setFormData(prev => ({ ...prev, BillPhone: e.target.value }))}
-                  required
+                    required
                   />
                 </div>
                 <div>
@@ -1477,7 +1477,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
                     type="email"
                     value={formData.BillMail}
                     onChange={(e) => setFormData(prev => ({ ...prev, BillMail: e.target.value }))}
-                  required
+                    required
                   />
                 </div>
               </div>

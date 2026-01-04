@@ -59,13 +59,13 @@ export default function Blogs() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  
+
   // Page Assignment Modal State
   const [showPageAssignmentModal, setShowPageAssignmentModal] = useState(false);
   const [selectedPage, setSelectedPage] = useState<string>('');
@@ -76,7 +76,7 @@ export default function Blogs() {
   const [isAssigning, setIsAssigning] = useState(false);
   const [pageSearchTerm, setPageSearchTerm] = useState('');
   const [articleSearchTerm, setArticleSearchTerm] = useState('');
-  
+
   const router = useRouter();
   const { toast } = useToast();
 
@@ -106,29 +106,29 @@ export default function Blogs() {
   const fetchBlogPosts = async (page = 1) => {
     try {
       setIsLoading(true);
-      
+
       // Get user data from localStorage
       const userDataString = localStorage.getItem('userData');
       if (!userDataString) {
         throw new Error('User data not found. Please log in again.');
       }
-      
+
       let userData;
       try {
         userData = JSON.parse(userDataString);
       } catch (parseError) {
         throw new Error('Invalid user data. Please log in again.');
       }
-      
+
       if (!userData.data || !userData.data.id) {
         throw new Error('User ID not found. Please log in again.');
       }
-      
+
       const userId = userData.data.id;
-      
+
       // Fetch blog posts with pagination
-      const response = await fetch(`https://api.4pmti.com/blog?userId=${userId}&page=${page}&limit=${itemsPerPage}`);
-      
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/blog?userId=${userId}&page=${page}&limit=${itemsPerPage}`);
+
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Authentication failed. Please log in again.');
@@ -142,7 +142,7 @@ export default function Blogs() {
           throw new Error(`Failed to fetch blog posts (${response.status})`);
         }
       }
-      
+
       const result: BlogResponse = await response.json();
       if (result.success && result.data) {
         setBlogPosts(result.data.data);
@@ -150,7 +150,7 @@ export default function Blogs() {
         setTotalItems(result.data.meta.total);
         setCurrentPage(result.data.meta.page);
         setError(null); // Clear any previous errors
-        
+
         // Extract available pages from the fetched posts
         const pages = extractPagesFromPosts(result.data.data);
         setAvailablePages(pages);
@@ -171,22 +171,22 @@ export default function Blogs() {
   const fetchAllArticlesForAssignment = async () => {
     try {
       setIsLoadingArticles(true);
-      
+
       const authToken = localStorage.getItem('accessToken');
       if (!authToken) {
         throw new Error('Authentication token not found');
       }
-      
-      const response = await fetch(`https://api.4pmti.com/blog?page=1&limit=100`, {
+
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/blog?page=1&limit=100`, {
         headers: {
           'Authorization': `Bearer ${authToken}`
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch articles for assignment');
       }
-      
+
       const result = await response.json();
       if (result.success && result.data) {
         setAllArticlesForAssignment(result.data.data || []);
@@ -218,7 +218,7 @@ export default function Blogs() {
 
     try {
       setIsAssigning(true);
-      
+
       const authToken = localStorage.getItem('accessToken');
       if (!authToken) {
         throw new Error('Authentication token not found');
@@ -226,7 +226,7 @@ export default function Blogs() {
 
       // Assign each selected article to the page
       const assignmentPromises = selectedArticles.map(async (article) => {
-        const response = await fetch(`https://api.4pmti.com/blog/${article.id}`, {
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/blog/${article.id}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -340,19 +340,19 @@ export default function Blogs() {
 
   // Filter blog posts based on search criteria
   const filteredBlogPosts = blogPosts.filter(post => {
-    const matchesGlobal = globalSearch === '' || 
+    const matchesGlobal = globalSearch === '' ||
       post.title.toLowerCase().includes(globalSearch.toLowerCase()) ||
       post.content.toLowerCase().includes(globalSearch.toLowerCase()) ||
       post.tags.some(tag => tag.name.toLowerCase().includes(globalSearch.toLowerCase())) ||
       post.user.name.toLowerCase().includes(globalSearch.toLowerCase()) ||
       post.user.email.toLowerCase().includes(globalSearch.toLowerCase());
-    
-    const matchesName = nameSearch === '' || 
+
+    const matchesName = nameSearch === '' ||
       post.title.toLowerCase().includes(nameSearch.toLowerCase());
-    
-    const matchesEmail = emailSearch === '' || 
+
+    const matchesEmail = emailSearch === '' ||
       post.user.email.toLowerCase().includes(emailSearch.toLowerCase());
-    
+
     return matchesGlobal && matchesName && matchesEmail;
   });
 
@@ -372,8 +372,8 @@ export default function Blogs() {
   const getPreview = (content: string, length = 100) => {
     try {
       const stripped = stripHtml(content);
-      return stripped.length > length 
-        ? stripped.substring(0, length) + '...' 
+      return stripped.length > length
+        ? stripped.substring(0, length) + '...'
         : stripped;
     } catch (error) {
       console.error('Error generating preview:', error);
@@ -400,22 +400,22 @@ export default function Blogs() {
 
     try {
       setIsDeleting(true);
-      
+
       // Get auth token
       const authToken = localStorage.getItem('accessToken');
       if (!authToken) {
         throw new Error('Authentication token not found. Please log in again.');
       }
-      
+
       // Delete the blog post
-      const response = await fetch(`https://api.4pmti.com/blog/${postToDelete.id}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/blog/${postToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Authentication failed. Please log in again.');
@@ -429,7 +429,7 @@ export default function Blogs() {
           throw new Error(`Failed to delete blog post (${response.status})`);
         }
       }
-      
+
       const result = await response.json();
       if (result.success) {
         // Check if we need to go to previous page (if we deleted the last item on current page)
@@ -441,13 +441,13 @@ export default function Blogs() {
           // Otherwise, refresh current page
           fetchBlogPosts(currentPage);
         }
-        
+
         // Show success toast
         toast({
           title: 'Success',
           description: `Successfully deleted "${postToDelete.title}"`,
         });
-        
+
         setSuccessMessage(`Successfully deleted "${postToDelete.title}"`);
         setShowSuccessModal(true);
         setError(null); // Clear any previous errors
@@ -501,12 +501,12 @@ export default function Blogs() {
       <Head>
         <title>Blogs | PMTI Dashboard</title>
       </Head>
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <h1 className="text-2xl font-semibold text-gray-800">Blogs</h1>
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={handleOpenPageAssignmentModal}
               className="bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition duration-300 hover:bg-green-700"
             >
@@ -514,7 +514,7 @@ export default function Blogs() {
               <span>Assign Articles to Pages</span>
             </button>
             <Link href={'/blog/add'}>
-              <button 
+              <button
                 className="bg-black text-white px-4 py-2 rounded-md flex items-center gap-2 transition duration-300"
               >
                 <Plus size={16} />
@@ -523,7 +523,7 @@ export default function Blogs() {
             </Link>
           </div>
         </div>
-        
+
         {/* Error Display */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
@@ -551,7 +551,7 @@ export default function Blogs() {
             </div>
           </div>
         )}
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -565,7 +565,7 @@ export default function Blogs() {
               onChange={(e) => setGlobalSearch(e.target.value)}
             />
           </div>
-          
+
           <input
             type="text"
             placeholder="Search by title..."
@@ -573,7 +573,7 @@ export default function Blogs() {
             value={nameSearch}
             onChange={(e) => setNameSearch(e.target.value)}
           />
-          
+
           <input
             type="text"
             placeholder="Search by email..."
@@ -582,7 +582,7 @@ export default function Blogs() {
             onChange={(e) => setEmailSearch(e.target.value)}
           />
         </div>
-        
+
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
@@ -597,7 +597,7 @@ export default function Blogs() {
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No blog posts found</h3>
               <p className="text-gray-500 text-center max-w-md">
-                {globalSearch || nameSearch || emailSearch 
+                {globalSearch || nameSearch || emailSearch
                   ? 'No blog posts match your search criteria. Try adjusting your search terms.'
                   : 'You haven\'t created any blog posts yet. Get started by adding your first blog post.'
                 }
@@ -645,8 +645,8 @@ export default function Blogs() {
                       <tr key={post.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           {post.cover_image ? (
-                            <img 
-                              src={post.cover_image} 
+                            <img
+                              src={post.cover_image}
                               alt={post.title}
                               className="h-20 w-20 object-cover rounded"
                               onError={handleImageError}
@@ -661,15 +661,15 @@ export default function Blogs() {
                           <div className="text-sm font-medium text-gray-900">{post.title}</div>
                         </td>
                         <td className="px-6 py-4 max-w-[200px]">
-                          <div 
+                          <div
                             className="text-sm text-gray-500 truncate"
                             data-tooltip-id={`tooltip-${post.id}`}
                             data-tooltip-content={getPreview(post.content, 300)}
                           >
                             {getPreview(post.content, 50)}
                           </div>
-                          <Tooltip 
-                            id={`tooltip-${post.id}`} 
+                          <Tooltip
+                            id={`tooltip-${post.id}`}
                             place="top"
                             className="max-w-sm bg-black text-white rounded p-2 text-sm"
                           />
@@ -677,8 +677,8 @@ export default function Blogs() {
                         <td className="px-6 py-4">
                           <div className="flex flex-wrap gap-1 max-w-[150px]">
                             {post.tags.map((tag) => (
-                              <span 
-                                key={tag.id} 
+                              <span
+                                key={tag.id}
                                 className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mb-1"
                               >
                                 {tag.name}
@@ -692,14 +692,14 @@ export default function Blogs() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-3">
-                            <button 
+                            <button
                               className="text-blue-600 hover:text-blue-900"
                               onClick={() => handleEditClick(post)}
                               aria-label="Edit"
                             >
                               <Edit size={18} />
                             </button>
-                            <button 
+                            <button
                               className="text-red-600 hover:text-red-900"
                               onClick={() => handleDeleteClick(post)}
                               aria-label="Delete"
@@ -720,7 +720,7 @@ export default function Blogs() {
                 </tbody>
               </table>
             </div>
-            
+
             <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
               <div className="flex items-center space-x-4">
                 <div className="text-sm text-gray-700">
@@ -742,7 +742,7 @@ export default function Blogs() {
                   </select>
                 </div>
               </div>
-              
+
               {/* Pagination Controls */}
               <div className="flex items-center space-x-2">
                 <button
@@ -752,7 +752,7 @@ export default function Blogs() {
                 >
                   <ChevronLeft size={16} />
                 </button>
-                
+
                 {/* Page Numbers */}
                 <div className="flex items-center space-x-1">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -766,23 +766,22 @@ export default function Blogs() {
                     } else {
                       pageNum = currentPage - 2 + i;
                     }
-                    
+
                     return (
                       <button
                         key={pageNum}
                         onClick={() => handlePageChange(pageNum)}
-                        className={`px-3 py-1 text-sm border rounded-md ${
-                          currentPage === pageNum
+                        className={`px-3 py-1 text-sm border rounded-md ${currentPage === pageNum
                             ? 'bg-blue-600 text-white border-blue-600'
                             : 'border-gray-300 hover:bg-gray-100'
-                        }`}
+                          }`}
                       >
                         {pageNum}
                       </button>
                     );
                   })}
                 </div>
-                
+
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
@@ -794,14 +793,14 @@ export default function Blogs() {
             </div>
           </div>
         )}
-        
+
         {/* Delete Confirmation Modal */}
         {showDeleteModal && postToDelete && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Deletion</h3>
               <p className="text-sm text-gray-500 mb-4">
-                Are you sure you want to delete "<span className="font-medium">{postToDelete.title}</span>"? 
+                Are you sure you want to delete "<span className="font-medium">{postToDelete.title}</span>"?
                 This action cannot be undone.
               </p>
               <div className="flex justify-end space-x-3">
@@ -830,7 +829,7 @@ export default function Blogs() {
             </div>
           </div>
         )}
-        
+
         {/* Success Modal */}
         {showSuccessModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
@@ -878,7 +877,7 @@ export default function Blogs() {
                   <X size={24} />
                 </button>
               </div>
-              
+
               <div className="p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Page Selection */}
@@ -894,7 +893,7 @@ export default function Blogs() {
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
-                    
+
                     <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-md">
                       {filteredPages.length > 0 ? (
                         <div className="divide-y divide-gray-200">
@@ -902,9 +901,8 @@ export default function Blogs() {
                             <button
                               key={page}
                               onClick={() => setSelectedPage(page)}
-                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                                selectedPage === page ? 'bg-blue-50 border-l-4 border-blue-500' : ''
-                              }`}
+                              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${selectedPage === page ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                                }`}
                             >
                               <div className="flex items-center space-x-2">
                                 <Tag size={16} className="text-gray-400" />
@@ -937,7 +935,7 @@ export default function Blogs() {
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
-                    
+
                     {isLoadingArticles ? (
                       <div className="flex justify-center items-center py-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
@@ -953,14 +951,12 @@ export default function Blogs() {
                                 <button
                                   key={article.id}
                                   onClick={() => handleArticleSelection(article)}
-                                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                                    isSelected ? 'bg-green-50 border-l-4 border-green-500' : ''
-                                  }`}
+                                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-green-50 border-l-4 border-green-500' : ''
+                                    }`}
                                 >
                                   <div className="flex items-start space-x-3">
-                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center mt-1 ${
-                                      isSelected ? 'bg-green-500 border-green-500' : 'border-gray-300'
-                                    }`}>
+                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center mt-1 ${isSelected ? 'bg-green-500 border-green-500' : 'border-gray-300'
+                                      }`}>
                                       {isSelected && (
                                         <div className="w-2 h-2 bg-white rounded-full"></div>
                                       )}
@@ -972,8 +968,8 @@ export default function Blogs() {
                                       </p>
                                       <div className="flex flex-wrap gap-1 mt-2">
                                         {article.tags.map((tag) => (
-                                          <span 
-                                            key={tag.id} 
+                                          <span
+                                            key={tag.id}
                                             className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
                                           >
                                             {tag.name}

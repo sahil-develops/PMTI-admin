@@ -1,5 +1,5 @@
 'use client'
-import React, {useState,useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +25,7 @@ const classFormSchema = z.object({
   title: z.string()
     .min(3, "Title must be at least 3 characters")
     .max(100, "Title must not exceed 100 characters"),
-  
+
   description: z.string()
     .min(10, "Description must be at least 10 characters")
     .max(500, "Description must not exceed 500 characters"),
@@ -92,7 +92,7 @@ const classFormSchema = z.object({
     .regex(/^\+?[1-9]\d{1,14}$/, "Please enter a valid phone number")
     .optional()
     .or(z.literal("")),
-  
+
   // Updated confirmation fields without strict regex
   flightConfirmation: z.string()
     .optional()
@@ -272,12 +272,12 @@ const ClassForm = () => {
     const fetchCategories = async () => {
       setLoadingCategories(true);
       try {
-        const response = await fetch('https://api.4pmti.com/category', {
+        const response = await fetch('https://api.projectmanagementtraininginstitute.com/category', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch categories');
         }
@@ -320,12 +320,12 @@ const ClassForm = () => {
     const fetchClassTypes = async () => {
       setLoadingClassTypes(true);
       try {
-        const response = await fetch('https://api.4pmti.com/classtype', {
+        const response = await fetch('https://api.projectmanagementtraininginstitute.com/classtype', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch class types');
         }
@@ -353,19 +353,19 @@ const ClassForm = () => {
   const handleClassTypeChange = (value: string) => {
     const classTypeId = Number(value);
     setValue("classTypeId", classTypeId);
-    
+
     // Get the selected class type
     const selectedClassType = classTypes.find(ct => ct.id === classTypeId);
-    
+
     // If we have a start date and class type with duration, calculate end date
     const currentStartDate = watch("startDate");
     if (selectedClassType?.duration && currentStartDate) {
       const startDate = new Date(currentStartDate);
       const endDate = new Date(startDate);
-      
+
       // Add duration-1 days (since start date counts as day 1)
       endDate.setDate(startDate.getDate() + (selectedClassType.duration - 1));
-      
+
       // Set the end date
       setValue("endDate", endDate);
     }
@@ -374,19 +374,19 @@ const ClassForm = () => {
   // Also update the start date change handler to recalculate end date if class type is selected
   const handleStartDateChange = (date: Date | undefined) => {
     if (!date) return;
-    
+
     const localDate = normalizeDate(date);
     if (localDate) {
       setValue("startDate", localDate);
-      
+
       // Get the selected class type
       const classTypeId = watch("classTypeId");
       const selectedClassType = classTypes.find(ct => ct.id === classTypeId);
-      
+
       // If we have a class type with duration, calculate end date
       if (selectedClassType?.duration && localDate) {
         const endDate = new Date(localDate);
-        
+
         // Add duration-1 days (since start date counts as day 1)
         endDate.setDate(localDate.getDate() + (selectedClassType.duration - 1));
         // Set the end date
@@ -402,12 +402,12 @@ const ClassForm = () => {
     const fetchCountries = async () => {
       setLoadingCountries(true);
       try {
-        const response = await fetch('https://api.4pmti.com/country', {
+        const response = await fetch('https://api.projectmanagementtraininginstitute.com/country', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch countries');
         }
@@ -430,12 +430,12 @@ const ClassForm = () => {
     const fetchInstructors = async () => {
       setLoadingInstructors(true);
       try {
-        const response = await fetch('https://api.4pmti.com/instructor', {
+        const response = await fetch('https://api.projectmanagementtraininginstitute.com/instructor', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch instructors');
         }
@@ -454,128 +454,128 @@ const ClassForm = () => {
     fetchInstructors();
   }, []);
 
-// Add this after your imports
-const formatTime = (time: string) => {
-  if (!time) return '';
-  try {
-    const date = new Date(`2000-01-01T${time}`);
-    return date.toLocaleString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    }).replace(/\s+/g, ''); // Remove space between time and AM/PM
-  } catch (e) {
-    return '';
-  }
-};
-
-// Fix timezone issues by creating a proper date normalization function
-// This function creates a new Date object using local year, month, and day
-// to avoid timezone conversion issues that cause dates to shift by one day
-const normalizeDate = (date: Date | undefined) => {
-  if (!date) return undefined;
-  
-  // Create a new date using the local year, month, and day to avoid timezone issues
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
-  
-  // Create date in local timezone (no timezone conversion)
-  return new Date(year, month, day);
-};
-
-// Fix the date formatting to use toLocaleString properly
-// This function formats dates as MM-dd-YYYY using toLocaleString
-const formatDateForAPI = (date: Date | undefined): string => {
-  if (!date) return '';
-  
-  // Use toLocaleString with local timezone to get the correct date
-  return date.toLocaleString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric'
-  }).replace(/\//g, '-'); // Replace / with -
-};
-// Update the onSubmit function
-const onSubmit = async (data: ClassFormData) => {
-  setLoading(true);
-  setShowError(false);
-
-  try {
-    // Format the times
-    const formattedTimeFrom = formatTime(data.classTimeFrom);
-    const formattedTimeTo = formatTime(data.classTimeTo);
-    
-    // Format dates properly in MM-dd-YYYY format
-    const startDateFormatted = formatDateForAPI(data.startDate);
-    const endDateFormatted = formatDateForAPI(data.endDate);
-
-    // Prepare the data for submission
-    const submitData = {
-      title: data.title,
-      description: data.description,
-      categoryId: Number(data.categoryId),
-      classTypeId: Number(data.classTypeId),
-      countryId: Number(data.countryId),
-      locationId: Number(data.locationId) || 0,
-      instructorId: Number(data.instructorId),
-      stateId: Number(data.stateId) || 1, // Add default value if not set
-      maxStudent: Number(data.maxStudent),
-      minStudent: Number(data.minStudent),
-      price: Number(data.price),
-      address: data.address,
-      startDate: startDateFormatted,
-      endDate: endDateFormatted,
-      classTimeFrom: formattedTimeFrom,
-      classTimeTo: formattedTimeTo,
-      classTime: `${formattedTimeFrom} - ${formattedTimeTo}`,
-      onlineCourseId: data.onlineCourseId || "",
-      onlineAvailable: Boolean(data.onlineAvailable),
-      isCorpClass: Boolean(data.isCorpClass), 
-      status: data.status,
-      isCancel: Boolean(data.isCancel),
-      isDelete: Boolean(data.isDelete),
-      addedBy: Number(data.addedBy),
-      updatedBy: Number(data.updatedBy),
-      hotel: data.hotel || "",
-      hotelEmailId: data.hotelEmailId || "",
-      hotelContactNo: data.hotelContactNo || "",
-      flightConfirmation: data.flightConfirmation || "",
-      carConfirmation: data.carConfirmation || "",
-      hotelConfirmation: data.hotelConfirmation || "",
-      coverImage: coverImageUrl || ""
-    };
-
-    console.log('Submitting data:', submitData); // For debugging
-
-    const response = await fetch('https://api.4pmti.com/class', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-      },
-      body: JSON.stringify(submitData)
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to create class');
+  // Add this after your imports
+  const formatTime = (time: string) => {
+    if (!time) return '';
+    try {
+      const date = new Date(`2000-01-01T${time}`);
+      return date.toLocaleString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      }).replace(/\s+/g, ''); // Remove space between time and AM/PM
+    } catch (e) {
+      return '';
     }
+  };
 
-    const result = await response.json();
-    console.log('Success:', result); // For debugging
-    setShowSuccess(true);
-  } catch (error) {
-    console.error('Error:', error); // For debugging
-    setErrorMessage(error instanceof Error ? error.message : "An unknown error occurred");
-    setShowError(true);
-  } finally {
-    setLoading(false);
-  }
-};
+  // Fix timezone issues by creating a proper date normalization function
+  // This function creates a new Date object using local year, month, and day
+  // to avoid timezone conversion issues that cause dates to shift by one day
+  const normalizeDate = (date: Date | undefined) => {
+    if (!date) return undefined;
+
+    // Create a new date using the local year, month, and day to avoid timezone issues
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+
+    // Create date in local timezone (no timezone conversion)
+    return new Date(year, month, day);
+  };
+
+  // Fix the date formatting to use toLocaleString properly
+  // This function formats dates as MM-dd-YYYY using toLocaleString
+  const formatDateForAPI = (date: Date | undefined): string => {
+    if (!date) return '';
+
+    // Use toLocaleString with local timezone to get the correct date
+    return date.toLocaleString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    }).replace(/\//g, '-'); // Replace / with -
+  };
+  // Update the onSubmit function
+  const onSubmit = async (data: ClassFormData) => {
+    setLoading(true);
+    setShowError(false);
+
+    try {
+      // Format the times
+      const formattedTimeFrom = formatTime(data.classTimeFrom);
+      const formattedTimeTo = formatTime(data.classTimeTo);
+
+      // Format dates properly in MM-dd-YYYY format
+      const startDateFormatted = formatDateForAPI(data.startDate);
+      const endDateFormatted = formatDateForAPI(data.endDate);
+
+      // Prepare the data for submission
+      const submitData = {
+        title: data.title,
+        description: data.description,
+        categoryId: Number(data.categoryId),
+        classTypeId: Number(data.classTypeId),
+        countryId: Number(data.countryId),
+        locationId: Number(data.locationId) || 0,
+        instructorId: Number(data.instructorId),
+        stateId: Number(data.stateId) || 1, // Add default value if not set
+        maxStudent: Number(data.maxStudent),
+        minStudent: Number(data.minStudent),
+        price: Number(data.price),
+        address: data.address,
+        startDate: startDateFormatted,
+        endDate: endDateFormatted,
+        classTimeFrom: formattedTimeFrom,
+        classTimeTo: formattedTimeTo,
+        classTime: `${formattedTimeFrom} - ${formattedTimeTo}`,
+        onlineCourseId: data.onlineCourseId || "",
+        onlineAvailable: Boolean(data.onlineAvailable),
+        isCorpClass: Boolean(data.isCorpClass),
+        status: data.status,
+        isCancel: Boolean(data.isCancel),
+        isDelete: Boolean(data.isDelete),
+        addedBy: Number(data.addedBy),
+        updatedBy: Number(data.updatedBy),
+        hotel: data.hotel || "",
+        hotelEmailId: data.hotelEmailId || "",
+        hotelContactNo: data.hotelContactNo || "",
+        flightConfirmation: data.flightConfirmation || "",
+        carConfirmation: data.carConfirmation || "",
+        hotelConfirmation: data.hotelConfirmation || "",
+        coverImage: coverImageUrl || ""
+      };
+
+      console.log('Submitting data:', submitData); // For debugging
+
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/class', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify(submitData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create class');
+      }
+
+      const result = await response.json();
+      console.log('Success:', result); // For debugging
+      setShowSuccess(true);
+    } catch (error) {
+      console.error('Error:', error); // For debugging
+      setErrorMessage(error instanceof Error ? error.message : "An unknown error occurred");
+      setShowError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Reusable form field component
-  const FormField = ({ label, name, type = "text", required = true, ...props }: { label: string; name: keyof ClassFormData; type?: string; required?: boolean; [key: string]: any }) => (
+  const FormField = ({ label, name, type = "text", required = true, ...props }: { label: string; name: keyof ClassFormData; type?: string; required?: boolean;[key: string]: any }) => (
     <div>
       <label className="block text-sm font-medium text-gray-700">
         {label} {required && <span className="text-red-500">*</span>}
@@ -583,9 +583,8 @@ const onSubmit = async (data: ClassFormData) => {
       <input
         type={type}
         {...register(name)}
-        className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
-          errors[name] ? 'border-red-500' : 'border-gray-300'
-        } focus:border-blue-500 focus:ring-blue-500`}
+        className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${errors[name] ? 'border-red-500' : 'border-gray-300'
+          } focus:border-blue-500 focus:ring-blue-500`}
         {...props}
       />
       {errors[name] && (
@@ -615,7 +614,7 @@ const onSubmit = async (data: ClassFormData) => {
   const handleCoverImageUpload = async (file: File) => {
     const allowedTypes = ['png', 'jpg', 'jpeg'];
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
-    
+
     if (!fileExtension || !allowedTypes.includes(fileExtension)) {
       setCoverImageError('Only PNG, JPG, and JPEG files are allowed.');
       return;
@@ -628,7 +627,7 @@ const onSubmit = async (data: ClassFormData) => {
     formData.append('file', file);
 
     try {
-      const response = await fetch('https://api.4pmti.com/upload', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/upload', {
         method: 'POST',
         body: formData,
       });
@@ -665,52 +664,51 @@ const onSubmit = async (data: ClassFormData) => {
       <h1 className="text-2xl font-bold tracking-tight mb-4">Add Class</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-4">
-  <label className="block text-sm font-medium text-gray-700">
-    Cover Image <span className="text-red-500">*</span>
-  </label>
-  <input
-    type="file"
-    accept="image/png, image/jpeg"
-    onChange={(e) => {
-      if (e.target.files && e.target.files[0]) {
-        setCoverImage(e.target.files[0]);
-        handleCoverImageUpload(e.target.files[0]);
-      }
-    }}
-    className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
-      coverImageError ? 'border-red-500' : 'border-gray-300'
-    } focus:border-blue-500 focus:ring-blue-500`}
-  />
-  {coverImageError && (
-    <p className="mt-1 text-sm text-red-500">{coverImageError}</p>
-  )}
-  {isCoverImageUploading && (
-    <p className="mt-1 text-sm text-gray-500">Uploading cover image...</p>
-  )}
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Cover Image <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="file"
+            accept="image/png, image/jpeg"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                setCoverImage(e.target.files[0]);
+                handleCoverImageUpload(e.target.files[0]);
+              }
+            }}
+            className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${coverImageError ? 'border-red-500' : 'border-gray-300'
+              } focus:border-blue-500 focus:ring-blue-500`}
+          />
+          {coverImageError && (
+            <p className="mt-1 text-sm text-red-500">{coverImageError}</p>
+          )}
+          {isCoverImageUploading && (
+            <p className="mt-1 text-sm text-gray-500">Uploading cover image...</p>
+          )}
 
-  {isPreviewVisible && coverImageUrl && (
-    <div className="mt-4">
-      <h3 className="text-sm font-medium text-gray-700">Image Preview:</h3>
-      <img
-        src={coverImageUrl}
-        alt="Cover Preview"
-        className="mt-2 w-1/3 h-auto rounded-md border border-gray-300"
-      />
-      <button
-        type="button"
-        onClick={() => {
-          setCoverImage(null);
-          setCoverImageUrl('');
-          setIsPreviewVisible(false);
-        }}
-        className="mt-2 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-      >
-        Delete Image
-      </button>
-    </div>
-  )}
-</div>
+          {isPreviewVisible && coverImageUrl && (
+            <div className="mt-4">
+              <h3 className="text-sm font-medium text-gray-700">Image Preview:</h3>
+              <img
+                src={coverImageUrl}
+                alt="Cover Preview"
+                className="mt-2 w-1/3 h-auto rounded-md border border-gray-300"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setCoverImage(null);
+                  setCoverImageUrl('');
+                  setIsPreviewVisible(false);
+                }}
+                className="mt-2 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Delete Image
+              </button>
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           {/* Basic Information Section */}
           <div className="md:col-span-2">
@@ -726,23 +724,22 @@ const onSubmit = async (data: ClassFormData) => {
                   Status <span className="text-red-500">*</span>
                 </label>
                 <Select
-  onValueChange={(value) => {
-    setValue("status", value);
-  }}
-  defaultValue="active" // This correctly sets the visual default
->
-  <SelectTrigger 
-    className={`mt-1 bg-white w-full ${
-      errors.status ? 'border-red-500' : 'border-gray-300'
-    }`}
-  >
-    <SelectValue placeholder="Select status" className="bg-white" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="active">Active</SelectItem>
-    <SelectItem value="inactive">Inactive</SelectItem>
-  </SelectContent>
-</Select>
+                  onValueChange={(value) => {
+                    setValue("status", value);
+                  }}
+                  defaultValue="active" // This correctly sets the visual default
+                >
+                  <SelectTrigger
+                    className={`mt-1 bg-white w-full ${errors.status ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                  >
+                    <SelectValue placeholder="Select status" className="bg-white" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
                 {errors.status && (
                   <p className="mt-1 text-sm text-red-500">{errors.status.message}</p>
                 )}
@@ -754,9 +751,8 @@ const onSubmit = async (data: ClassFormData) => {
                 <textarea
                   {...register("description")}
                   rows={1}
-                  className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
-                    errors.description ? 'border-red-500' : 'border-gray-300'
-                  } focus:border-blue-500 focus:ring-blue-500`}
+                  className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${errors.description ? 'border-red-500' : 'border-gray-300'
+                    } focus:border-blue-500 focus:ring-blue-500`}
                 />
                 {errors.description && (
                   <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>
@@ -778,10 +774,9 @@ const onSubmit = async (data: ClassFormData) => {
                   }}
                   defaultValue={watch("categoryId")?.toString()}
                 >
-                  <SelectTrigger 
-                    className={`mt-1 bg-white w-full ${
-                      errors.categoryId ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                  <SelectTrigger
+                    className={`mt-1 bg-white w-full ${errors.categoryId ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   >
                     {loadingCategories ? (
                       <LoadingSpinner />
@@ -791,8 +786,8 @@ const onSubmit = async (data: ClassFormData) => {
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
-                      <SelectItem 
-                        key={category.id} 
+                      <SelectItem
+                        key={category.id}
                         value={category.id.toString()}
                       >
                         {category.name}
@@ -813,10 +808,9 @@ const onSubmit = async (data: ClassFormData) => {
                   onValueChange={handleClassTypeChange}
                   defaultValue={watch("classTypeId")?.toString()}
                 >
-                  <SelectTrigger 
-                    className={`mt-1 bg-white w-full ${
-                      errors.classTypeId ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                  <SelectTrigger
+                    className={`mt-1 bg-white w-full ${errors.classTypeId ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   >
                     {loadingClassTypes ? (
                       <LoadingSpinner />
@@ -826,8 +820,8 @@ const onSubmit = async (data: ClassFormData) => {
                   </SelectTrigger>
                   <SelectContent>
                     {classTypes?.map((classType) => (
-                      <SelectItem 
-                        key={classType.id} 
+                      <SelectItem
+                        key={classType.id}
                         value={classType.id.toString()}
                       >
                         {classType.name}
@@ -856,10 +850,9 @@ const onSubmit = async (data: ClassFormData) => {
                   }}
                   defaultValue="52" // Set United States as default
                 >
-                  <SelectTrigger 
-                    className={`mt-1 bg-white w-full ${
-                      errors.countryId ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                  <SelectTrigger
+                    className={`mt-1 bg-white w-full ${errors.countryId ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   >
                     {loadingCountries ? (
                       <LoadingSpinner />
@@ -869,8 +862,8 @@ const onSubmit = async (data: ClassFormData) => {
                   </SelectTrigger>
                   <SelectContent>
                     {countries.map((country) => (
-                      <SelectItem 
-                        key={country.id} 
+                      <SelectItem
+                        key={country.id}
                         value={country.id.toString()}
                       >
                         {country.CountryName}
@@ -893,16 +886,15 @@ const onSubmit = async (data: ClassFormData) => {
                   }}
                   disabled={!watch('countryId') || locations.length === 0}
                 >
-                  <SelectTrigger 
-                    className={`mt-1 bg-white w-full ${
-                      errors.locationId ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                  <SelectTrigger
+                    className={`mt-1 bg-white w-full ${errors.locationId ? 'border-red-500' : 'border-gray-300'
+                      }`}
                   >
                     <SelectValue placeholder={
-                      !watch('countryId') 
-                        ? "Please select a country first" 
-                        : locations.length === 0 
-                          ? "No locations available" 
+                      !watch('countryId')
+                        ? "Please select a country first"
+                        : locations.length === 0
+                          ? "No locations available"
                           : "Select a location"
                     } className="bg-white" />
                   </SelectTrigger>
@@ -913,8 +905,8 @@ const onSubmit = async (data: ClassFormData) => {
                       </SelectItem>
                     ) : (
                       locations.map((location) => (
-                        <SelectItem 
-                          key={location.id} 
+                        <SelectItem
+                          key={location.id}
                           value={location.id.toString()}
                         >
                           {location.location}
@@ -1016,7 +1008,7 @@ const onSubmit = async (data: ClassFormData) => {
                           }
                         }
                       }}
-                      disabled={(date) => 
+                      disabled={(date) =>
                         date < new Date() || // Can't select past dates
                         (watch("startDate") && date < watch("startDate")) // Can't select dates before start date
                       }
@@ -1041,9 +1033,8 @@ const onSubmit = async (data: ClassFormData) => {
                       setValue("formattedTimeFrom", formattedTime);
                     }
                   })}
-                  className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
-                    errors.classTimeFrom ? 'border-red-500' : 'border-gray-300'
-                  } focus:border-blue-500 focus:ring-blue-500`}
+                  className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${errors.classTimeFrom ? 'border-red-500' : 'border-gray-300'
+                    } focus:border-blue-500 focus:ring-blue-500`}
                 />
                 {errors.classTimeFrom && (
                   <p className="mt-1 text-sm text-red-500">{errors.classTimeFrom.message}</p>
@@ -1059,9 +1050,8 @@ const onSubmit = async (data: ClassFormData) => {
                       setValue("formattedTimeTo", formattedTime);
                     }
                   })}
-                  className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
-                    errors.classTimeTo ? 'border-red-500' : 'border-gray-300'
-                  } focus:border-blue-500 focus:ring-blue-500`}
+                  className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${errors.classTimeTo ? 'border-red-500' : 'border-gray-300'
+                    } focus:border-blue-500 focus:ring-blue-500`}
                 />
                 {errors.classTimeTo && (
                   <p className="mt-1 text-sm text-red-500">{errors.classTimeTo.message}</p>
@@ -1094,10 +1084,9 @@ const onSubmit = async (data: ClassFormData) => {
                 }}
                 defaultValue={watch("instructorId")?.toString()}
               >
-                <SelectTrigger 
-                  className={`bg-white w-full ${
-                    errors.instructorId ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                <SelectTrigger
+                  className={`bg-white w-full ${errors.instructorId ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 >
                   {loadingInstructors ? (
                     <LoadingSpinner />
@@ -1107,8 +1096,8 @@ const onSubmit = async (data: ClassFormData) => {
                 </SelectTrigger>
                 <SelectContent>
                   {instructors?.map((instructor) => (
-                    <SelectItem 
-                      key={instructor.id} 
+                    <SelectItem
+                      key={instructor.id}
                       value={instructor.id.toString()}
                     >
                       {instructor.name}
@@ -1121,8 +1110,8 @@ const onSubmit = async (data: ClassFormData) => {
               )}
               <div className="mt-2 text-sm flex items-center gap-1">
                 <span className="text-gray-600">Didn't find instructor?</span>
-                <Link 
-                  href="/instructors" 
+                <Link
+                  href="/instructors"
                   className="text-blue-600 hover:text-blue-800 font-semibold underline"
                 >
                   Create One
@@ -1177,7 +1166,7 @@ const onSubmit = async (data: ClassFormData) => {
                 placeholder="+1234567890"
               />
             </div>
-            
+
             {/* Add confirmation numbers section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
@@ -1221,9 +1210,8 @@ const onSubmit = async (data: ClassFormData) => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-              loading ? "bg-gray-400" : "bg-zinc-800 hover:bg-zinc-900"
-            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${loading ? "bg-gray-400" : "bg-zinc-800 hover:bg-zinc-900"
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
           >
             {loading ? "Creating..." : "Create Class"}
           </button>

@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: "https://api.4pmti.com/",
+  baseURL: "https://api.projectmanagementtraininginstitute.com/",
   timeout: 10000, // 10 seconds
   headers: {
     'Content-Type': 'application/json',

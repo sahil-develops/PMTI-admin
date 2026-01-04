@@ -64,7 +64,7 @@ export default function AddLocationPage() {
   useEffect(() => {
     const fetchCountries = async () => {
       try {
-        const response = await fetch(`https://api.4pmti.com/country`)
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/country`)
         const data = await response.json()
         if (data.success) {
           // Filter only active countries and sort by name
@@ -116,7 +116,7 @@ export default function AddLocationPage() {
     setLoading(true)
 
     try {
-      const response = await fetch(`https://api.4pmti.com/location`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -158,10 +158,10 @@ export default function AddLocationPage() {
 
   const handleCountryChange = async (value: string) => {
     setFormData(prev => ({ ...prev, country: value, state: '' }))
-    
+
     try {
       const response = await fetch(
-        `https://api.4pmti.com/state/?countryId=${value}`,
+        `https://api.projectmanagementtraininginstitute.com/state/?countryId=${value}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
@@ -202,7 +202,7 @@ export default function AddLocationPage() {
               </Alert>
             )}
 
-        
+
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Country</label>
@@ -215,8 +215,8 @@ export default function AddLocationPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {countries.map((country) => (
-                    <SelectItem 
-                      key={country.id} 
+                    <SelectItem
+                      key={country.id}
                       value={country.id.toString()}
                     >
                       {country.CountryName} ({country.currency})
@@ -238,8 +238,8 @@ export default function AddLocationPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {states.map((state) => (
-                    <SelectItem 
-                      key={state.id} 
+                    <SelectItem
+                      key={state.id}
                       value={state.id.toString()}
                     >
                       {state.name}

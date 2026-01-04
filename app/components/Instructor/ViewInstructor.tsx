@@ -19,7 +19,7 @@ const ViewInstructor = () => {
     profile?: string;
     active: boolean;
   }
-  
+
   const [instructor, setInstructor] = useState<Instructor | null>(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,21 +27,22 @@ const ViewInstructor = () => {
   useEffect(() => {
     const fetchInstructor = async () => {
       try {
-        const response = await fetch(`https://api.4pmti.com/instructor/${id}`,{
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/instructor/${id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        }});
+          }
+        });
         const data = await response.json();
-        
+
         if (data.success) {
           setInstructor(data.data);
         } else {
           setError(data.error || 'Failed to fetch instructor details');
         }
-      } catch (err:any) {
-        setError( err.message || 'An error occurred while fetching instructor details');
+      } catch (err: any) {
+        setError(err.message || 'An error occurred while fetching instructor details');
       } finally {
         setLoading(false);
       }
@@ -53,7 +54,7 @@ const ViewInstructor = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-       Loading...
+        Loading...
       </div>
     );
   }
@@ -86,7 +87,7 @@ const ViewInstructor = () => {
           </CardTitle>
           <p className="text-gray-500">ID: {instructor.uid}</p>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-4">
@@ -97,7 +98,7 @@ const ViewInstructor = () => {
                   <p>{instructor.emailID}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <Phone className="h-5 w-5 text-gray-500" />
                 <div>
@@ -144,9 +145,8 @@ const ViewInstructor = () => {
           <div className="flex gap-4 mt-4">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Status:</span>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                instructor.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-              }`}>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${instructor.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
                 {instructor.active ? 'Active' : 'Inactive'}
               </span>
             </div>

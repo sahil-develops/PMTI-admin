@@ -166,7 +166,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       try {
         const unwrappedParams = await params;
         const response = await fetch(
-          `https://api.4pmti.com/class/${unwrappedParams.id}/detail`,
+          `https://api.projectmanagementtraininginstitute.com/class/${unwrappedParams.id}/detail`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -181,7 +181,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
         const data: APIResponse = await response.json();
         if (data.success) {
           setClassDetails(data.data.classs);
-          
+
           // Filter out enrollments with status: false
           const activeEnrollments = data.data.enrollments.filter(
             enrollment => enrollment.status !== false
@@ -204,7 +204,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     if (!classDetails) return;
 
     const classDays = calculateDays(classDetails.startDate, classDetails.endDate);
-    
+
     const pdfData = {
       instructor: classDetails.instructor.name,
       location: `${classDetails.location.location}, ${classDetails.country.CountryName}`,
@@ -249,7 +249,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
       // Create headers based on number of days with more spacing
       const headers = ['', '#', 'Student Name'];
       for (let i = 0; i < numDays; i++) {
-        headers.push("",`Day - ${i + 1}`);
+        headers.push("", `Day - ${i + 1}`);
         headers.push(''); // Empty cell that will be merged
       }
       headers.push('Student Average');
@@ -320,11 +320,11 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
         for (let C = range.s.c; C <= range.e.c; ++C) {
           const cell_address = XLSX.utils.encode_cell({ r: R, c: C });
           if (!ws[cell_address]) continue;
-          
+
           // Basic cell styling
           ws[cell_address].s = {
             font: { name: 'Arial', sz: 11 },
-            alignment: { 
+            alignment: {
               horizontal: 'center',
               vertical: 'center',
               wrapText: true
@@ -478,11 +478,10 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                 <CardTitle className="text-2xl">{classDetails.title}</CardTitle>
                 <p className="text-sm text-zinc-500 mt-1">{classDetails.description}</p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                classDetails.status === "1" ? "bg-green-100 text-green-800" :
-                classDetails.status === "2" ? "bg-yellow-100 text-yellow-800" :
-                "bg-red-100 text-red-800"
-              }`}>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${classDetails.status === "1" ? "bg-green-100 text-green-800" :
+                  classDetails.status === "2" ? "bg-yellow-100 text-yellow-800" :
+                    "bg-red-100 text-red-800"
+                }`}>
                 {classDetails.status === "1" ? "Active" : classDetails.status === "2" ? "Pending" : "Inactive"}
               </span>
             </div>
@@ -498,7 +497,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                     <span>{new Date(classDetails.startDate).toLocaleDateString()} - {new Date(classDetails.endDate).toLocaleDateString()}</span>
                   </div>
                 </DetailSection>
-                
+
                 {/* Update the Daily Schedule section */}
                 <DetailSection title="Daily Schedule">
                   <div className="space-y-2">
@@ -642,29 +641,29 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
         {/* Enrollments Table */}
         <Card>
-        <CardHeader>
-    <div className="flex justify-between items-center">
-      <CardTitle>Class Enrollments</CardTitle>
-      
-      {enrollments.some(e => e.status === false) && (
-        <div className="text-sm text-zinc-500">
-          Note: Inactive enrollments are hidden
-        </div>
-      )}
-    </div>
-  </CardHeader>
-  <CardContent>
-    <EnrollmentTable 
-      enrollments={enrollments.filter(enrollment => enrollment.status !== false)} 
-      startDate={classDetails.startDate}
-      endDate={classDetails.endDate}
-      onReschedule={(studentId, enrollmentId) => {
-        // Handle rescheduling logic here
-        console.log(`Reschedule student ${studentId} enrollment ${enrollmentId}`);
-      }}
-    />
-  </CardContent>
-</Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Class Enrollments</CardTitle>
+
+              {enrollments.some(e => e.status === false) && (
+                <div className="text-sm text-zinc-500">
+                  Note: Inactive enrollments are hidden
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <EnrollmentTable
+              enrollments={enrollments.filter(enrollment => enrollment.status !== false)}
+              startDate={classDetails.startDate}
+              endDate={classDetails.endDate}
+              onReschedule={(studentId, enrollmentId) => {
+                // Handle rescheduling logic here
+                console.log(`Reschedule student ${studentId} enrollment ${enrollmentId}`);
+              }}
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -43,7 +43,7 @@ interface Course {
   isGuestAccess: boolean;
   isVisible: boolean;
   description: string;
-  enrollmentCount:string;
+  enrollmentCount: string;
   isDelete: boolean;
   email?: string; // Optional email field for filtering
   category?: {
@@ -88,9 +88,9 @@ const TableSkeleton = () => (
           <div key={rowIndex} className="bg-white hover:bg-gray-50">
             <div className="grid grid-cols-10 gap-4 px-6 py-4">
               {[...Array(10)].map((_, colIndex) => (
-                <Skeleton 
-                  key={colIndex} 
-                  className={`h-4 ${colIndex === 1 ? 'w-32' : 'w-16'}`} 
+                <Skeleton
+                  key={colIndex}
+                  className={`h-4 ${colIndex === 1 ? 'w-32' : 'w-16'}`}
                 />
               ))}
             </div>
@@ -102,12 +102,12 @@ const TableSkeleton = () => (
 );
 
 const formatDate = (date: Date): string => {
-  const options: Intl.DateTimeFormatOptions = { 
-    year: 'numeric', 
-    month: 'long', 
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'long',
     day: 'numeric'
   };
-  
+
   return date.toLocaleDateString('en-US', options);
 };
 const CourseList = () => {
@@ -127,7 +127,7 @@ const CourseList = () => {
     const fetchCourses = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`https://api.4pmti.com/course?page=${currentPage}&limit=10`, {
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/course?page=${currentPage}&limit=10`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -159,13 +159,13 @@ const CourseList = () => {
   };
 
   const filteredCourses = courses.filter(course => {
-    const matchesEmail = emailSearch === '' || 
+    const matchesEmail = emailSearch === '' ||
       (course.email && course.email.toLowerCase().includes(emailSearch.toLowerCase()));
-    
-    const matchesStatus = 
+
+    const matchesStatus =
       statusFilter === 'all' ? true :
-      statusFilter === 'active' ? !course.isDelete :
-      course.isDelete;
+        statusFilter === 'active' ? !course.isDelete :
+          course.isDelete;
 
     return matchesEmail && matchesStatus;
   });
@@ -180,9 +180,9 @@ const CourseList = () => {
 
   const handleDeleteCourse = async () => {
     if (!courseToDelete) return;
-    
+
     try {
-      const response = await fetch(`https://api.4pmti.com/course/${courseToDelete.id}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/course/${courseToDelete.id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -195,7 +195,7 @@ const CourseList = () => {
 
       // Remove the deleted course from the list
       setCourses(prevCourses => prevCourses.filter(course => course.id !== courseToDelete.id));
-      
+
       // Show success toast notification
       toast({
         title: "Success!",
@@ -241,7 +241,7 @@ const CourseList = () => {
     <div className="space-y-4 bg-white px-4 py-6">
       <div className='flex justify-between items-center w-full'>
         <h2 className="text-2xl font-bold">Courses</h2>
-        <Button 
+        <Button
           onClick={() => router.push('/courses/addCourses')}
           className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white"
         >
@@ -350,7 +350,7 @@ const CourseList = () => {
           </table>
         </div>
       </div>
-      
+
       {/* Add pagination controls */}
       <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
         <div className="flex justify-between flex-1 sm:hidden">
@@ -384,7 +384,7 @@ const CourseList = () => {
                 <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
               </svg>
             </Button>
-            
+
             {/* Page Numbers */}
             {[...Array(totalPages)].map((_, index) => {
               const pageNumber = index + 1;
@@ -399,11 +399,10 @@ const CourseList = () => {
                     key={pageNumber}
                     onClick={() => handlePageChange(pageNumber)}
                     variant={currentPage === pageNumber ? "default" : "outline"}
-                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
-                      currentPage === pageNumber
+                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${currentPage === pageNumber
                         ? "z-10 bg-gray-900 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
                         : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
-                    }`}
+                      }`}
                   >
                     {pageNumber}
                   </Button>
@@ -438,7 +437,7 @@ const CourseList = () => {
           </nav>
         </div>
       </div>
-      
+
       {/* Delete confirmation dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
@@ -451,7 +450,7 @@ const CourseList = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeleteCourse}
               className="bg-red-600 hover:bg-red-700 text-white"
             >

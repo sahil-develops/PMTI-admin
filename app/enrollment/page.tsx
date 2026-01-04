@@ -97,9 +97,9 @@ export default function EnrollmentPage() {
     try {
       setIsSubmitting(true)
       // Add your API call here
-      const response = await fetch(`https://api.4pmti.com/enrollment`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/enrollment`, {
         method: 'POST',
-        
+
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
@@ -145,7 +145,7 @@ export default function EnrollmentPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="email"

@@ -1,8 +1,8 @@
 'use client'
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Loader2,Plus } from 'lucide-react';
-import { 
+import { CheckCircle2, Loader2, Plus } from 'lucide-react';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -45,17 +45,17 @@ const CreateClassTypeForm: React.FC<CreateClassTypeFormProps> = ({ onCancel, onS
     setIsLoading(true);
 
     try {
-      const response = await fetch(`https://api.4pmti.com/classtype`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/classtype`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
-        body: JSON.stringify({ name:name }),
+        body: JSON.stringify({ name: name }),
       });
 
       if (!response.ok) throw new Error('Failed to create class type');
-      
+
       setIsSuccess(true);
       refreshClassTypes();
       setTimeout(() => {
@@ -88,7 +88,7 @@ const CreateClassTypeForm: React.FC<CreateClassTypeFormProps> = ({ onCancel, onS
           className="flex-1 bg-zinc-800 text-white rounded-md py-1 px-3 text-sm flex items-center justify-center"
         >
 
-        
+
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : isSuccess ? (
@@ -153,26 +153,26 @@ const ClassTypeDropdown: React.FC<ClassTypeDropdownProps> = ({ searchParams, set
           <SelectValue placeholder="Select Class Type" />
         </SelectTrigger>
         <SelectContent>
-        {isLoading ? (
-  <SelectItem value="loading" disabled>
-    <div className="flex items-center gap-2">
-      <Loader2 className="h-4 w-4 animate-spin" />
-      Loading class types...
-    </div>
-  </SelectItem>
-) : classTypes && classTypes.length > 0 ? (
-  classTypes.map((type) => (
-    <SelectItem key={type.id} value={type.id.toString()}>
-      {type.name}
-    </SelectItem>
-  ))
-) : (
-  <SelectItem value="none" disabled>
-    No class types found
-  </SelectItem>
-)}
+          {isLoading ? (
+            <SelectItem value="loading" disabled>
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading class types...
+              </div>
+            </SelectItem>
+          ) : classTypes && classTypes.length > 0 ? (
+            classTypes.map((type) => (
+              <SelectItem key={type.id} value={type.id.toString()}>
+                {type.name}
+              </SelectItem>
+            ))
+          ) : (
+            <SelectItem value="none" disabled>
+              No class types found
+            </SelectItem>
+          )}
           {isCreating ? (
-            <CreateClassTypeForm 
+            <CreateClassTypeForm
               onCancel={() => setIsCreating(false)}
               onSuccess={handleSuccess}
               refreshClassTypes={refreshClassTypes}

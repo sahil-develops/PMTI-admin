@@ -212,14 +212,14 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
   });
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [isPaid, setIsPaid] = useState(false);
-  const {toast} = useToast();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchClassDetails = async () => {
       try {
         const unwrappedParams = await params;
         const response = await fetch(
-          `https://api.4pmti.com/class/${unwrappedParams.id}/detail`,
+          `https://api.projectmanagementtraininginstitute.com/class/${unwrappedParams.id}/detail`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -250,7 +250,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
   const fetchCountries = async () => {
     try {
-      const response = await fetch('https://api.4pmti.com/country', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/country', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -269,7 +269,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
     setSelectedCountry(countryId);
     setSelectedLocation("");
     setAvailableClasses([]);
-    
+
     // Immediately fetch locations for the selected country
     if (countryId) {
       fetchLocationsForCountry(countryId);
@@ -279,25 +279,25 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
   const fetchLocationsForCountry = async (countryId: string) => {
     try {
       setLocations([]);
-      
-      const response = await fetch(`https://api.4pmti.com/location/?countryId=${countryId}`, {
+
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/location/?countryId=${countryId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       });
-      
+
       if (!response.ok) throw new Error('Failed to fetch locations');
-      
+
       const data = await response.json();
       if (data.success) {
         const activeLocations = data.data.filter((loc: { isDelete: boolean }) => !loc.isDelete);
-        
+
         // Sort locations alphabetically by location name
- // Sort locations alphabetically by location name
-const sortedLocations = activeLocations.sort((a: { location: string }, b: { location: string }) => 
-  a.location.localeCompare(b.location)
-);
-        
+        // Sort locations alphabetically by location name
+        const sortedLocations = activeLocations.sort((a: { location: string }, b: { location: string }) =>
+          a.location.localeCompare(b.location)
+        );
+
         console.log('Fetched and sorted locations:', sortedLocations);
         setLocations(sortedLocations);
       } else {
@@ -349,10 +349,10 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
       }
 
       const data: ApiResponse = await response.json();
-      
+
       if (data.success) {
         const classes = data.data.data.filter(cls => !cls.isDelete && !cls.isCancel);
-        
+
         if (append) {
           // @ts-ignore
           setAvailableClasses(prev => [...prev, ...classes]);
@@ -382,7 +382,7 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
 
   const validatePaymentDetails = (): boolean => {
     const errors: ValidationErrors = {};
-    
+
     // Billing Name validation
     if (!paymentDetails.billingName.trim()) {
       errors.billingName = "Billing name should not be empty";
@@ -462,7 +462,7 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
         })
       };
 
-      const response = await fetch('https://api.4pmti.com/enrollment/reschedule', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/enrollment/reschedule', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -501,14 +501,14 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
         try {
           const unwrappedParams = await params;
           const updatedResponse = await fetch(
-            `https://api.4pmti.com/class/${unwrappedParams.id}/detail`,
+            `https://api.projectmanagementtraininginstitute.com/class/${unwrappedParams.id}/detail`,
             {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
               },
             }
           );
-          
+
           if (updatedResponse.ok) {
             const updatedData = await updatedResponse.json();
             if (updatedData.success) {
@@ -615,11 +615,10 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
                 <CardTitle className="text-2xl">{classDetails.title}</CardTitle>
                 <p className="text-sm text-zinc-500 mt-1">{classDetails.description}</p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                classDetails.status === "active" ? "bg-green-100 text-green-800" :
-                classDetails.status === "inactive" ? "bg-yellow-100 text-yellow-800" :
-                "bg-red-100 text-red-800"
-              }`}>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${classDetails.status === "active" ? "bg-green-100 text-green-800" :
+                  classDetails.status === "inactive" ? "bg-yellow-100 text-yellow-800" :
+                    "bg-red-100 text-red-800"
+                }`}>
                 {classDetails.status === "active" ? "Active" : classDetails.status === "inactive" ? "Inactive" : "Cancelled"}
               </span>
             </div>
@@ -629,36 +628,36 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
             <div className="space-y-4">
               <h3 className="font-medium">Schedule Details</h3>
               <div className="space-y-3">
-              <DetailSection title="Date Range">
-  <div className="flex items-center gap-2">
-    <Calendar className="w-4 h-4 text-zinc-400" />
-    <span>
-      {new Date(classDetails.startDate).toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-      }).replace(/(\d+)(?=(,))/, match => {
-        const num = parseInt(match);
-        let suffix = "th";
-        if (num % 10 === 1 && num % 100 !== 11) suffix = "st";
-        else if (num % 10 === 2 && num % 100 !== 12) suffix = "nd";
-        else if (num % 10 === 3 && num % 100 !== 13) suffix = "rd";
-        return `${num}${suffix}`;
-      })} - {new Date(classDetails.endDate).toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-      }).replace(/(\d+)(?=(,))/, match => {
-        const num = parseInt(match);
-        let suffix = "th";
-        if (num % 10 === 1 && num % 100 !== 11) suffix = "st";
-        else if (num % 10 === 2 && num % 100 !== 12) suffix = "nd";
-        else if (num % 10 === 3 && num % 100 !== 13) suffix = "rd";
-        return `${num}${suffix}`;
-      })}
-    </span>
-  </div>
-</DetailSection>
+                <DetailSection title="Date Range">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-zinc-400" />
+                    <span>
+                      {new Date(classDetails.startDate).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      }).replace(/(\d+)(?=(,))/, match => {
+                        const num = parseInt(match);
+                        let suffix = "th";
+                        if (num % 10 === 1 && num % 100 !== 11) suffix = "st";
+                        else if (num % 10 === 2 && num % 100 !== 12) suffix = "nd";
+                        else if (num % 10 === 3 && num % 100 !== 13) suffix = "rd";
+                        return `${num}${suffix}`;
+                      })} - {new Date(classDetails.endDate).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      }).replace(/(\d+)(?=(,))/, match => {
+                        const num = parseInt(match);
+                        let suffix = "th";
+                        if (num % 10 === 1 && num % 100 !== 11) suffix = "st";
+                        else if (num % 10 === 2 && num % 100 !== 12) suffix = "nd";
+                        else if (num % 10 === 3 && num % 100 !== 13) suffix = "rd";
+                        return `${num}${suffix}`;
+                      })}
+                    </span>
+                  </div>
+                </DetailSection>
                 <DetailSection title="Class Time">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-zinc-400" />
@@ -785,23 +784,23 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
 
         {/* Enrollments Table */}
         <Card>
-  <CardHeader>
-    <CardTitle>Class Enrollments</CardTitle>
-  </CardHeader>
-  <CardContent>
-    {enrollments.length > 0 ? (
-      <EnrollmentTable 
-        enrollments={enrollments as any[]} 
-        onReschedule={handleRescheduleClick}
-      />
-    ) : (
-      <div className="text-center py-8 text-zinc-500">
-        <Users className="w-12 h-12 mx-auto mb-2 opacity-20" />
-        <p>No Students Enrolled</p>
-      </div>
-    )}
-  </CardContent>
-</Card>
+          <CardHeader>
+            <CardTitle>Class Enrollments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {enrollments.length > 0 ? (
+              <EnrollmentTable
+                enrollments={enrollments as any[]}
+                onReschedule={handleRescheduleClick}
+              />
+            ) : (
+              <div className="text-center py-8 text-zinc-500">
+                <Users className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                <p>No Students Enrolled</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Reschedule Modal */}
@@ -846,15 +845,15 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
               >
                 <SelectTrigger>
                   <SelectValue placeholder={
-                    locations.length === 0 && selectedCountry 
-                      ? "No locations available" 
+                    locations.length === 0 && selectedCountry
+                      ? "No locations available"
                       : "Select a location"
                   } />
                 </SelectTrigger>
                 <SelectContent>
                   {locations.map((location) => (
-                    <SelectItem 
-                      key={location.id} 
+                    <SelectItem
+                      key={location.id}
                       value={location.id.toString()}
                     >
                       {location.location}
@@ -880,18 +879,17 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
             {isPaid && (
               <div className="space-y-4 col-span-2">
                 <h3 className="text-sm font-medium">Payment Details</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
-                
+
 
                   {/* Billing Name - Full Width */}
                   <div className="md:col-span-1 space-y-2">
                     <label className="text-sm font-medium">Billing Name</label>
                     <input
                       type="text"
-                      className={`w-full p-2 border rounded-md ${
-                        validationErrors.billingName ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full p-2 border rounded-md ${validationErrors.billingName ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       value={paymentDetails.billingName}
                       onChange={(e) => setPaymentDetails(prev => ({
                         ...prev,
@@ -909,9 +907,8 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
                     <label className="text-sm font-medium">Card Number</label>
                     <input
                       type="text"
-                      className={`w-full p-2 border rounded-md ${
-                        validationErrors.ccNo ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full p-2 border rounded-md ${validationErrors.ccNo ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       value={paymentDetails.ccNo}
                       onChange={(e) => {
                         const value = e.target.value.replace(/\D/g, '');
@@ -934,9 +931,8 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
                     <label className="text-sm font-medium">Expiry Date</label>
                     <input
                       type="text"
-                      className={`w-full p-2 border rounded-md ${
-                        validationErrors.CCExpiry ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full p-2 border rounded-md ${validationErrors.CCExpiry ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       value={paymentDetails.CCExpiry}
                       onChange={(e) => {
                         let value = e.target.value.replace(/\D/g, '');
@@ -961,9 +957,8 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
                     <label className="text-sm font-medium">CVV</label>
                     <input
                       type="password"
-                      className={`w-full p-2 border rounded-md ${
-                        validationErrors.CVV ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full p-2 border rounded-md ${validationErrors.CVV ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       value={paymentDetails.CVV}
                       onChange={(e) => {
                         const value = e.target.value.replace(/\D/g, '');
@@ -979,16 +974,15 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
                       <p className="text-xs text-red-500">{validationErrors.CVV}</p>
                     )}
                   </div>
-                    {/* Amount field - Full Width */}
-                    <div className="md:col-span-3 space-y-2">
+                  {/* Amount field - Full Width */}
+                  <div className="md:col-span-3 space-y-2">
                     <label className="text-sm font-medium">Amount</label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
-                      className={`w-full p-2 border rounded-md ${
-                        validationErrors.amount ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full p-2 border rounded-md ${validationErrors.amount ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       value={paymentDetails.amount}
                       onChange={(e) => setPaymentDetails(prev => ({
                         ...prev,
@@ -1013,16 +1007,16 @@ const sortedLocations = activeLocations.sort((a: { location: string }, b: { loca
                 <SelectTrigger>
                   <SelectValue placeholder={
                     error ? "Error loading classes" :
-                    isLoadingMore && !availableClasses.length ? "Loading classes..." :
-                    availableClasses.length === 0 ? "No classes available" :
-                    "Select a class"
+                      isLoadingMore && !availableClasses.length ? "Loading classes..." :
+                        availableClasses.length === 0 ? "No classes available" :
+                          "Select a class"
                   } />
                 </SelectTrigger>
                 <SelectContent onScroll={(e) => {
                   const element = e.currentTarget;
                   if (
                     element.scrollHeight - element.scrollTop === element.clientHeight &&
-                    !isLoadingMore && 
+                    !isLoadingMore &&
                     hasMore
                   ) {
                     handleLoadMore();

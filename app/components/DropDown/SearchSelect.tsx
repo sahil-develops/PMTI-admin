@@ -42,16 +42,16 @@ const SearchSelect = ({
       setLoading(true);
       setFetchError("");
       try {
-        const response = await fetch(`https://api.4pmti.com/${apiUrl}`, {
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/${apiUrl}`, {
           headers: {
             "Authorization": `Bearer ${localStorage.getItem("accessToken")}`
           }
         });
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch ${label.toLowerCase()}`);
         }
-        
+
         const data = await response.json();
         if (data.success) {
           // Map the API response to a consistent format
@@ -80,7 +80,7 @@ const SearchSelect = ({
       <label className="block text-sm font-medium text-gray-700">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      
+
       {fetchError && (
         <Alert variant="destructive" className="mb-2">
           <AlertDescription>{fetchError}</AlertDescription>
@@ -146,9 +146,9 @@ export const createFormField = (register: any, errors: any, setValue: any, watch
     <SearchSelect
       {...props}
       value={watch(props.label.toLowerCase().replace(/\s+/g, '') + "Id")}
-      onChange={(value) => setValue(props.label.toLowerCase().replace(/\s+/g, '') + "Id", value, { 
+      onChange={(value) => setValue(props.label.toLowerCase().replace(/\s+/g, '') + "Id", value, {
         shouldValidate: true,
-        shouldDirty: true 
+        shouldDirty: true
       })}
       error={errors[props.label.toLowerCase().replace(/\s+/g, '') + "Id"]}
     />

@@ -47,7 +47,7 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
     const fetchClassDetails = async () => {
       try {
         const response = await fetch(
-          `https://api.4pmti.com/class/${params.id}`,
+          `https://api.projectmanagementtraininginstitute.com/class/${params.id}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -134,19 +134,18 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
           <div className="flex justify-between items-start mb-4">
             <h1 className="text-3xl font-bold tracking-tight">{classDetails.title}</h1>
             <span
-              className={`px-3 py-1 rounded-full text-sm ${
-                classDetails.status === "1"
+              className={`px-3 py-1 rounded-full text-sm ${classDetails.status === "1"
                   ? "bg-green-100 text-green-800"
                   : classDetails.status === "2"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-red-100 text-red-800"
-              }`}
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-red-100 text-red-800"
+                }`}
             >
               {classDetails.status === "1"
                 ? "Active"
                 : classDetails.status === "2"
-                ? "Pending"
-                : "Inactive"}
+                  ? "Pending"
+                  : "Inactive"}
             </span>
           </div>
           <p className="text-zinc-600">{classDetails.description}</p>

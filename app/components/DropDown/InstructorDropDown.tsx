@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Loader2 } from 'lucide-react';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -42,7 +42,7 @@ const CreateInstructorForm: React.FC<CreateInstructorFormProps> = ({ onCancel, o
     setIsLoading(true);
 
     try {
-      const response = await fetch(`https://api.4pmti.com/instructor`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/instructor`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,7 +52,7 @@ const CreateInstructorForm: React.FC<CreateInstructorFormProps> = ({ onCancel, o
       });
 
       if (!response.ok) throw new Error('Failed to create instructor');
-      
+
       setIsSuccess(true);
       setTimeout(() => {
         onSuccess();
@@ -164,7 +164,7 @@ const InstructorDropdown: React.FC<InstructorDropdownProps> = ({
               </SelectItem>
             ))
           ) : isCreating ? (
-            <CreateInstructorForm 
+            <CreateInstructorForm
               onCancel={() => setIsCreating(false)}
               onSuccess={handleSuccess}
             />

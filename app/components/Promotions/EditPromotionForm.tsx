@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import {ChevronRight} from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 interface EditPromotionFormProps {
   id: string;
 }
@@ -55,7 +55,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://api.4pmti.com/promotions/${id}`,
+        `https://api.projectmanagementtraininginstitute.com/promotions/${id}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
@@ -97,7 +97,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
 
     try {
       const response = await fetch(
-        `https://api.4pmti.com/promotions/${id}`,
+        `https://api.projectmanagementtraininginstitute.com/promotions/${id}`,
         {
           method: 'PATCH',
           headers: {
@@ -165,7 +165,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
 
   return (
     <div>
- <nav className="flex mx-6 my-4" aria-label="Breadcrumb">
+      <nav className="flex mx-6 my-4" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 text-sm">
           <li>
             <Link href="/" className="text-zinc-500 hover:text-zinc-700">
@@ -178,107 +178,107 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
           <li className="text-zinc-900 font-medium">Edit Promotion</li>
         </ol>
       </nav>
-    <Card className="max-w-full mx-5 ">
-      <CardHeader>
-        <CardTitle>Edit Promotion</CardTitle>
-        <CardDescription>Make changes to the promotion details</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              required
-              />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              required
-              />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
-            <Input
-              id="amount"
-              name="amount"
-              type="number"
-              value={formData.amount}
-              onChange={handleInputChange}
-              required
-              min="0"
-              step="1"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+      <Card className="max-w-full mx-5 ">
+        <CardHeader>
+          <CardTitle>Edit Promotion</CardTitle>
+          <CardDescription>Make changes to the promotion details</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
+              <Label htmlFor="title">Title</Label>
               <Input
-                id="startDate"
-                name="startDate"
-                type="date"
-                value={formData.startDate}
+                id="title"
+                name="title"
+                value={formData.title}
                 onChange={handleInputChange}
                 required
-                />
+              />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
-              <Input
-                id="endDate"
-                name="endDate"
-                type="date"
-                value={formData.endDate}
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
                 onChange={handleInputChange}
                 required
-                />
+              />
             </div>
-          </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="active"
-              checked={formData.active}
-              onCheckedChange={(checked) => handleInputChange(checked, true)}
-            />
-            <Label htmlFor="active">Active</Label>
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                name="amount"
+                type="number"
+                value={formData.amount}
+                onChange={handleInputChange}
+                required
+                min="0"
+                step="1"
+              />
+            </div>
 
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push('/promotions')}
-              disabled={submitting}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  name="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <Input
+                  id="endDate"
+                  name="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="active"
+                checked={formData.active}
+                onCheckedChange={(checked) => handleInputChange(checked, true)}
+              />
+              <Label htmlFor="active">Active</Label>
+            </div>
+
+            <div className="flex justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push('/promotions')}
+                disabled={submitting}
               >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? (
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? (
                   <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
                   'Update Promotion'
                 )}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-                </div>
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -88,11 +88,11 @@ const TableShimmer = () => (
   </div>
 );
 
-const ActionDropdown = ({ 
-  promotionId, 
+const ActionDropdown = ({
+  promotionId,
   refreshData,
   promotion
-}: { 
+}: {
   promotionId: number;
   refreshData: () => void;
   promotion: Promotion;
@@ -108,7 +108,7 @@ const ActionDropdown = ({
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `https://api.4pmti.com/promotions/${promotionId}`,
+        `https://api.projectmanagementtraininginstitute.com/promotions/${promotionId}`,
         {
           method: 'DELETE',
           headers: {
@@ -172,12 +172,12 @@ const ActionDropdown = ({
         >
           <MoreVertical size={16} className="text-zinc-600" />
         </button>
-        
+
         <AnimatePresence>
           {isOpen && (
             <>
-              <div 
-                className="fixed inset-0 z-10" 
+              <div
+                className="fixed inset-0 z-10"
                 onClick={() => setIsOpen(false)}
               />
               <motion.div
@@ -195,9 +195,8 @@ const ActionDropdown = ({
                       setIsOpen(false);
                     }}
                     disabled={item.disabled}
-                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors ${item.className} ${
-                      item.disabled ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className={`w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors ${item.className} ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                   >
                     <item.icon size={16} />
                     {item.label}
@@ -214,7 +213,7 @@ const ActionDropdown = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the promotion <span className="font-medium">{promotion.title}</span>. 
+              This will permanently delete the promotion <span className="font-medium">{promotion.title}</span>.
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -291,16 +290,16 @@ export default function PromotionsPage() {
   const fetchPromotions = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`https://api.4pmti.com/promotions`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/promotions`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          "Authorization" :`Bearer ${localStorage.getItem("accessToken")}`
+          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`
         },
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setPromotions(data.data);
         setFilteredPromotions(data.data);
@@ -326,37 +325,37 @@ export default function PromotionsPage() {
     let results = [...promotions];
 
     if (filters.id) {
-      results = results.filter(p => 
+      results = results.filter(p =>
         p.promotionId.toLowerCase().includes(filters.id.toLowerCase())
       );
     }
 
     if (filters.country && filters.country !== 'all') {
-      results = results.filter(p => 
+      results = results.filter(p =>
         p.country.id.toString() === filters.country
       );
     }
 
     if (filters.amountMin) {
-      results = results.filter(p => 
+      results = results.filter(p =>
         parseFloat(p.amount) >= parseFloat(filters.amountMin)
       );
     }
 
     if (filters.amountMax) {
-      results = results.filter(p => 
+      results = results.filter(p =>
         parseFloat(p.amount) <= parseFloat(filters.amountMax)
       );
     }
 
     if (filters.startDate) {
-      results = results.filter(p => 
+      results = results.filter(p =>
         new Date(p.startDate) >= filters.startDate!
       );
     }
 
     if (filters.endDate) {
-      results = results.filter(p => 
+      results = results.filter(p =>
         new Date(p.endDate) <= filters.endDate!
       );
     }
@@ -460,9 +459,8 @@ export default function PromotionsPage() {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={`bg-zinc-50/50 border-zinc-200 w-full justify-start text-left font-normal ${
-                        !filters.startDate && "text-zinc-500"
-                      }`}
+                      className={`bg-zinc-50/50 border-zinc-200 w-full justify-start text-left font-normal ${!filters.startDate && "text-zinc-500"
+                        }`}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {filters.startDate ? format(filters.startDate, "PPP") : "Start date"}
@@ -482,9 +480,8 @@ export default function PromotionsPage() {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={`bg-zinc-50/50 border-zinc-200 w-full justify-start text-left font-normal ${
-                        !filters.endDate && "text-zinc-500"
-                      }`}
+                      className={`bg-zinc-50/50 border-zinc-200 w-full justify-start text-left font-normal ${!filters.endDate && "text-zinc-500"
+                        }`}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {filters.endDate ? format(filters.endDate, "PPP") : "End date"}
@@ -547,8 +544,8 @@ export default function PromotionsPage() {
             <tbody className="divide-y divide-zinc-200">
               {filteredPromotions.length > 0 ? (
                 filteredPromotions.map((promotion) => (
-                  <tr 
-                    key={promotion.id} 
+                  <tr
+                    key={promotion.id}
                     className="hover:bg-zinc-50 transition-colors"
                   >
                     <TableCell className="whitespace-nowrap">
@@ -570,11 +567,10 @@ export default function PromotionsPage() {
                       {format(new Date(promotion.endDate), 'MMM dd, yyyy')}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        promotion.active 
-                          ? 'bg-green-100 text-green-800' 
+                      <span className={`px-2 py-1 rounded-full text-xs ${promotion.active
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
-                      }`}>
+                        }`}>
                         {promotion.active ? 'Active' : 'Inactive'}
                       </span>
                     </TableCell>
@@ -585,7 +581,7 @@ export default function PromotionsPage() {
                       {promotion.classType.name || "N/A"}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      <ActionDropdown 
+                      <ActionDropdown
                         promotionId={promotion.id}
                         refreshData={fetchPromotions}
                         promotion={promotion}

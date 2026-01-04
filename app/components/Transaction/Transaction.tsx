@@ -4,14 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 
 // Define the form values type
@@ -76,13 +76,13 @@ const Transaction = () => {
     studentPhone: '',
     studentEmail: '',
   });
-  
+
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  
+
   const formRef = useRef<HTMLDivElement>(null);
 
   // Single input change handler
@@ -91,7 +91,7 @@ const Transaction = () => {
       ...prev,
       [fieldName]: value
     }));
-    
+
     // Clear error for this field
     if (errors[fieldName]) {
       setErrors(prev => {
@@ -106,15 +106,15 @@ const Transaction = () => {
   const handleExpiryChange = (value: string) => {
     // Remove any non-digit characters
     let cleanValue = value.replace(/\D/g, '');
-    
+
     // Add slash after first 2 digits
     if (cleanValue.length >= 2) {
       cleanValue = cleanValue.substring(0, 2) + '/' + cleanValue.substring(2);
     }
-    
+
     // Limit to MM/YY format (5 characters)
     cleanValue = cleanValue.substring(0, 5);
-    
+
     handleInputChange('expiryDate', cleanValue);
   };
 
@@ -124,11 +124,11 @@ const Transaction = () => {
 
     // Required field validation
     const requiredFields: (keyof TransactionFormValues)[] = [
-      'cardNumber', 'expiryDate', 'cvv', 'amount', 'invoiceNumber', 'description', 
-      'billingFirstName', 'billingLastName', 'billingCompany', 'billingAddress', 
-      'billingCity', 'billingState', 'billingZip', 'billingCountry', 
-      'billingPhone', 'billingEmail', 'studentFirstName', 'studentLastName', 
-      'studentAddress', 'studentCity', 'studentState', 'studentZip', 
+      'cardNumber', 'expiryDate', 'cvv', 'amount', 'invoiceNumber', 'description',
+      'billingFirstName', 'billingLastName', 'billingCompany', 'billingAddress',
+      'billingCity', 'billingState', 'billingZip', 'billingCountry',
+      'billingPhone', 'billingEmail', 'studentFirstName', 'studentLastName',
+      'studentAddress', 'studentCity', 'studentState', 'studentZip',
       'studentCountry', 'studentPhone', 'studentEmail'
     ];
 
@@ -221,13 +221,13 @@ const Transaction = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const formattedData = {
         cardNumber: formValues.cardNumber,
@@ -257,7 +257,7 @@ const Transaction = () => {
         studentEmail: formValues.studentEmail
       };
 
-      const response = await fetch(`https://api.4pmti.com/payment/charge`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/payment/charge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -267,11 +267,11 @@ const Transaction = () => {
       });
 
       const responseData = await response.json();
-      
+
       if (!response.ok) {
         if (responseData.error && Array.isArray(responseData.error)) {
           const apiErrors: ValidationErrors = {};
-          
+
           responseData.error.forEach((error: string) => {
             if (error.includes('amount')) apiErrors.amount = error;
             if (error.includes('expirationDate')) apiErrors.expiryDate = error;
@@ -285,12 +285,12 @@ const Transaction = () => {
             if (error.includes('studentPhone')) apiErrors.studentPhone = error;
             if (error.includes('studentEmail')) apiErrors.studentEmail = error;
           });
-          
+
           if (Object.keys(apiErrors).length > 0) {
             setErrors(prev => ({ ...prev, ...apiErrors }));
           }
         }
-        
+
         throw new Error(responseData.message || 'Payment failed. Please try again.');
       }
 
@@ -345,7 +345,7 @@ const Transaction = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="cardNumber">Card Number <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="cardNumber"
                     placeholder="Enter number without spaces"
                     type="text"
@@ -359,7 +359,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="expiryDate">Expiry Date <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="expiryDate"
                     placeholder="MM/YY"
                     type="text"
@@ -373,7 +373,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="cvv">CVV Code <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="cvv"
                     placeholder="3 or 4 digit code"
                     type="text"
@@ -387,7 +387,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="amount">Amount <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="amount"
                     type="number"
                     autoComplete="off"
@@ -406,7 +406,7 @@ const Transaction = () => {
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="invoiceNumber">Invoice Number <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="invoiceNumber"
                     autoComplete="off"
                     className={errors.invoiceNumber ? "border-red-500" : ""}
@@ -418,7 +418,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="description"
                     autoComplete="off"
                     className={errors.description ? "border-red-500" : ""}
@@ -436,7 +436,7 @@ const Transaction = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="billingFirstName">First Name <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="billingFirstName"
                     autoComplete="off"
                     className={errors.billingFirstName ? "border-red-500" : ""}
@@ -448,7 +448,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="billingLastName">Last Name <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="billingLastName"
                     autoComplete="off"
                     className={errors.billingLastName ? "border-red-500" : ""}
@@ -460,7 +460,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="billingCompany">Company <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="billingCompany"
                     autoComplete="off"
                     className={errors.billingCompany ? "border-red-500" : ""}
@@ -472,7 +472,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="billingAddress">Address <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="billingAddress"
                     autoComplete="off"
                     className={errors.billingAddress ? "border-red-500" : ""}
@@ -484,7 +484,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="billingCity">City <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="billingCity"
                     autoComplete="off"
                     className={errors.billingCity ? "border-red-500" : ""}
@@ -496,7 +496,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="billingState">State <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="billingState"
                     autoComplete="off"
                     className={errors.billingState ? "border-red-500" : ""}
@@ -508,7 +508,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="billingZip">ZIP Code <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="billingZip"
                     autoComplete="off"
                     className={errors.billingZip ? "border-red-500" : ""}
@@ -520,7 +520,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="billingCountry">Country <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="billingCountry"
                     autoComplete="off"
                     className={errors.billingCountry ? "border-red-500" : ""}
@@ -532,7 +532,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="billingPhone">Phone <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="billingPhone"
                     autoComplete="off"
                     className={errors.billingPhone ? "border-red-500" : ""}
@@ -544,7 +544,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="billingEmail">Email <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="billingEmail"
                     type="email"
                     autoComplete="off"
@@ -563,7 +563,7 @@ const Transaction = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="studentFirstName">Student First Name <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="studentFirstName"
                     autoComplete="off"
                     className={errors.studentFirstName ? "border-red-500" : ""}
@@ -575,7 +575,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="studentLastName">Student Last Name <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="studentLastName"
                     autoComplete="off"
                     className={errors.studentLastName ? "border-red-500" : ""}
@@ -587,7 +587,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="studentAddress">Student Address <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="studentAddress"
                     autoComplete="off"
                     className={errors.studentAddress ? "border-red-500" : ""}
@@ -599,7 +599,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="studentCity">Student City <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="studentCity"
                     autoComplete="off"
                     className={errors.studentCity ? "border-red-500" : ""}
@@ -611,7 +611,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="studentState">Student State <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="studentState"
                     autoComplete="off"
                     className={errors.studentState ? "border-red-500" : ""}
@@ -623,7 +623,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="studentZip">Student ZIP Code <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="studentZip"
                     autoComplete="off"
                     className={errors.studentZip ? "border-red-500" : ""}
@@ -635,7 +635,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="studentCountry">Student Country <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="studentCountry"
                     autoComplete="off"
                     className={errors.studentCountry ? "border-red-500" : ""}
@@ -647,7 +647,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="studentPhone">Student Phone <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="studentPhone"
                     autoComplete="off"
                     className={errors.studentPhone ? "border-red-500" : ""}
@@ -659,7 +659,7 @@ const Transaction = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="studentEmail">Student Email <span className="text-red-500">*</span></Label>
-                  <Input 
+                  <Input
                     id="studentEmail"
                     type="email"
                     autoComplete="off"
@@ -672,7 +672,7 @@ const Transaction = () => {
               </div>
             </div>
 
-            <Button 
+            <Button
               type="button"
               onClick={handleSubmit}
               className="w-full md:w-auto bg-zinc-700 hover:bg-zinc-800"

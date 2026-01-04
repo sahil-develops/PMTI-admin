@@ -10,7 +10,7 @@ import {
   User,
   Eye,
   CalendarIcon,
-} from "lucide-react"; 
+} from "lucide-react";
 import Link from "next/link";
 import {
   Select,
@@ -97,7 +97,7 @@ interface ClassData {
   classTypeId: string;
   showClass: string;
   globalSearch: string;
-  enrollmentCount:string
+  enrollmentCount: string
 }
 
 interface SortConfig {
@@ -130,9 +130,8 @@ const Alert = ({
   onClose: () => void;
 }) => (
   <div
-    className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg ${
-      type === "error" ? "bg-red-50 text-red-800" : "bg-green-50 text-green-800"
-    }`}
+    className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg ${type === "error" ? "bg-red-50 text-red-800" : "bg-green-50 text-green-800"
+      }`}
   >
     <div className="flex justify-between items-center">
       <p>{message}</p>
@@ -166,8 +165,8 @@ const ActionDropdown = ({
     typeof classItem.activeEnrollmentCount === "string"
       ? parseInt(classItem.activeEnrollmentCount, 10)
       : typeof classItem.activeEnrollmentCount === "number"
-      ? classItem.activeEnrollmentCount
-      : classItem.enrolledStudents || 0;
+        ? classItem.activeEnrollmentCount
+        : classItem.enrolledStudents || 0;
 
   const handleViewRoster = (id: string) => {
     router.push(`/view-roster/${id}`);
@@ -175,10 +174,10 @@ const ActionDropdown = ({
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    
+
     try {
       const response = await fetch(
-        `https://api.4pmti.com/class/${classId}`,
+        `https://api.projectmanagementtraininginstitute.com/class/${classId}`,
         {
           method: "DELETE",
           headers: {
@@ -197,10 +196,10 @@ const ActionDropdown = ({
         title: "Success",
         description: "Class deleted successfully",
       });
-      
+
       // First remove the class locally for immediate UI update
       onDelete(classId);
-      
+
       // Then refresh the data from the server
       refreshData();
     } catch (error) {
@@ -352,7 +351,7 @@ const formatDate = (dateString: string): string => {
   try {
     // Create a date object in local timezone
     const date = new Date(dateString.split('T')[0]);
-    
+
     // Format the date using local timezone
     const month = date.toLocaleString('default', { month: 'long' });
     const day = date.getDate();
@@ -384,14 +383,14 @@ const normalizeDate = (date: Date | undefined) => {
 // Update this function to format dates properly
 const formatDateForAPI = (dateString: string): string => {
   if (!dateString) return '';
-  
+
   const date = new Date(dateString);
-  
+
   // Format as YYYY-MM-DD to preserve the exact date
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  
+
   return `${year}-${month}-${day}`;
 };
 
@@ -442,7 +441,7 @@ export function ClassTable() {
 
   const [selectedCountry, setSelectedCountry] = useState<string>("52"); // Default to US
   const [cities, setCities] = useState<Location[]>([]);
-  
+
   const [searchParams, setSearchParams] = useState<SearchParams>({
     startFrom: "",
     dateTo: "",
@@ -468,18 +467,18 @@ export function ClassTable() {
     setIsClient(true);
   }, []);
 
-// Effect to set initial US locations
-useEffect(() => {
-  if (countries.length > 0) {
-    const unitedStates = countries.find(country => country.id === 52);
-    if (unitedStates && unitedStates.__locations__) {
-      const sortedLocations = [...unitedStates.__locations__].sort((a, b) => 
-        a.location.localeCompare(b.location)
-      );
-      setCities(sortedLocations);
+  // Effect to set initial US locations
+  useEffect(() => {
+    if (countries.length > 0) {
+      const unitedStates = countries.find(country => country.id === 52);
+      if (unitedStates && unitedStates.__locations__) {
+        const sortedLocations = [...unitedStates.__locations__].sort((a, b) =>
+          a.location.localeCompare(b.location)
+        );
+        setCities(sortedLocations);
+      }
     }
-  }
-}, [countries]);
+  }, [countries]);
 
   const fetchDropdownData = async () => {
     try {
@@ -490,10 +489,10 @@ useEffect(() => {
 
       const [instructorsRes, categoriesRes, classTypesRes, countriesRes] =
         await Promise.all([
-          fetch(`https://api.4pmti.com/instructor`, { headers }),
-          fetch(`https://api.4pmti.com/category`, { headers }),
-          fetch(`https://api.4pmti.com/classtype`, { headers }),
-          fetch(`https://api.4pmti.com/country`, { headers }),
+          fetch(`https://api.projectmanagementtraininginstitute.com/instructor`, { headers }),
+          fetch(`https://api.projectmanagementtraininginstitute.com/category`, { headers }),
+          fetch(`https://api.projectmanagementtraininginstitute.com/classtype`, { headers }),
+          fetch(`https://api.projectmanagementtraininginstitute.com/country`, { headers }),
         ]);
 
       const [instructorsData, categoriesData, classTypesData, countriesData] =
@@ -554,14 +553,14 @@ useEffect(() => {
       try {
         setLoading(true);
         const response = await fetch(
-          `https://api.4pmti.com/class`,
+          `https://api.projectmanagementtraininginstitute.com/class`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
             },
           }
         );
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch classes');
         }
@@ -594,33 +593,33 @@ useEffect(() => {
   const handleSearch = async () => {
     try {
       setLoading(true);
-      
+
       // Build query parameters
       const queryParams = new URLSearchParams();
-      
+
       // Add pagination parameters
       queryParams.append('page', currentPage.toString());
       queryParams.append('limit', itemsPerPage.toString());
-      
+
       // Add date parameters without time components
       if (searchParams.startFrom) {
         queryParams.append('startFrom', searchParams.startFrom);
       }
-      
+
       if (searchParams.dateTo) {
         queryParams.append('dateTo', searchParams.dateTo);
       }
-      
+
       // Add other search parameters
       if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId);
       if (searchParams.locationId) queryParams.append('locationId', searchParams.locationId);
       if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
       if (searchParams.courseCategoryId) queryParams.append('courseCategory', searchParams.courseCategoryId);
       if (searchParams.classTypeId) queryParams.append('classType', searchParams.classTypeId);
-      
+
       // Add global search parameter if present
       if (searchParams.globalSearch) queryParams.append('search', searchParams.globalSearch);
-      
+
       // Add status parameters based on showClass value
       switch (searchParams.showClass) {
         case "active":
@@ -655,7 +654,7 @@ useEffect(() => {
       }
 
       const data = await response.json();
-      
+
       setOriginalClasses(data.data.data);
       setClasses(data.data.data);
       setMetadata(data.data.metadata);
@@ -689,15 +688,15 @@ useEffect(() => {
   // Country change handler
   const handleCountryChange = async (countryId: string) => {
     setSelectedCountry(countryId);
-    setSearchParams(prev => ({ 
-      ...prev, 
-      countryId, 
-      locationId: '' 
+    setSearchParams(prev => ({
+      ...prev,
+      countryId,
+      locationId: ''
     }));
-    
+
     // Reset cities
     setCities([]);
-    
+
     // Find and set cities for the selected country
     if (countries.length > 0) {
       const selectedCountry = countries.find(country => country.id.toString() === countryId);
@@ -735,12 +734,12 @@ useEffect(() => {
   const refreshClassData = () => {
     handleSearch(); // Call the search function to fetch fresh data with current filters
   };
-  
+
   // Add the missing handleBulkDelete function
   const handleBulkDelete = async () => {
     try {
       setIsDeleting(true);
-      const response = await fetch('https://api.4pmti.com/class/bulk', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/class/bulk', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -816,7 +815,7 @@ useEffect(() => {
       // Create a new date at midnight in local timezone
       const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const formattedDate = format(localDate, 'yyyy-MM-dd');
-      
+
       setSearchParams(prev => ({
         ...prev,
         startFrom: formattedDate,
@@ -828,7 +827,7 @@ useEffect(() => {
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       {error && (
-      
+
         <Alert message={error} type="error" onClose={() => setError(null)} />
       )}
 
@@ -837,15 +836,15 @@ useEffect(() => {
         <p className="font-semibold leading-none tracking-tight text-xl">
           Classes
         </p>
-<Link href={"/addclass"}>
-        <button
-  // onClick={() => isClient && router.push("/addclass")}
-  className="flex items-center gap-2 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
->
-  <Plus size={20} />
-  Add Class
-</button>
-  </Link>
+        <Link href={"/addclass"}>
+          <button
+            // onClick={() => isClient && router.push("/addclass")}
+            className="flex items-center gap-2 bg-zinc-800 text-white px-4 py-2 rounded hover:bg-zinc-700"
+          >
+            <Plus size={20} />
+            Add Class
+          </button>
+        </Link>
       </div>
 
       {/* Search Filters */}
@@ -912,7 +911,7 @@ useEffect(() => {
                     // Create a new date at midnight in local timezone
                     const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
                     const formattedDate = format(localDate, 'yyyy-MM-dd');
-                    
+
                     setSearchParams((prev) => ({
                       ...prev,
                       dateTo: formattedDate
@@ -944,8 +943,8 @@ useEffect(() => {
               </SelectTrigger>
               <SelectContent>
                 {countries.map((country) => (
-                  <SelectItem 
-                    key={country.id} 
+                  <SelectItem
+                    key={country.id}
                     value={country.id.toString()}
                   >
                     {country.CountryName}
@@ -971,7 +970,7 @@ useEffect(() => {
             >
               <SelectTrigger>
                 <SelectValue placeholder={
-                  !searchParams.countryId 
+                  !searchParams.countryId
                     ? "Select Country First"
                     : "Select Location"
                 } />
@@ -981,8 +980,8 @@ useEffect(() => {
                   cities
                     .filter(city => !city.isDelete) // Only show active locations
                     .map((city) => (
-                      <SelectItem 
-                        key={city.id} 
+                      <SelectItem
+                        key={city.id}
                         value={city.id.toString()}
                       >
                         {city.location}
@@ -1057,13 +1056,13 @@ useEffect(() => {
               <SelectContent>
                 {courseCategories.length > 0
                   ? courseCategories?.map((category) => (
-                      <SelectItem
-                        key={category.id}
-                        value={category.id.toString()}
-                      >
-                        {category.name}
-                      </SelectItem>
-                    ))
+                    <SelectItem
+                      key={category.id}
+                      value={category.id.toString()}
+                    >
+                      {category.name}
+                    </SelectItem>
+                  ))
                   : "Data not found"}
               </SelectContent>
             </Select>
@@ -1155,7 +1154,7 @@ useEffect(() => {
             />
           </div>
         </div>
-        
+
         {selectedClasses.length > 0 && (
           <button
             onClick={() => setShowBulkDeleteModal(true)}
@@ -1232,19 +1231,18 @@ useEffect(() => {
                     </TableCell>
                     <TableCell>
                       <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          classItem.status === "active"
+                        className={`px-2 py-1 rounded-full text-xs ${classItem.status === "active"
                             ? "bg-green-100 text-green-800"
                             : classItem.status === "inactive"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
                       >
                         {classItem.status === "active"
                           ? "Active"
                           : classItem.status === "inactive"
-                          ? "Inactive"
-                          : "Cancelled"}
+                            ? "Inactive"
+                            : "Cancelled"}
                       </span>
                     </TableCell>
                     <TableCell>{classItem.activeEnrollmentCount ?? "N/A"}</TableCell>

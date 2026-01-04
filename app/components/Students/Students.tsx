@@ -172,16 +172,16 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`https://api.4pmti.com/students/${studentId}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/students/${studentId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch student details');
       }
-      
+
       const data = await response.json();
       if (data.success) {
         setStudentData(data.data);
@@ -232,7 +232,7 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
         <DialogHeader>
           <DialogTitle>Student Details</DialogTitle>
         </DialogHeader>
-        
+
         {loading ? (
           <div className="flex justify-center p-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -272,11 +272,10 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-gray-500">Status</p>
                   <p>
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      studentData.student.active 
-                        ? 'bg-green-100 text-green-800' 
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${studentData.student.active
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
-                    }`}>
+                      }`}>
                       {studentData.student.active ? 'Active' : 'Inactive'}
                     </span>
                   </p>
@@ -299,14 +298,14 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-gray-500">Location</p>
                   <p>
-                    {getLocationInfo(studentData.student).cityName !== 'N/A' 
-                      ? `${getLocationInfo(studentData.student).cityName}, ` 
+                    {getLocationInfo(studentData.student).cityName !== 'N/A'
+                      ? `${getLocationInfo(studentData.student).cityName}, `
                       : ''}
-                    {getLocationInfo(studentData.student).stateName !== 'N/A' 
-                      ? `${getLocationInfo(studentData.student).stateName}, ` 
+                    {getLocationInfo(studentData.student).stateName !== 'N/A'
+                      ? `${getLocationInfo(studentData.student).stateName}, `
                       : ''}
-                    {getLocationInfo(studentData.student).countryName !== 'N/A' 
-                      ? getLocationInfo(studentData.student).countryName 
+                    {getLocationInfo(studentData.student).countryName !== 'N/A'
+                      ? getLocationInfo(studentData.student).countryName
                       : 'N/A'}
                   </p>
                 </div>
@@ -318,141 +317,140 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
             </div>
 
             {/* Enrollment Information Section */}
-     {/* Enrollment Information Section */}
-{/* Enrollment Information Section */}
-{studentData.enrollments && studentData.enrollments.length > 0 && (
-  <div>
-    <h3 className="text-lg font-medium mb-4">Enrollment History</h3>
-    <div className="space-y-6">
-      {studentData.enrollments.map((enrollment: any, index: number) => (
-        <div key={enrollment.ID} className="border border-gray-200 rounded-lg p-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Course/Class Title</p>
-              <p className="font-medium">
-                {enrollment.course ? enrollment.course.courseName : 
-                 (enrollment.class ? enrollment.class.title : 'N/A')}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Type</p>
-              <p>{enrollment.enrollmentType || 'N/A'}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Enrollment Date</p>
-              <p>{enrollment.EnrollmentDate ? 
-                new Date(enrollment.EnrollmentDate).toLocaleDateString() : 'N/A'}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Payment</p>
-              <p>
-                ${parseFloat(enrollment.Price).toFixed(2)}
-                {enrollment.PaymentMode && ` (${enrollment.PaymentMode})`}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Progress</p>
-              <p className="capitalize">{enrollment.enrollmentProgress || 'N/A'}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-500">Status</p>
-              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                enrollment.status 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {enrollment.status ? 'Active' : 'Inactive'}
-              </span>
-            </div>
-          </div>
+            {/* Enrollment Information Section */}
+            {/* Enrollment Information Section */}
+            {studentData.enrollments && studentData.enrollments.length > 0 && (
+              <div>
+                <h3 className="text-lg font-medium mb-4">Enrollment History</h3>
+                <div className="space-y-6">
+                  {studentData.enrollments.map((enrollment: any, index: number) => (
+                    <div key={enrollment.ID} className="border border-gray-200 rounded-lg p-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Course/Class Title</p>
+                          <p className="font-medium">
+                            {enrollment.course ? enrollment.course.courseName :
+                              (enrollment.class ? enrollment.class.title : 'N/A')}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Type</p>
+                          <p>{enrollment.enrollmentType || 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Enrollment Date</p>
+                          <p>{enrollment.EnrollmentDate ?
+                            new Date(enrollment.EnrollmentDate).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Payment</p>
+                          <p>
+                            ${parseFloat(enrollment.Price).toFixed(2)}
+                            {enrollment.PaymentMode && ` (${enrollment.PaymentMode})`}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Progress</p>
+                          <p className="capitalize">{enrollment.enrollmentProgress || 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Status</p>
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${enrollment.status
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                            }`}>
+                            {enrollment.status ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </div>
 
-          {/* Class Details Section */}
-          {enrollment.class && (
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <h4 className="text-md font-medium mb-3">Class Details</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Start Date</p>
-                  <p>{enrollment.class.startDate ? 
-                    new Date(enrollment.class.startDate).toLocaleDateString() : 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">End Date</p>
-                  <p>{enrollment.class.endDate ? 
-                    new Date(enrollment.class.endDate).toLocaleDateString() : 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Class Time</p>
-                  <p>{enrollment.class.classTime || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Address</p>
-                  <p>{enrollment.class.address || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Max Students</p>
-                  <p>{enrollment.class.maxStudent || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Online Available</p>
-                  <p>{enrollment.class.onlineAvailable ? 'Yes' : 'No'}</p>
+                      {/* Class Details Section */}
+                      {enrollment.class && (
+                        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                          <h4 className="text-md font-medium mb-3">Class Details</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-500">Start Date</p>
+                              <p>{enrollment.class.startDate ?
+                                new Date(enrollment.class.startDate).toLocaleDateString() : 'N/A'}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-500">End Date</p>
+                              <p>{enrollment.class.endDate ?
+                                new Date(enrollment.class.endDate).toLocaleDateString() : 'N/A'}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-500">Class Time</p>
+                              <p>{enrollment.class.classTime || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-500">Address</p>
+                              <p>{enrollment.class.address || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-500">Max Students</p>
+                              <p>{enrollment.class.maxStudent || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-500">Online Available</p>
+                              <p>{enrollment.class.onlineAvailable ? 'Yes' : 'No'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Instructor Details Section */}
+                      {enrollment.class?.instructor && (
+                        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                          <h4 className="text-md font-medium mb-3">Instructor Details</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-500">Name</p>
+                              <p className="font-medium">{enrollment.class.instructor.name || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-500">Email</p>
+                              <p>{enrollment.class.instructor.emailID || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-500">Mobile</p>
+                              <p>{enrollment.class.instructor.mobile || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-500">Tel No</p>
+                              <p>{enrollment.class.instructor.telNo || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-1 md:col-span-2">
+                              <p className="text-sm font-medium text-gray-500">Address</p>
+                              <p>{enrollment.class.instructor.billingAddress || 'N/A'}</p>
+                            </div>
+                            {enrollment.class.instructor.profile && (
+                              <div className="space-y-1 md:col-span-3">
+                                <p className="text-sm font-medium text-gray-500">Profile</p>
+                                <p className="text-sm">{enrollment.class.instructor.profile}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Comments Section */}
+                      {enrollment.Comments && (
+                        <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+                          <h4 className="text-md font-medium mb-2">Comments</h4>
+                          <p className="text-sm">{enrollment.Comments}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Instructor Details Section */}
-          {enrollment.class?.instructor && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <h4 className="text-md font-medium mb-3">Instructor Details</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Name</p>
-                  <p className="font-medium">{enrollment.class.instructor.name || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Email</p>
-                  <p>{enrollment.class.instructor.emailID || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Mobile</p>
-                  <p>{enrollment.class.instructor.mobile || 'N/A'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Tel No</p>
-                  <p>{enrollment.class.instructor.telNo || 'N/A'}</p>
-                </div>
-                <div className="space-y-1 md:col-span-2">
-                  <p className="text-sm font-medium text-gray-500">Address</p>
-                  <p>{enrollment.class.instructor.billingAddress || 'N/A'}</p>
-                </div>
-                {enrollment.class.instructor.profile && (
-                  <div className="space-y-1 md:col-span-3">
-                    <p className="text-sm font-medium text-gray-500">Profile</p>
-                    <p className="text-sm">{enrollment.class.instructor.profile}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Comments Section */}
-          {enrollment.Comments && (
-            <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-              <h4 className="text-md font-medium mb-2">Comments</h4>
-              <p className="text-sm">{enrollment.Comments}</p>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+            )}
           </div>
         ) : (
           <div className="p-4 text-center">No student data available</div>
         )}
-        
+
         <DialogFooter>
           <Button onClick={onClose}>Close</Button>
         </DialogFooter>
@@ -481,43 +479,43 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
   // Add new state for city input disabled state
   const [isCityInputDisabled, setIsCityInputDisabled] = useState(true);
 
-// In the EditStudentModal component, update the useEffect that sets initial form data:
-useEffect(() => {
-  if (student) {
-    // Handle country - can be object or string
-    const countryId = student.country && typeof student.country === 'object' 
-      ? (student.country as { id: number }).id.toString() 
-      : student.country || "";
-      
-    // Handle state - can be object or string
-    const stateId = student.state && typeof student.state === 'object' 
-      ? (student.state as { id: number }).id.toString() 
-      : student.state || "";
-      
-    // Handle city - can be object or string
-    const cityValue = student.city && typeof student.city === 'object' 
-      ? (student.city as { location: string }).location 
-      : student.city || "";
+  // In the EditStudentModal component, update the useEffect that sets initial form data:
+  useEffect(() => {
+    if (student) {
+      // Handle country - can be object or string
+      const countryId = student.country && typeof student.country === 'object'
+        ? (student.country as { id: number }).id.toString()
+        : student.country || "";
 
-    setFormData({
-      name: student.name,
-      address: student.address,
-      city: cityValue,
-      state: stateId, // Ensure this is the state ID
-      country: countryId,
-      zipCode: student.zipCode,
-      phone: student.phone,
-      email: student.email,
-      companyName: student.companyName,
-      profession: student.profession,
-    });
-    
-    setSelectedCountry(countryId);
-    setSelectedState(stateId);
-    // Enable city input if state is selected
-    setIsCityInputDisabled(!stateId);
-  }
-}, [student]);
+      // Handle state - can be object or string
+      const stateId = student.state && typeof student.state === 'object'
+        ? (student.state as { id: number }).id.toString()
+        : student.state || "";
+
+      // Handle city - can be object or string
+      const cityValue = student.city && typeof student.city === 'object'
+        ? (student.city as { location: string }).location
+        : student.city || "";
+
+      setFormData({
+        name: student.name,
+        address: student.address,
+        city: cityValue,
+        state: stateId, // Ensure this is the state ID
+        country: countryId,
+        zipCode: student.zipCode,
+        phone: student.phone,
+        email: student.email,
+        companyName: student.companyName,
+        profession: student.profession,
+      });
+
+      setSelectedCountry(countryId);
+      setSelectedState(stateId);
+      // Enable city input if state is selected
+      setIsCityInputDisabled(!stateId);
+    }
+  }, [student]);
 
   useEffect(() => {
     fetchCountries();
@@ -531,7 +529,7 @@ useEffect(() => {
 
   const fetchCountries = async () => {
     try {
-      const response = await fetch(`https://api.4pmti.com/country`);
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/country`);
       const data = await response.json();
       setCountries(data.data);
     } catch (error) {
@@ -541,7 +539,7 @@ useEffect(() => {
 
   const fetchStates = async (countryId: string) => {
     try {
-      const response = await fetch(`https://api.4pmti.com/state/?countryId=${countryId}`);
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/state/?countryId=${countryId}`);
       const data = await response.json();
       setStates(data.data);
     } catch (error) {
@@ -551,30 +549,30 @@ useEffect(() => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.name || formData.name.trim() === '') {
       newErrors.name = "Name is required";
     }
-    
+
     if (!formData.email || !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
       newErrors.email = "Invalid email address";
     }
-  
+
     if (!formData.city || formData.city.trim() === '') {
       newErrors.city = "City is required";
     }
-  
+
     if (!formData.state) {
       newErrors.state = "State is required";
     }
-  
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!student) return;
-    
+
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -583,7 +581,7 @@ useEffect(() => {
       });
       return;
     }
-    
+
     setLoading(true);
     try {
       await onSave(student.id, formData);
@@ -609,8 +607,8 @@ useEffect(() => {
 
   const handleStateChange = (stateId: string) => {
     setSelectedState(stateId);
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       state: stateId,
       city: '' // Clear city when state changes
     }));
@@ -623,7 +621,7 @@ useEffect(() => {
         <DialogHeader>
           <DialogTitle>Edit Student</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -659,7 +657,7 @@ useEffect(() => {
                 onChange={(e) => handleInputChange('address', e.target.value)}
               />
             </div>
-            
+
             {/* Country selection */}
             <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
@@ -679,53 +677,53 @@ useEffect(() => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             {/* State selection */}
             <div className="space-y-2">
-  <Label htmlFor="state">State</Label>
-  <Select
-    value={selectedState}
-    onValueChange={handleStateChange}
-    disabled={!selectedCountry}
-  >
-    <SelectTrigger className={errors.state ? "border-red-500" : ""}>
-      <SelectValue placeholder={selectedCountry ? "Select State" : "Select Country First"} />
-    </SelectTrigger>
-    <SelectContent>
-      {states.length > 0 ? (
-        states.map((state) => (
-          <SelectItem key={state.id} value={state.id.toString()}>
-            {state.name}
-          </SelectItem>
-        ))
-      ) : (
-        <SelectItem value="no-states" disabled>
-          No states available
-        </SelectItem>
-      )}
-    </SelectContent>
-  </Select>
-  {errors.state && (
-    <p className="text-xs text-red-500">{errors.state}</p>
-  )}
-</div>
-            
+              <Label htmlFor="state">State</Label>
+              <Select
+                value={selectedState}
+                onValueChange={handleStateChange}
+                disabled={!selectedCountry}
+              >
+                <SelectTrigger className={errors.state ? "border-red-500" : ""}>
+                  <SelectValue placeholder={selectedCountry ? "Select State" : "Select Country First"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.length > 0 ? (
+                    states.map((state) => (
+                      <SelectItem key={state.id} value={state.id.toString()}>
+                        {state.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-states" disabled>
+                      No states available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.state && (
+                <p className="text-xs text-red-500">{errors.state}</p>
+              )}
+            </div>
+
             {/* City input field */}
             <div className="space-y-2">
-  <Label htmlFor="city">City</Label>
-  <Input
-    id="city"
-    value={formData.city || ''}
-    onChange={(e) => handleInputChange('city', e.target.value)}
-    placeholder={isCityInputDisabled ? "Select State First" : "Enter city"}
-    disabled={isCityInputDisabled}
-    className={isCityInputDisabled ? "bg-gray-100" : errors.city ? "border-red-500" : ""}
-  />
-  {errors.city && (
-    <p className="text-xs text-red-500">{errors.city}</p>
-  )}
-</div>
-            
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                value={formData.city || ''}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                placeholder={isCityInputDisabled ? "Select State First" : "Enter city"}
+                disabled={isCityInputDisabled}
+                className={isCityInputDisabled ? "bg-gray-100" : errors.city ? "border-red-500" : ""}
+              />
+              {errors.city && (
+                <p className="text-xs text-red-500">{errors.city}</p>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="zipCode">Zip Code</Label>
               <Input
@@ -769,9 +767,9 @@ useEffect(() => {
           </DialogFooter>
         </form>
       </DialogContent>
-      <SuccessModal 
-        isOpen={showSuccess} 
-        onClose={() => setShowSuccess(false)} 
+      <SuccessModal
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
       />
     </Dialog>
   );
@@ -817,7 +815,7 @@ const Students = () => {
 
   const fetchStudents = async () => {
     try {
-      const response = await fetch(`https://api.4pmti.com/students`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/students`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
@@ -853,7 +851,7 @@ const Students = () => {
     }
 
     if (statusFilter !== "all") {
-      filtered = filtered.filter(student => 
+      filtered = filtered.filter(student =>
         statusFilter === "active" ? student.active : !student.active
       );
     }
@@ -878,7 +876,7 @@ const Students = () => {
     try {
       // Create a payload object that will be sent to the API
       const payload: any = { ...updatedData };
-      
+
       // Convert state to integer if it exists
       if (updatedData.state) {
         payload.state = parseInt(updatedData.state);
@@ -886,7 +884,7 @@ const Students = () => {
           throw new Error('Invalid state ID');
         }
       }
-      
+
       // Convert country to integer if it exists
       if (updatedData.country) {
         payload.country = parseInt(updatedData.country);
@@ -894,15 +892,15 @@ const Students = () => {
           throw new Error('Invalid country ID');
         }
       }
-  
+
       // Ensure city is not empty
       if (!payload.city || payload.city.trim() === '') {
         throw new Error('City is required');
       }
-  
+
       console.log("Sending payload to API:", payload);
-  
-      const response = await fetch(`https://api.4pmti.com/students/${studentId}`, {
+
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/students/${studentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -910,27 +908,27 @@ const Students = () => {
         },
         body: JSON.stringify(payload),
       });
-  
+
       const data = await response.json();
-  
+
       if (!response.ok) {
         // Get specific error message if available
         const errorMessage = data.error || data.message || 'Failed to update student';
         throw new Error(errorMessage);
       }
-  
+
       // Update local state with the updated data
       setStudents(prevStudents =>
         prevStudents.map(student =>
           student.id === studentId ? { ...student, ...updatedData } : student
         )
       );
-  
+
       setShowSuccess(true);
-      
+
       // Refresh student list
       fetchStudents();
-      
+
     } catch (error: any) {
       console.error('Error updating student:', error);
       toast({
@@ -983,10 +981,10 @@ const Students = () => {
 
   const handleDeleteStudent = async () => {
     if (!deletingStudent) return;
-    
+
     setIsDeleting(true);
     try {
-      const response = await fetch(`https://api.4pmti.com/students/${deletingStudent.id}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/students/${deletingStudent.id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -999,10 +997,10 @@ const Students = () => {
       }
 
       // Update local state to remove the deleted student
-      setStudents(prevStudents => 
+      setStudents(prevStudents =>
         prevStudents.filter(student => student.id !== deletingStudent.id)
       );
-      setFilteredStudents(prevFiltered => 
+      setFilteredStudents(prevFiltered =>
         prevFiltered.filter(student => student.id !== deletingStudent.id)
       );
 
@@ -1133,11 +1131,10 @@ const Students = () => {
                         </td>
                         <td className="px-4 py-3 text-gray-500">{student.phone || 'N/A'}</td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            student.active 
-                              ? 'bg-green-100 text-green-800' 
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${student.active
+                              ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
-                          }`}>
+                            }`}>
                             {student.active ? 'Active' : 'Inactive'}
                           </span>
                         </td>
@@ -1163,29 +1160,29 @@ const Students = () => {
                                 Edit Student
                               </DropdownMenuItem>
                               <DropdownMenuItem
-  onClick={() => {
-    setViewingStudentId(student.id);
-    setIsViewModalOpen(true);
-  }}
->
-  <Search className="mr-2 h-4 w-4" />
-  View Details
-</DropdownMenuItem>
-                              <DropdownMenuItem
                                 onClick={() => {
-                               router.push(`students/classEnrollment/${student.id}`);
+                                  setViewingStudentId(student.id);
+                                  setIsViewModalOpen(true);
                                 }}
                               >
-                                <FileInput className="mr-2 h-4 w-4" />
-                          Class  Enrollment
+                                <Search className="mr-2 h-4 w-4" />
+                                View Details
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
-                               router.push(`students/courseEnrolllment/${student.id}`);
+                                  router.push(`students/classEnrollment/${student.id}`);
                                 }}
                               >
                                 <FileInput className="mr-2 h-4 w-4" />
-                          Course  Enrollment
+                                Class  Enrollment
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  router.push(`students/courseEnrolllment/${student.id}`);
+                                }}
+                              >
+                                <FileInput className="mr-2 h-4 w-4" />
+                                Course  Enrollment
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-600"
@@ -1215,8 +1212,8 @@ const Students = () => {
         onClose={() => {
           setIsViewModalOpen(false);
           setViewingStudentId(null);
-  }}
-/>
+        }}
+      />
       {/* Edit Student Modal */}
       <EditStudentModal
         student={editingStudent}
@@ -1227,9 +1224,9 @@ const Students = () => {
         }}
         onSave={handleEditStudent}
       />
-  <SuccessModal 
-        isOpen={showSuccess} 
-        onClose={() => setShowSuccess(false)} 
+      <SuccessModal
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
       />
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}

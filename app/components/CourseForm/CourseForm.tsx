@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ClassTypeDropdown from "../DropDown/ClassTypeDropdown1";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -82,19 +82,19 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
     extPrice: 299.99,
     categoryId: 3
   });
-   // Add this state with your other states
-   const [categories, setCategories] = useState<Category[]>([]);
-   const [coverImage, setCoverImage] = useState<File | null>(null);
-   const [isCoverImageUploading, setIsCoverImageUploading] = useState(false);
-   const [coverImageError, setCoverImageError] = useState<string>('');
-   const [coverImageUrl, setCoverImageUrl] = useState<string>('');
-   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
-  
+  // Add this state with your other states
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [isCoverImageUploading, setIsCoverImageUploading] = useState(false);
+  const [coverImageError, setCoverImageError] = useState<string>('');
+  const [coverImageUrl, setCoverImageUrl] = useState<string>('');
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
-     // Add this function with your other fetch functions
+
+  // Add this function with your other fetch functions
   const fetchCategories = async () => {
     try {
-      const response = await fetch('https://api.4pmti.com/category', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/category', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -111,7 +111,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
   // Function to fetch class types
   const fetchClassTypes = async () => {
     try {
-      const response = await fetch('https://api.4pmti.com/classtype', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/classtype', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -159,7 +159,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
   const handleCoverImageUpload = async (file: File) => {
     const allowedTypes = ['png', 'jpg', 'jpeg'];
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
-    
+
     if (!fileExtension || !allowedTypes.includes(fileExtension)) {
       setCoverImageError('Only PNG, JPG, and JPEG files are allowed.');
       return;
@@ -172,7 +172,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
     formData.append('file', file);
 
     try {
-      const response = await fetch('https://api.4pmti.com/upload', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/upload', {
         method: 'POST',
         body: formData,
       });
@@ -210,7 +210,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
         coverImage: coverImageUrl              // Add the cover image URL
       };
 
-      const response = await fetch(`https://api.4pmti.com/course`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/course`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -298,17 +298,17 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
               </div>
 
               <div className="space-y-1">
-              <ClassTypeDropdown
-  searchParams={{ classTypeId: formData.classType.toString() }}
-  setSearchParams={(params) => {
-    setFormData(prev => ({
-      ...prev,
-      classType: Number(params.classTypeId)
-    }));
-  }}
-  classTypes={classTypes}
-  refreshClassTypes={fetchClassTypes}
-/>
+                <ClassTypeDropdown
+                  searchParams={{ classTypeId: formData.classType.toString() }}
+                  setSearchParams={(params) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      classType: Number(params.classTypeId)
+                    }));
+                  }}
+                  classTypes={classTypes}
+                  refreshClassTypes={fetchClassTypes}
+                />
               </div>
 
               <div className="space-y-1">
@@ -340,32 +340,32 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
               </div>
 
               {/* // Replace the categoryId Input component with this Select component */}
-    <div className="space-y-1">
-      <Label>Category</Label>
-      <Select
-        value={formData.categoryId.toString()}
-        onValueChange={(value) => {
-          setFormData(prev => ({
-            ...prev,
-            categoryId: Number(value)
-          }));
-        }}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Select Category" />
-        </SelectTrigger>
-        <SelectContent>
-          {categories.map((category) => (
-            <SelectItem 
-              key={category.id} 
-              value={category.id.toString()}
-            >
-              {category.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+              <div className="space-y-1">
+                <Label>Category</Label>
+                <Select
+                  value={formData.categoryId.toString()}
+                  onValueChange={(value) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      categoryId: Number(value)
+                    }));
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem
+                        key={category.id}
+                        value={category.id.toString()}
+                      >
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="flex items-center space-x-2">
                 <Label htmlFor="isGuestAccess" className="text-sm">Guest Access</Label>
@@ -411,9 +411,8 @@ const CourseForm: React.FC<CourseFormProps> = ({ onSuccess }) => {
                     handleCoverImageUpload(e.target.files[0]);
                   }
                 }}
-                className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${
-                  coverImageError ? 'border-red-500' : 'border-gray-300'
-                } focus:border-blue-500 focus:ring-blue-500`}
+                className={`mt-1 block w-full rounded-md shadow-sm p-2 text-gray-800 border ${coverImageError ? 'border-red-500' : 'border-gray-300'
+                  } focus:border-blue-500 focus:ring-blue-500`}
               />
               {coverImageError && (
                 <p className="mt-1 text-sm text-red-500">{coverImageError}</p>

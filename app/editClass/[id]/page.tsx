@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {SuccessModal} from "../../components/SuccessModal";
+import { SuccessModal } from "../../components/SuccessModal";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -194,12 +194,12 @@ const useFormErrors = () => {
 // to avoid timezone conversion issues that cause dates to shift by one day
 const normalizeDate = (date: Date | undefined) => {
   if (!date) return undefined;
-  
+
   // Create a new date using the local year, month, and day to avoid timezone issues
   const year = date.getFullYear();
   const month = date.getMonth();
   const day = date.getDate();
-  
+
   // Create date in local timezone (no timezone conversion)
   return new Date(year, month, day);
 };
@@ -207,11 +207,11 @@ const normalizeDate = (date: Date | undefined) => {
 // Updated function to format dates as MM-DD-YYYY for the API
 const formatDateForAPI = (date: Date | undefined): string => {
   if (!date) return '';
-  
+
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
-  
+
   // Format as MM-DD-YYYY
   return `${month}-${day}-${year}`;
 };
@@ -223,24 +223,24 @@ const formatDateForAPI = (date: Date | undefined): string => {
 
 const parseBackendDate = (dateString: string): Date | undefined => {
   if (!dateString) return undefined;
-  
+
   // Handle MM-DD-YYYY format (new API format)
   if (dateString.includes('-') && dateString.split('-').length === 3) {
     const parts = dateString.split('-');
-    
+
     // Check if it's MM-DD-YYYY (month is first and <= 12)
     if (parts[0].length === 2 && parseInt(parts[0]) <= 12) {
       const [month, day, year] = parts.map(Number);
       return new Date(year, month - 1, day);
     }
-    
+
     // Handle YYYY-MM-DD format (legacy format)
     if (parts[0].length === 4) {
       const [year, month, day] = parts.map(Number);
       return new Date(year, month - 1, day);
     }
   }
-  
+
   // Fallback for ISO string format
   const date = new Date(dateString);
   return isNaN(date.getTime()) ? undefined : date;
@@ -259,7 +259,7 @@ export default function EditClass({ params }: PageProps) {
   const [dateError, setDateError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isUpdatingCategory, setIsUpdatingCategory] = useState(false);
-  
+
   // Add new state variables for countries and locations
   const [countries, setCountries] = useState<Country[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -270,14 +270,14 @@ export default function EditClass({ params }: PageProps) {
   useEffect(() => {
     const fetchClass = async () => {
       try {
-        const response = await fetch(`https://api.4pmti.com/class/${id}`, {
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/class/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         });
-        
+
         if (!response.ok) throw new Error('Failed to fetch class');
-        
+
         const data: ApiResponse = await response.json();
         if (data.success) {
           setClassData(data.data);
@@ -311,14 +311,14 @@ export default function EditClass({ params }: PageProps) {
   useEffect(() => {
     const fetchInstructors = async () => {
       try {
-        const response = await fetch('https://api.4pmti.com/instructor', {
+        const response = await fetch('https://api.projectmanagementtraininginstitute.com/instructor', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         });
-        
+
         if (!response.ok) throw new Error('Failed to fetch instructors');
-        
+
         const data = await response.json();
         if (data.success) {
           const mappedInstructors = data.data.map((instructor: any) => ({
@@ -348,12 +348,12 @@ export default function EditClass({ params }: PageProps) {
     const fetchCountries = async () => {
       setLoadingCountries(true);
       try {
-        const response = await fetch('https://api.4pmti.com/country', {
+        const response = await fetch('https://api.projectmanagementtraininginstitute.com/country', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch countries');
         }
@@ -395,18 +395,18 @@ export default function EditClass({ params }: PageProps) {
       setDateError('Both start and end dates are required');
       return false;
     }
-    
+
     // Check if dates are valid
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       setDateError('Invalid date format');
       return false;
     }
-    
+
     if (endDate < startDate) {
       setDateError('End date cannot be before start date');
       return false;
     }
-    
+
     setDateError('');
     return true;
   };
@@ -415,7 +415,7 @@ export default function EditClass({ params }: PageProps) {
   const updateCategoryDescription = async (categoryId: number, name: string, description: string) => {
     setIsUpdatingCategory(true);
     try {
-      const response = await fetch(`https://api.4pmti.com/category/${categoryId}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/category/${categoryId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -509,14 +509,14 @@ export default function EditClass({ params }: PageProps) {
   // Updated date change handlers to use DD-MM-YYYY format
   const handleStartDateChange = (date: Date | undefined) => {
     if (!date || !classData) return;
-    
+
     const localDate = normalizeDate(date);
     if (localDate) {
       // Format date as DD-MM-YYYY for backend
       const formattedDate = formatDateForAPI(localDate);
-      
+
       setClassData({ ...classData, startDate: formattedDate });
-      
+
       // Validate against end date if it exists
       const endDate = parseBackendDate(classData.endDate);
       if (endDate) {
@@ -528,14 +528,14 @@ export default function EditClass({ params }: PageProps) {
 
   const handleEndDateChange = (date: Date | undefined) => {
     if (!date || !classData) return;
-    
+
     const localDate = normalizeDate(date);
     if (localDate) {
       // Format date as DD-MM-YYYY for backend
       const formattedDate = formatDateForAPI(localDate);
-      
+
       setClassData({ ...classData, endDate: formattedDate });
-      
+
       // Validate against start date
       const startDate = parseBackendDate(classData.startDate);
       if (startDate) {
@@ -547,7 +547,7 @@ export default function EditClass({ params }: PageProps) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-  
+
     if (!classData || !validateForm()) {
       toast({
         variant: "destructive",
@@ -556,17 +556,17 @@ export default function EditClass({ params }: PageProps) {
       });
       return;
     }
-  
+
     setIsLoading(true);
-  
+
     try {
       // Parse and reformat dates to ensure MM-DD-YYYY format
       const parsedStartDate = parseBackendDate(classData.startDate);
       const parsedEndDate = parseBackendDate(classData.endDate);
-      
+
       const formattedStartDate = formatDateForAPI(parsedStartDate);
       const formattedEndDate = formatDateForAPI(parsedEndDate);
-  
+
       // Create a payload with proper data types
       const payload = {
         ...(classData || {}),
@@ -586,12 +586,12 @@ export default function EditClass({ params }: PageProps) {
           active: classData.category?.active || true
         } : undefined,
       };
-  
+
       console.log("Formatted dates being sent:");
       console.log("startDate:", formattedStartDate);
       console.log("endDate:", formattedEndDate);
-  
-      const response = await fetch(`https://api.4pmti.com/class/${id}`, {
+
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/class/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -599,12 +599,12 @@ export default function EditClass({ params }: PageProps) {
         },
         body: JSON.stringify(payload),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(Array.isArray(errorData.error) ? errorData.error[0] : errorData.error || 'Failed to update class');
       }
-  
+
       const data = await response.json();
       if (data.success) {
         setShowSuccessModal(true);
@@ -657,8 +657,8 @@ export default function EditClass({ params }: PageProps) {
           Classes
         </Link>
         <span>›</span>
-        <Link 
-          href={`/class-details/${id}`} 
+        <Link
+          href={`/class-details/${id}`}
           className="hover:text-gray-700"
         >
           Class Details
@@ -719,8 +719,8 @@ export default function EditClass({ params }: PageProps) {
                       disabled={
                         classData.endDate && parseBackendDate(classData.endDate)
                           ? (date) =>
-                              date < new Date() ||
-                              date > parseBackendDate(classData.endDate)!
+                            date < new Date() ||
+                            date > parseBackendDate(classData.endDate)!
                           : (date) => date < new Date()
                       }
                       initialFocus
@@ -760,8 +760,8 @@ export default function EditClass({ params }: PageProps) {
                       disabled={
                         classData.startDate && parseBackendDate(classData.startDate)
                           ? (date) =>
-                              date < new Date() ||
-                              date < parseBackendDate(classData.startDate)!
+                            date < new Date() ||
+                            date < parseBackendDate(classData.startDate)!
                           : (date) => date < new Date()
                       }
                       initialFocus
@@ -885,53 +885,53 @@ export default function EditClass({ params }: PageProps) {
             </div>
 
             {/* Corporate Class Details - Shown only when isCorpClass is true */}
-        
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
-                <div>
-                  <Label>Hotel</Label>
-                  <Input
-                    value={classData.hotel}
-                    onChange={(e) => setClassData({ ...classData, hotel: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Hotel Email</Label>
-                  <Input
-                    type="email"
-                    value={classData.hotelEmailId}
-                    onChange={(e) => setClassData({ ...classData, hotelEmailId: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Hotel Contact</Label>
-                  <Input
-                    value={classData.hotelContactNo}
-                    onChange={(e) => setClassData({ ...classData, hotelContactNo: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Hotel Confirmation</Label>
-                  <Input
-                    value={classData.hotelConfirmation}
-                    onChange={(e) => setClassData({ ...classData, hotelConfirmation: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Flight Confirmation</Label>
-                  <Input
-                    value={classData.flightConfirmation}
-                    onChange={(e) => setClassData({ ...classData, flightConfirmation: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Car Confirmation</Label>
-                  <Input
-                    value={classData.carConfirmation}
-                    onChange={(e) => setClassData({ ...classData, carConfirmation: e.target.value })}
-                  />
-                </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
+              <div>
+                <Label>Hotel</Label>
+                <Input
+                  value={classData.hotel}
+                  onChange={(e) => setClassData({ ...classData, hotel: e.target.value })}
+                />
               </div>
-  
+              <div>
+                <Label>Hotel Email</Label>
+                <Input
+                  type="email"
+                  value={classData.hotelEmailId}
+                  onChange={(e) => setClassData({ ...classData, hotelEmailId: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Hotel Contact</Label>
+                <Input
+                  value={classData.hotelContactNo}
+                  onChange={(e) => setClassData({ ...classData, hotelContactNo: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Hotel Confirmation</Label>
+                <Input
+                  value={classData.hotelConfirmation}
+                  onChange={(e) => setClassData({ ...classData, hotelConfirmation: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Flight Confirmation</Label>
+                <Input
+                  value={classData.flightConfirmation}
+                  onChange={(e) => setClassData({ ...classData, flightConfirmation: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Car Confirmation</Label>
+                <Input
+                  value={classData.carConfirmation}
+                  onChange={(e) => setClassData({ ...classData, carConfirmation: e.target.value })}
+                />
+              </div>
+            </div>
+
             {/* Location, Country, Class Type, and Category Section */}
             <div className="border-t pt-4">
               <h3 className="text-lg font-medium mb-4">Additional Information</h3>
@@ -952,10 +952,9 @@ export default function EditClass({ params }: PageProps) {
                       }
                     }}
                   >
-                    <SelectTrigger 
-                      className={`mt-1 bg-white w-full ${
-                        errors.country ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                    <SelectTrigger
+                      className={`mt-1 bg-white w-full ${errors.country ? 'border-red-500' : 'border-gray-300'
+                        }`}
                     >
                       {loadingCountries ? (
                         <LoadingSpinner />
@@ -965,8 +964,8 @@ export default function EditClass({ params }: PageProps) {
                     </SelectTrigger>
                     <SelectContent>
                       {countries.map((country) => (
-                        <SelectItem 
-                          key={country.id} 
+                        <SelectItem
+                          key={country.id}
                           value={country.id.toString()}
                         >
                           {country.CountryName}
@@ -995,16 +994,15 @@ export default function EditClass({ params }: PageProps) {
                     }}
                     disabled={!classData.country?.id || locations.length === 0}
                   >
-                    <SelectTrigger 
-                      className={`mt-1 bg-white w-full ${
-                        errors.location ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                    <SelectTrigger
+                      className={`mt-1 bg-white w-full ${errors.location ? 'border-red-500' : 'border-gray-300'
+                        }`}
                     >
                       <SelectValue placeholder={
-                        !classData.country?.id 
-                          ? "Please select a country first" 
-                          : locations.length === 0 
-                            ? "No locations available" 
+                        !classData.country?.id
+                          ? "Please select a country first"
+                          : locations.length === 0
+                            ? "No locations available"
                             : "Select a location"
                       } className="bg-white" />
                     </SelectTrigger>
@@ -1017,8 +1015,8 @@ export default function EditClass({ params }: PageProps) {
                         locations
                           .sort((a, b) => a.location.localeCompare(b.location))
                           .map((location) => (
-                            <SelectItem 
-                              key={location.id} 
+                            <SelectItem
+                              key={location.id}
                               value={location.id.toString()}
                             >
                               {location.location}
@@ -1194,7 +1192,7 @@ export default function EditClass({ params }: PageProps) {
                     />
                   </div>
                 </div>
-                
+
                 <div className="max-h-64 overflow-y-auto">
                   <table className="w-full">
                     <thead>
@@ -1205,7 +1203,7 @@ export default function EditClass({ params }: PageProps) {
                     </thead>
                     <tbody>
                       {participants
-                        .filter(p => 
+                        .filter(p =>
                           p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           p.email.toLowerCase().includes(searchTerm.toLowerCase())
                         )
@@ -1237,8 +1235,8 @@ export default function EditClass({ params }: PageProps) {
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isLoading}
                 className="bg-black text-white hover:bg-gray-800"
               >
@@ -1255,8 +1253,8 @@ export default function EditClass({ params }: PageProps) {
           </form>
         </div>
       </div>
-      
-      <SuccessModal 
+
+      <SuccessModal
         isOpen={showSuccessModal}
         message="Class has been updated successfully! Redirecting..."
         className="sm:max-w-[425px]"

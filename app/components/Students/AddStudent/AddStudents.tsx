@@ -80,7 +80,7 @@ const AddStudent = () => {
   const [loading, setLoading] = useState(false);
   const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
   // State for location data
   const [countries, setCountries] = useState<Country[]>([]);
   const [states, setStates] = useState<State[]>([]);
@@ -116,8 +116,8 @@ const AddStudent = () => {
         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
       };
 
-      const response = await fetch(`https://api.4pmti.com/country`, { headers });
-      
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/country`, { headers });
+
       if (!response.ok) {
         throw new Error('Failed to fetch countries');
       }
@@ -145,7 +145,7 @@ const AddStudent = () => {
 
       // Set initial US locations
       if (unitedStates && unitedStates.__locations__) {
-        const sortedLocations = [...unitedStates.__locations__].sort((a, b) => 
+        const sortedLocations = [...unitedStates.__locations__].sort((a, b) =>
           a.location.localeCompare(b.location)
         );
         setCities(sortedLocations);
@@ -165,7 +165,7 @@ const AddStudent = () => {
   const fetchStates = async (countryId: string) => {
     try {
       const response = await fetch(
-        `https://api.4pmti.com/state/?countryId=${countryId}`,
+        `https://api.projectmanagementtraininginstitute.com/state/?countryId=${countryId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -190,28 +190,28 @@ const AddStudent = () => {
   };
 
   const handleCountryChange = async (countryId: string) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      countryId, 
-      stateId: '', 
+    setFormData(prev => ({
+      ...prev,
+      countryId,
+      stateId: '',
       country: countries.find(c => c.id.toString() === countryId)?.CountryName || '',
       state: '',
       city: ''
     }));
-    
+
     // Reset states and cities
     setStates([]);
     setCities([]);
-    
+
     // Fetch states for selected country
     fetchStates(countryId);
   };
 
   const handleStateChange = async (stateId: string) => {
     const selectedState = states.find(s => s.id.toString() === stateId);
-    setFormData(prev => ({ 
-      ...prev, 
-      stateId, 
+    setFormData(prev => ({
+      ...prev,
+      stateId,
       state: selectedState?.name || '',
       city: ''
     }));
@@ -277,14 +277,14 @@ const AddStudent = () => {
       toast({
         title: "Error",
         description: "Please check the form for errors",
-      variant: "destructive",
+        variant: "destructive",
       });
       return;
     }
 
     setLoading(true);
     try {
-      const response = await axios.post(`https://api.4pmti.com/auth/signup/student`, {
+      const response = await axios.post(`https://api.projectmanagementtraininginstitute.com/auth/signup/student`, {
         name: formData.name,
         address: formData.address,
         country: parseInt(formData.countryId),
@@ -427,8 +427,8 @@ const AddStudent = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {countries.map((country) => (
-                      <SelectItem 
-                        key={country.id} 
+                      <SelectItem
+                        key={country.id}
                         value={country.id.toString()}
                       >
                         {country.CountryName}
@@ -445,180 +445,180 @@ const AddStudent = () => {
             <div className="space-y-2">
               <Label>State</Label>
               {isLoadingDropdowns ? (
-  <Loader />
-) : (
-  <Select
-    value={formData.stateId}
-    onValueChange={handleStateChange}
-    disabled={!formData.countryId}
-  >
-    <SelectTrigger>
-      <SelectValue placeholder={formData.countryId ? "Select State" : "Select Country First"} />
-    </SelectTrigger>
-    <SelectContent>
-      {states.length > 0 ? (
-        states.map((state) => (
-          <SelectItem 
-            key={state.id} 
-            value={state.id.toString()}
-          >
-            {state.name}
-          </SelectItem>
-        ))
-      ) : (
-        <SelectItem value="no-states" disabled>
-          No states available
-        </SelectItem>
-      )}
-    </SelectContent>
-  </Select>
-)}
-{errors.state && (
-  <p className="text-xs text-red-500">{errors.state}</p>
-)}
-</div>
+                <Loader />
+              ) : (
+                <Select
+                  value={formData.stateId}
+                  onValueChange={handleStateChange}
+                  disabled={!formData.countryId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={formData.countryId ? "Select State" : "Select Country First"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {states.length > 0 ? (
+                      states.map((state) => (
+                        <SelectItem
+                          key={state.id}
+                          value={state.id.toString()}
+                        >
+                          {state.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-states" disabled>
+                        No states available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+              {errors.state && (
+                <p className="text-xs text-red-500">{errors.state}</p>
+              )}
+            </div>
 
-<div className="space-y-2">
-  <Label htmlFor="city">City</Label>
-  <div className="relative">
-    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-    <Input
-      id="city"
-      name="city"
-      value={formData.city}
-      onChange={handleChange}
-      className="pl-9 h-9"
-      placeholder="City"
-      disabled={!formData.stateId}
-    />
-  </div>
-  {errors.city && (
-    <p className="text-xs text-red-500">{errors.city}</p>
-  )}
-</div>
+            <div className="space-y-2">
+              <Label htmlFor="city">City</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="pl-9 h-9"
+                  placeholder="City"
+                  disabled={!formData.stateId}
+                />
+              </div>
+              {errors.city && (
+                <p className="text-xs text-red-500">{errors.city}</p>
+              )}
+            </div>
 
-<div className="space-y-2">
-<Label htmlFor="address">Address</Label>
-<div className="relative">
-  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-  <Input
-    id="address"
-    name="address"
-    value={formData.address}
-    onChange={handleChange}
-    className="pl-9 h-9"
-    placeholder="Address"
-  />
-</div>
-{errors.address && (
-  <p className="text-xs text-red-500">{errors.address}</p>
-)}
-</div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="pl-9 h-9"
+                  placeholder="Address"
+                />
+              </div>
+              {errors.address && (
+                <p className="text-xs text-red-500">{errors.address}</p>
+              )}
+            </div>
 
-<div className="space-y-2">
-<Label htmlFor="zipCode">Zip Code</Label>
-<div className="relative">
-  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-  <Input
-    id="zipCode"
-    name="zipCode"
-    value={formData.zipCode}
-    onChange={handleChange}
-    className="pl-9 h-9"
-    placeholder="Zip Code"
-  />
-</div>
-{errors.zipCode && (
-  <p className="text-xs text-red-500">{errors.zipCode}</p>
-)}
-</div>
+            <div className="space-y-2">
+              <Label htmlFor="zipCode">Zip Code</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="zipCode"
+                  name="zipCode"
+                  value={formData.zipCode}
+                  onChange={handleChange}
+                  className="pl-9 h-9"
+                  placeholder="Zip Code"
+                />
+              </div>
+              {errors.zipCode && (
+                <p className="text-xs text-red-500">{errors.zipCode}</p>
+              )}
+            </div>
 
-<div className="space-y-2">
-<Label htmlFor="phone">Phone</Label>
-<div className="relative">
-  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-  <Input
-    id="phone"
-    name="phone"
-    value={formData.phone}
-    onChange={handleChange}
-    className="pl-9 h-9"
-    placeholder="XXX-XXX-XXXX"
-  />
-</div>
-{errors.phone && (
-  <p className="text-xs text-red-500">{errors.phone}</p>
-)}
-</div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="pl-9 h-9"
+                  placeholder="XXX-XXX-XXXX"
+                />
+              </div>
+              {errors.phone && (
+                <p className="text-xs text-red-500">{errors.phone}</p>
+              )}
+            </div>
 
-<div className="space-y-2">
-<Label htmlFor="companyName">Company</Label>
-<div className="relative">
-  <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-  <Input
-    id="companyName"
-    name="companyName"
-    value={formData.companyName}
-    onChange={handleChange}
-    className="pl-9 h-9"
-    placeholder="Company Name"
-  />
-</div>
-{errors.companyName && (
-  <p className="text-xs text-red-500">{errors.companyName}</p>
-)}
-</div>
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Company</Label>
+              <div className="relative">
+                <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="companyName"
+                  name="companyName"
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  className="pl-9 h-9"
+                  placeholder="Company Name"
+                />
+              </div>
+              {errors.companyName && (
+                <p className="text-xs text-red-500">{errors.companyName}</p>
+              )}
+            </div>
 
-<div className="space-y-2">
-<Label htmlFor="profession">Profession</Label>
-<div className="relative">
-  <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-  <Input
-    id="profession"
-    name="profession"
-    value={formData.profession}
-    onChange={handleChange}
-    className="pl-9 h-9"
-    placeholder="Profession"
-  />
-</div>
-{errors.profession && (
-  <p className="text-xs text-red-500">{errors.profession}</p>
-)}
-</div>
+            <div className="space-y-2">
+              <Label htmlFor="profession">Profession</Label>
+              <div className="relative">
+                <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="profession"
+                  name="profession"
+                  value={formData.profession}
+                  onChange={handleChange}
+                  className="pl-9 h-9"
+                  placeholder="Profession"
+                />
+              </div>
+              {errors.profession && (
+                <p className="text-xs text-red-500">{errors.profession}</p>
+              )}
+            </div>
 
-<div className="space-y-2">
-<Label htmlFor="referredBy">Referred By (Optional)</Label>
-<div className="relative">
-  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-  <Input
-    id="referredBy"
-    name="referredBy"
-    value={formData.referredBy}
-    onChange={handleChange}
-    className="pl-9 h-9"
-    placeholder="Referred By"
-  />
-</div>
-</div>
-</div>
+            <div className="space-y-2">
+              <Label htmlFor="referredBy">Referred By (Optional)</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="referredBy"
+                  name="referredBy"
+                  value={formData.referredBy}
+                  onChange={handleChange}
+                  className="pl-9 h-9"
+                  placeholder="Referred By"
+                />
+              </div>
+            </div>
+          </div>
 
-<div className="flex justify-end pt-4">
-<Button type="submit" disabled={loading} className="w-auto px-8">
-  {loading ? (
-    <>
-      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      Adding Student...
-    </>
-  ) : (
-    "Add Student"
-  )}
-</Button>
-</div>
-</form>
-</CardContent>
-</Card>
-);
+          <div className="flex justify-end pt-4">
+            <Button type="submit" disabled={loading} className="w-auto px-8">
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding Student...
+                </>
+              ) : (
+                "Add Student"
+              )}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
 };
 
 export default AddStudent;

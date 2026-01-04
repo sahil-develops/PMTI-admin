@@ -21,19 +21,19 @@ const adminFormSchema = z.object({
   name: z.string()
     .min(3, "Name must be at least 3 characters")
     .max(100, "Name must not exceed 100 characters"),
-  
+
   designation: z.string()
     .min(2, "Designation must be at least 2 characters")
     .max(100, "Designation must not exceed 100 characters"),
-  
+
   phone: z.string()
     .regex(/^\d{10}$/, "Phone number must be 10 digits"),
-  
+
   email: z.string()
     .email("Please enter a valid email address"),
-  
+
   countryId: z.coerce.number().positive("Country is required"),
-  
+
   isSuperAdmin: z.boolean(),
   isActive: z.boolean(),
 });
@@ -86,7 +86,7 @@ const EditAdmin = ({ params }: { params: { id: string } }) => {
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const response = await fetch(`https://api.4pmti.com/admin/${params.id}`, {
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/admin/${params.id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
@@ -126,12 +126,12 @@ const EditAdmin = ({ params }: { params: { id: string } }) => {
     const fetchCountries = async () => {
       setLoadingCountries(true);
       try {
-        const response = await fetch('https://api.4pmti.com/country', {
+        const response = await fetch('https://api.projectmanagementtraininginstitute.com/country', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch countries');
         }
@@ -155,7 +155,7 @@ const EditAdmin = ({ params }: { params: { id: string } }) => {
     setShowError(false);
 
     try {
-      const response = await fetch(`https://api.4pmti.com/admin/${params.id}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/admin/${params.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -325,9 +325,8 @@ const EditAdmin = ({ params }: { params: { id: string } }) => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-              loading ? "bg-gray-400" : "bg-zinc-800 hover:bg-zinc-900"
-            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500`}
+            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${loading ? "bg-gray-400" : "bg-zinc-800 hover:bg-zinc-900"
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500`}
           >
             {loading ? "Updating..." : "Update Administrator"}
           </button>

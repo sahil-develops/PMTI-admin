@@ -73,14 +73,14 @@ const SkeletonCard = () => (
         <Skeleton className="h-4 w-full" />
       </div>
       <div className="space-y-2"></div>
-        <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-4 w-full" />
-      </div>
-      <div className="space-y-2"></div>
-        <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-4 w-full" />
-      </div>
- 
+      <Skeleton className="h-3 w-16" />
+      <Skeleton className="h-4 w-full" />
+    </div>
+    <div className="space-y-2"></div>
+    <Skeleton className="h-3 w-16" />
+    <Skeleton className="h-4 w-full" />
+  </div>
+
 );
 
 const LoadingSkeleton = () => (
@@ -149,16 +149,16 @@ export default function CourseDetails({ params }: PageProps) {
     const fetchCourse = async () => {
       try {
         const { id } = await params;
-        const response = await fetch(`https://api.4pmti.com/course/${id}`, {
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/course/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch course');
         }
-        
+
         const data: ApiResponse = await response.json();
         if (data.success && data.data.length > 0) {
           setCourse(data.data[0]);
@@ -173,7 +173,7 @@ export default function CourseDetails({ params }: PageProps) {
         toast({
           variant: "destructive",
           title: "Error",
-// @ts-ignore
+          // @ts-ignore
 
           description: error.message,
         });
@@ -183,7 +183,7 @@ export default function CourseDetails({ params }: PageProps) {
     };
 
     fetchCourse();
-// @ts-ignore
+    // @ts-ignore
   }, [params.id, toast]);
 
   if (isLoading) {
@@ -236,8 +236,8 @@ export default function CourseDetails({ params }: PageProps) {
               </div>
               <div className="p-4">
                 {course.coverImage ? (
-                  <img 
-                    src={course.coverImage} 
+                  <img
+                    src={course.coverImage}
                     alt={course.courseName}
                     className="w-full h-auto rounded-md"
                   />
@@ -265,40 +265,38 @@ export default function CourseDetails({ params }: PageProps) {
               <div className="bg-gray-50 px-4 py-2 border-b">
                 <h2 className="font-medium">Pricing Details</h2>
               </div>
-              <DetailRow 
-                label="Regular Price" 
+              <DetailRow
+                label="Regular Price"
                 value={
                   <span className="font-semibold text-green-600">
                     ${parseFloat(course.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
-                } 
+                }
               />
-              <DetailRow 
-                label="External Price" 
+              <DetailRow
+                label="External Price"
                 value={
                   <span className="font-semibold text-blue-600">
                     ${parseFloat(course.extPrice).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
-                } 
+                }
               />
-              <DetailRow 
-                label="Course Status" 
+              <DetailRow
+                label="Course Status"
                 value={
                   <div className="flex items-center">
-                    <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      course.isVisible ? 'bg-green-500' : 'bg-gray-300'
-                    }`}>
-                      <span 
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          course.isVisible ? 'translate-x-6' : 'translate-x-1'
-                        }`} 
+                    <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${course.isVisible ? 'bg-green-500' : 'bg-gray-300'
+                      }`}>
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${course.isVisible ? 'translate-x-6' : 'translate-x-1'
+                          }`}
                       />
                     </div>
                     <span className="ml-2 text-sm font-medium">
                       {course.isVisible ? 'Active' : 'Inactive'}
                     </span>
                   </div>
-                } 
+                }
               />
             </div>
 
@@ -309,24 +307,22 @@ export default function CourseDetails({ params }: PageProps) {
               </div>
               <DetailRow label="Category" value={course.category.name} />
               <DetailRow label="Category Description" value={course.category.description} />
-              <DetailRow 
-                label="Category Status" 
+              <DetailRow
+                label="Category Status"
                 value={
                   <div className="flex items-center">
-                    <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      course.category.active ? 'bg-green-500' : 'bg-gray-300'
-                    }`}>
-                      <span 
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          course.category.active ? 'translate-x-6' : 'translate-x-1'
-                        }`} 
+                    <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${course.category.active ? 'bg-green-500' : 'bg-gray-300'
+                      }`}>
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${course.category.active ? 'translate-x-6' : 'translate-x-1'
+                          }`}
                       />
                     </div>
                     <span className="ml-2 text-sm font-medium">
                       {course.category.active ? 'Active' : 'Inactive'}
                     </span>
                   </div>
-                } 
+                }
               />
               <DetailRow label="Class Type" value={course && course?.classType?.name} />
             </div>
@@ -345,21 +341,21 @@ export default function CourseDetails({ params }: PageProps) {
                 <h2 className="font-medium">Management Information</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-                <DetailRow 
-                  label="Created By" 
-                  value={`${course.createdBy.name}`} 
+                <DetailRow
+                  label="Created By"
+                  value={`${course.createdBy.name}`}
                 />
-                <DetailRow 
-                  label="Created On" 
-                  value={new Date(course.createdOn).toLocaleDateString()} 
+                <DetailRow
+                  label="Created On"
+                  value={new Date(course.createdOn).toLocaleDateString()}
                 />
-                <DetailRow 
-                  label="Updated By" 
-                  value={`${course.updatedBy.name}`} 
+                <DetailRow
+                  label="Updated By"
+                  value={`${course.updatedBy.name}`}
                 />
-                <DetailRow 
-                  label="Updated On" 
-                  value={new Date(course.updatedOn).toLocaleDateString()} 
+                <DetailRow
+                  label="Updated On"
+                  value={new Date(course.updatedOn).toLocaleDateString()}
                 />
               </div>
             </div>

@@ -40,7 +40,7 @@ const EditInstructor = () => {
   useEffect(() => {
     const fetchInstructor = async () => {
       try {
-        const response = await fetch(`https://api.4pmti.com/instructor/${id}`, {
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/instructor/${id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -48,7 +48,7 @@ const EditInstructor = () => {
           }
         });
         const data = await response.json();
-        
+
         if (data.success) {
           setFormData(data.data);
         } else {
@@ -71,7 +71,7 @@ const EditInstructor = () => {
     setError('');
 
     try {
-      const response = await fetch(`https://api.4pmti.com/instructor/${id}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/instructor/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -133,24 +133,24 @@ const EditInstructor = () => {
                 <div className='grid lg:grid-cols-2 grid-cols-1 gap-4'>
                   <div className="grid gap-2">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input 
-                      id="name" 
-                      name="name" 
+                    <Input
+                      id="name"
+                      name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      required 
+                      required
                     />
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="emailID">Email</Label>
-                    <Input 
-                      id="emailID" 
-                      name="emailID" 
-                      type="email" 
+                    <Input
+                      id="emailID"
+                      name="emailID"
+                      type="email"
                       value={formData.emailID}
                       onChange={handleInputChange}
-                      required 
+                      required
                     />
                   </div>
                 </div>
@@ -158,21 +158,21 @@ const EditInstructor = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="mobile">Mobile Number</Label>
-                    <Input 
-                      id="mobile" 
-                      name="mobile" 
-                      type="tel" 
+                    <Input
+                      id="mobile"
+                      name="mobile"
+                      type="tel"
                       value={formData.mobile}
                       onChange={handleInputChange}
-                      required 
+                      required
                     />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="telNo">Telephone Number</Label>
-                    <Input 
-                      id="telNo" 
-                      name="telNo" 
-                      type="tel" 
+                    <Input
+                      id="telNo"
+                      name="telNo"
+                      type="tel"
                       value={formData.telNo}
                       onChange={handleInputChange}
                     />
@@ -182,41 +182,41 @@ const EditInstructor = () => {
                 <div className='grid lg:grid-cols-2 grid-cols-1 gap-4'>
                   <div className="grid gap-2">
                     <Label htmlFor="billingAddress">Billing Address</Label>
-                    <Textarea 
-                      id="billingAddress" 
-                      name="billingAddress" 
+                    <Textarea
+                      id="billingAddress"
+                      name="billingAddress"
                       value={formData.billingAddress}
                       onChange={handleInputChange}
-                      required 
+                      required
                     />
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="contactAddress">Contact Address</Label>
-                    <Textarea 
-                      id="contactAddress" 
-                      name="contactAddress" 
+                    <Textarea
+                      id="contactAddress"
+                      name="contactAddress"
                       value={formData.contactAddress}
                       onChange={handleInputChange}
-                      required 
+                      required
                     />
                   </div>
                 </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="profile">Profile Description</Label>
-                  <Textarea 
-                    id="profile" 
-                    name="profile" 
+                  <Textarea
+                    id="profile"
+                    name="profile"
                     value={formData.profile}
                     onChange={handleInputChange}
-                    required 
+                    required
                   />
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="active" 
+                  <Switch
+                    id="active"
                     checked={formData.active}
                     onCheckedChange={handleSwitchChange}
                   />

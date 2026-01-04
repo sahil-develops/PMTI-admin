@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { UserPlus, AlertCircle, Trash2, X,Loader2 } from 'lucide-react';
+import { UserPlus, AlertCircle, Trash2, X, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface Student {
@@ -157,12 +157,12 @@ const StudentTable = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`https://api.4pmti.com/students`);
-      
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/students`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (data.success) {
         setStudents(data.data);
@@ -191,7 +191,7 @@ const StudentTable = () => {
 
     try {
       setDeletingId(selectedStudent.id);
-      const response = await fetch(`https://api.4pmti.com/students/${selectedStudent.id}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/students/${selectedStudent.id}`, {
         method: 'DELETE',
       });
 
@@ -226,7 +226,7 @@ const StudentTable = () => {
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0">
-          <button 
+          <button
             className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white text-sm font-medium rounded-md hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 transition-colors"
             onClick={() => router.push("/students")}
           >
@@ -277,7 +277,7 @@ const StudentTable = () => {
             ) : (
               <tbody className="bg-white divide-y divide-gray-200">
                 {students.map((student) => (
-                  <tr 
+                  <tr
                     key={student.id}
                     className="hover:bg-gray-50 transition-colors"
                   >
@@ -297,16 +297,15 @@ const StudentTable = () => {
                       {`${student.city}, ${student.state}`}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        student.active 
-                          ? 'bg-green-100 text-green-800' 
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${student.active
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
-                      }`}>
+                        }`}>
                         {student.active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button
+                      <button
                         onClick={() => handleDeleteClick(student)}
                         className="text-red-600 hover:text-red-900 disabled:opacity-50"
                         disabled={deletingId === student.id}

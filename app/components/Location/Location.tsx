@@ -63,7 +63,7 @@ export default function LocationPage() {
 
   const fetchCountries = async () => {
     try {
-      const response = await fetch('https://api.4pmti.com/country', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/country', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
@@ -81,15 +81,15 @@ export default function LocationPage() {
   const fetchLocations = async () => {
     try {
       setLoading(true)
-      const response = await fetch('https://api.4pmti.com/location', {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/location', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         }
       })
-      
+
       const data: ApiResponse = await response.json()
-      
+
       if (data.success) {
         setLocations(data.data)
         setError(null)
@@ -110,9 +110,9 @@ export default function LocationPage() {
 
   const handleStatusToggle = async (location: Location) => {
     setUpdatingLocations(prev => [...prev, location.id])
-    
+
     try {
-      const response = await fetch(`https://api.4pmti.com/location/${location.id}`, {
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/location/${location.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ export default function LocationPage() {
               : loc
           )
         )
-        
+
         toast({
           title: "Status Updated",
           description: `Location status has been ${!location.isDelete ? 'activated' : 'deactivated'} successfully.`,
@@ -163,7 +163,7 @@ export default function LocationPage() {
   const filteredLocations = locations.filter(location => {
     const matchesSearch = location.location.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesActive = showActiveOnly ? !location.isDelete : true
-    const matchesCountry = selectedCountry ? 
+    const matchesCountry = selectedCountry ?
       location.__country__?.CountryName === selectedCountry : true
     return matchesSearch && matchesActive && matchesCountry
   })
@@ -218,7 +218,7 @@ export default function LocationPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
+
         <div className="w-64">
           <Select
             value={selectedCountry}

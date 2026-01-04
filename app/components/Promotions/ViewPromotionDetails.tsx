@@ -36,9 +36,8 @@ const DetailRow = ({ label, value }: { label: string; value: string | number | b
     <span className="text-sm font-medium text-zinc-500">{label}</span>
     <span className="text-sm text-zinc-900 md:col-span-2">
       {typeof value === 'boolean' ? (
-        <span className={`px-2 py-1 rounded-full text-xs ${
-          value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
+        <span className={`px-2 py-1 rounded-full text-xs ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
           {value ? 'Active' : 'Inactive'}
         </span>
       ) : value}
@@ -55,7 +54,7 @@ export default function ViewPromotionDetails({ id }: { id: string | any }) {
   useEffect(() => {
     const fetchPromotionDetails = async () => {
       try {
-        const response = await fetch(`https://api.4pmti.com/promotions/${id}`, {
+        const response = await fetch(`https://api.projectmanagementtraininginstitute.com/promotions/${id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
           },
@@ -97,7 +96,7 @@ export default function ViewPromotionDetails({ id }: { id: string | any }) {
 
   return (
     <div>
-   <nav className="flex my-4" aria-label="Breadcrumb">
+      <nav className="flex my-4" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 text-sm">
           <li>
             <Link href="/" className="text-zinc-500 hover:text-zinc-700">
@@ -109,7 +108,7 @@ export default function ViewPromotionDetails({ id }: { id: string | any }) {
           </li>
           <li>
             <Link href="/" className="text-zinc-500 hover:text-zinc-700">
-             Promotion
+              Promotion
             </Link>
           </li>
           <li>
@@ -118,9 +117,9 @@ export default function ViewPromotionDetails({ id }: { id: string | any }) {
           <li className="text-zinc-900 font-medium">Promotion Details</li>
         </ol>
       </nav>
-    <div className="p-6 bg-white rounded-lg shadow">
-      <div className="flex items-center gap-4 mb-6">
-        {/* <Button
+      <div className="p-6 bg-white rounded-lg shadow">
+        <div className="flex items-center gap-4 mb-6">
+          {/* <Button
           variant="outline"
           onClick={() => router.push('/promotions')}
           className="flex items-center gap-2"
@@ -128,33 +127,33 @@ export default function ViewPromotionDetails({ id }: { id: string | any }) {
           <ArrowLeft size={16} />
           Back to Promotions
           </Button> */}
-        <h1 className="text-2xl font-semibold text-zinc-900">Promotion Details</h1>
-      </div>
-
-      <Card className="p-6">
-        <div className="space-y-1">
-          <DetailRow label="Promotion ID" value={promotion.promotionId} />
-          <DetailRow label="Title" value={promotion.title} />
-          <DetailRow label="Amount" value={`$${promotion.amount}`} />
-          <DetailRow label="Description" value={promotion.description} />
-          <DetailRow label="Country" value={promotion.country.CountryName} />
-          <DetailRow label="Currency" value={promotion.country.currency} />
-          <DetailRow label="Category" value={promotion.category.name} />
-          <DetailRow label="Category Description" value={promotion.category.description} />
-          <DetailRow label="Class Type" value={promotion.classType.name} />
-          <DetailRow label="Class Type Description" value={promotion.classType.description} />
-          <DetailRow 
-            label="Start Date" 
-            value={format(new Date(promotion.startDate), 'MMM dd, yyyy')} 
-            />
-          <DetailRow 
-            label="End Date" 
-            value={format(new Date(promotion.endDate), 'MMM dd, yyyy')} 
-            />
-          <DetailRow label="Status" value={promotion.active} />
+          <h1 className="text-2xl font-semibold text-zinc-900">Promotion Details</h1>
         </div>
-      </Card>
+
+        <Card className="p-6">
+          <div className="space-y-1">
+            <DetailRow label="Promotion ID" value={promotion.promotionId} />
+            <DetailRow label="Title" value={promotion.title} />
+            <DetailRow label="Amount" value={`$${promotion.amount}`} />
+            <DetailRow label="Description" value={promotion.description} />
+            <DetailRow label="Country" value={promotion.country.CountryName} />
+            <DetailRow label="Currency" value={promotion.country.currency} />
+            <DetailRow label="Category" value={promotion.category.name} />
+            <DetailRow label="Category Description" value={promotion.category.description} />
+            <DetailRow label="Class Type" value={promotion.classType.name} />
+            <DetailRow label="Class Type Description" value={promotion.classType.description} />
+            <DetailRow
+              label="Start Date"
+              value={format(new Date(promotion.startDate), 'MMM dd, yyyy')}
+            />
+            <DetailRow
+              label="End Date"
+              value={format(new Date(promotion.endDate), 'MMM dd, yyyy')}
+            />
+            <DetailRow label="Status" value={promotion.active} />
+          </div>
+        </Card>
+      </div>
     </div>
-            </div>
   );
 } 

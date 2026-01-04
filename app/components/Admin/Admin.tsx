@@ -114,7 +114,7 @@ const Admin = () => {
   useEffect(() => {
     const fetchAdmins = async () => {
       try {
-        const response = await fetch('https://api.4pmti.com/admin', {
+        const response = await fetch('https://api.projectmanagementtraininginstitute.com/admin', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
@@ -143,12 +143,12 @@ const Admin = () => {
     const fetchCountries = async () => {
       setLoadingCountries(true);
       try {
-        const response = await fetch('https://api.4pmti.com/country', {
+        const response = await fetch('https://api.projectmanagementtraininginstitute.com/country', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
           }
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch countries');
         }
@@ -171,7 +171,7 @@ const Admin = () => {
     let filtered = [...admins];
 
     if (filters.name) {
-      filtered = filtered.filter(admin => 
+      filtered = filtered.filter(admin =>
         admin.name.toLowerCase().includes(filters.name.toLowerCase()) ||
         admin.email.toLowerCase().includes(filters.name.toLowerCase()) ||
         admin.designation.toLowerCase().includes(filters.name.toLowerCase())
@@ -187,7 +187,7 @@ const Admin = () => {
     }
 
     if (filters.country) {
-      filtered = filtered.filter(admin => 
+      filtered = filtered.filter(admin =>
         admin.countryId === Number(filters.country)
       );
     }
@@ -246,8 +246,8 @@ const Admin = () => {
             </SelectTrigger>
             <SelectContent>
               {countries.map((country) => (
-                <SelectItem 
-                  key={country.id} 
+                <SelectItem
+                  key={country.id}
                   value={country.id.toString()}
                 >
                   {country.CountryName}
@@ -335,11 +335,10 @@ const Admin = () => {
                   </td>
                   <td className="px-4 py-4 text-sm">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        admin.isActive
+                      className={`px-2 py-1 rounded-full text-xs ${admin.isActive
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
-                      }`}
+                        }`}
                     >
                       {admin.isActive ? 'Active' : 'Inactive'}
                     </span>
