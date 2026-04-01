@@ -403,8 +403,20 @@ export function ClassTable() {
 
 
   const [metadata, setMetadata] = useState<Metadata | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("classes_currentPage");
+      return saved ? parseInt(saved, 10) : 1;
+    }
+    return 1;
+  });
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("classes_itemsPerPage");
+      return saved ? parseInt(saved, 10) : 10;
+    }
+    return 10;
+  });
 
 
   interface Instructor {
@@ -439,19 +451,35 @@ export function ClassTable() {
 
   const [countries, setCountries] = useState<Country[]>([]);
 
-  const [selectedCountry, setSelectedCountry] = useState<string>("52"); // Default to US
+  const [selectedCountry, setSelectedCountry] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("classes_searchParams");
+      if (saved) {
+        const params = JSON.parse(saved);
+        return params.countryId || "52";
+      }
+    }
+    return "52";
+  }); // Default to US or persisted country
   const [cities, setCities] = useState<Location[]>([]);
 
-  const [searchParams, setSearchParams] = useState<SearchParams>({
-    startFrom: "",
-    dateTo: "",
-    countryId: "52",
-    locationId: "",
-    instructorId: "",
-    courseCategoryId: "",
-    classTypeId: "",
-    showClass: "",
-    globalSearch: "",
+  const [searchParams, setSearchParams] = useState<SearchParams>(() => {
+    const defaults = {
+      startFrom: "",
+      dateTo: "",
+      countryId: "52",
+      locationId: "",
+      instructorId: "",
+      courseCategoryId: "",
+      classTypeId: "",
+      showClass: "",
+      globalSearch: "",
+    };
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("classes_searchParams");
+      return saved ? JSON.parse(saved) : defaults;
+    }
+    return defaults;
   });
 
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' });
@@ -467,18 +495,19 @@ export function ClassTable() {
     setIsClient(true);
   }, []);
 
-  // Effect to set initial US locations
+  // Effect to set initial locations for the selected country
   useEffect(() => {
     if (countries.length > 0) {
-      const unitedStates = countries.find(country => country.id === 52);
-      if (unitedStates && unitedStates.__locations__) {
-        const sortedLocations = [...unitedStates.__locations__].sort((a, b) =>
+      const countryToUse = searchParams.countryId || "52";
+      const currentCountry = countries.find(country => country.id.toString() === countryToUse);
+      if (currentCountry && currentCountry.__locations__) {
+        const sortedLocations = [...currentCountry.__locations__].sort((a, b) =>
           a.location.localeCompare(b.location)
         );
         setCities(sortedLocations);
       }
     }
-  }, [countries]);
+  }, [countries, searchParams.countryId]);
 
   const fetchDropdownData = async () => {
     try {
@@ -547,37 +576,8 @@ export function ClassTable() {
     return Number(classItem.maxStudent) - enrolled;
   };
 
-  // Initial data fetch
-  useEffect(() => {
-    async function fetchInitialClasses() {
-      try {
-        setLoading(true);
-        const response = await fetch(
-          `https://api.projectmanagementtraininginstitute.com/class`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch classes');
-        }
-
-        const data = await response.json();
-        setClasses(data.data.data);
-        setMetadata(data.data.metadata);
-      } catch (error) {
-        console.error('Error fetching classes:', error);
-        setError(error instanceof Error ? error.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchInitialClasses();
-  }, []); // Empty dependency array for initial load only
+  // Initial data fetch removed as handleSearch now handles initial load
+  // and respects persisted filters.
 
   // Add this new state for items per page options
   const itemsPerPageOptions = [5, 10, 20, 50];
@@ -590,38 +590,41 @@ export function ClassTable() {
   };
 
   // Update the handleSearch function to handle dates properly
-  const handleSearch = async () => {
+  const handleSearch = async (overrideParams?: SearchParams, overridePage?: number, overrideLimit?: number) => {
     try {
       setLoading(true);
+      const paramsToUse = overrideParams || searchParams;
+      const pageToUse = overridePage || currentPage;
+      const limitToUse = overrideLimit || itemsPerPage;
 
       // Build query parameters
       const queryParams = new URLSearchParams();
 
       // Add pagination parameters
-      queryParams.append('page', currentPage.toString());
-      queryParams.append('limit', itemsPerPage.toString());
+      queryParams.append('page', pageToUse.toString());
+      queryParams.append('limit', limitToUse.toString());
 
       // Add date parameters without time components
-      if (searchParams.startFrom) {
-        queryParams.append('startFrom', searchParams.startFrom);
+      if (paramsToUse.startFrom) {
+        queryParams.append('startFrom', paramsToUse.startFrom);
       }
 
-      if (searchParams.dateTo) {
-        queryParams.append('dateTo', searchParams.dateTo);
+      if (paramsToUse.dateTo) {
+        queryParams.append('dateTo', paramsToUse.dateTo);
       }
 
       // Add other search parameters
-      if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId);
-      if (searchParams.locationId) queryParams.append('locationId', searchParams.locationId);
-      if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
-      if (searchParams.courseCategoryId) queryParams.append('courseCategory', searchParams.courseCategoryId);
-      if (searchParams.classTypeId) queryParams.append('classType', searchParams.classTypeId);
+      if (paramsToUse.countryId) queryParams.append('countryId', paramsToUse.countryId);
+      if (paramsToUse.locationId) queryParams.append('locationId', paramsToUse.locationId);
+      if (paramsToUse.instructorId) queryParams.append('instructorId', paramsToUse.instructorId);
+      if (paramsToUse.courseCategoryId) queryParams.append('courseCategory', paramsToUse.courseCategoryId);
+      if (paramsToUse.classTypeId) queryParams.append('classType', paramsToUse.classTypeId);
 
       // Add global search parameter if present
-      if (searchParams.globalSearch) queryParams.append('search', searchParams.globalSearch);
+      if (paramsToUse.globalSearch) queryParams.append('search', paramsToUse.globalSearch);
 
       // Add status parameters based on showClass value
-      switch (searchParams.showClass) {
+      switch (paramsToUse.showClass) {
         case "active":
           queryParams.append('status', 'active');
           break;
@@ -659,6 +662,13 @@ export function ClassTable() {
       setClasses(data.data.data);
       setMetadata(data.data.metadata);
 
+      // Save to sessionStorage
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('classes_searchParams', JSON.stringify(paramsToUse));
+        sessionStorage.setItem('classes_currentPage', pageToUse.toString());
+        sessionStorage.setItem('classes_itemsPerPage', limitToUse.toString());
+      }
+
     } catch (error) {
       console.error('Error fetching classes:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
@@ -680,10 +690,10 @@ export function ClassTable() {
     }
   };
 
-  // Add useEffect to trigger search when page changes
+  // Add useEffect to trigger search when page or items per page changes
   useEffect(() => {
     handleSearch();
-  }, [currentPage]); // Add currentPage as dependency
+  }, [currentPage, itemsPerPage]); // Add itemsPerPage to dependencies
 
   // Country change handler
   const handleCountryChange = async (countryId: string) => {
@@ -716,7 +726,7 @@ export function ClassTable() {
 
   // Update handleReset function
   async function handleReset(event: React.MouseEvent<HTMLButtonElement>): Promise<void> {
-    setSearchParams({
+    const defaults = {
       startFrom: '',
       dateTo: '',
       countryId: '52',
@@ -726,8 +736,22 @@ export function ClassTable() {
       classTypeId: '',
       showClass: '',
       globalSearch: ''
-    });
-    // ... rest of reset function
+    };
+
+    setSearchParams(defaults);
+    setSelectedCountry('52');
+
+    // Clear sessionStorage on reset
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('classes_searchParams');
+      sessionStorage.removeItem('classes_currentPage');
+      sessionStorage.removeItem('classes_itemsPerPage');
+    }
+
+    setCurrentPage(1); // Set page back to 1
+
+    // Trigger a fresh search with defaults immediately
+    handleSearch(defaults, 1);
   }
 
   // Update this function to properly refresh data
@@ -1124,7 +1148,7 @@ export function ClassTable() {
               ))}
             </select>
             <button
-              onClick={handleSearch}
+              onClick={() => handleSearch()}
               className="bg-zinc-800 text-white px-6 py-2 rounded hover:bg-zinc-700"
             >
               Search
@@ -1232,10 +1256,10 @@ export function ClassTable() {
                     <TableCell>
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${classItem.status === "active"
-                            ? "bg-green-100 text-green-800"
-                            : classItem.status === "inactive"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                          ? "bg-green-100 text-green-800"
+                          : classItem.status === "inactive"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
                           }`}
                       >
                         {classItem.status === "active"
