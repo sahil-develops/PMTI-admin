@@ -273,8 +273,8 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
                   <p className="text-sm font-medium text-gray-500">Status</p>
                   <p>
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${studentData.student.active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
                       }`}>
                       {studentData.student.active ? 'Active' : 'Inactive'}
                     </span>
@@ -356,8 +356,8 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
                         <div className="space-y-1">
                           <p className="text-sm font-medium text-gray-500">Status</p>
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${enrollment.status
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
                             }`}>
                             {enrollment.status ? 'Active' : 'Inactive'}
                           </span>
@@ -797,13 +797,16 @@ const Students = () => {
 
   const uniqueStates = Array.from(new Set(
     students.map(student => {
-      if (student.state && typeof student.state === 'string') {
-        return student.state;
+      if (student.state && typeof student.state === 'object') {
+        return (student.state as any).name;
       }
-      return 'Unknown';
+      return typeof student.state === 'string' ? student.state : null;
     })
-  )).filter(Boolean).sort();
-  const uniqueProfessions = Array.from(new Set(students.map(student => student.profession))).sort();
+  )).filter((state): state is string => !!state && state.trim() !== "").sort();
+
+  const uniqueProfessions = Array.from(new Set(
+    students.map(student => student.profession)
+  )).filter((profession): profession is string => !!profession && profession.trim() !== "").sort();
 
   useEffect(() => {
     fetchStudents();
@@ -1132,8 +1135,8 @@ const Students = () => {
                         <td className="px-4 py-3 text-gray-500">{student.phone || 'N/A'}</td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${student.active
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
                             }`}>
                             {student.active ? 'Active' : 'Inactive'}
                           </span>
