@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   Search,
   Plus,
@@ -251,30 +251,30 @@ const ActionDropdown = ({
               onClick={() => setIsOpen(false)}
             />
             <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white z-20 py-1">
-              <button
-                onClick={() => handleAction("details")}
+              <Link
+                href={`/class-details/${classId}`}
                 className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
-                disabled={isDeleting}
+                onClick={() => setIsOpen(false)}
               >
                 <Eye size={16} />
                 View details
-              </button>
-              <button
-                onClick={() => handleAction("edit")}
+              </Link>
+              <Link
+                href={`/editClass/${classId}`}
                 className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
-                disabled={isDeleting}
+                onClick={() => setIsOpen(false)}
               >
                 <Edit2 size={16} />
                 Edit details
-              </button>
-              <button
-                onClick={() => handleAction("roster")}
+              </Link>
+              <Link
+                href={`/view-roaster/${classId}`}
                 className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 flex items-center gap-2"
-                disabled={isDeleting}
+                onClick={() => setIsOpen(false)}
               >
                 <User size={16} />
                 View roster
-              </button>
+              </Link>
               {enrolledCount === 0 && (
                 <button
                   onClick={() => handleAction("delete")}
@@ -401,23 +401,31 @@ export function ClassTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const searchParamsFromURL = useSearchParams();
+  const pathname = usePathname();
 
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [currentPage, setCurrentPage] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("classes_currentPage");
-      return saved ? parseInt(saved, 10) : 1;
-    }
-    return 1;
-  });
-  const [itemsPerPage, setItemsPerPage] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("classes_itemsPerPage");
-      return saved ? parseInt(saved, 10) : 10;
-    }
-    return 10;
+    const page = searchParamsFromURL.get('page');
+    return page ? parseInt(page, 10) : 1;
   });
 
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const limit = searchParamsFromURL.get('limit');
+    return limit ? parseInt(limit, 10) : 10;
+  });
+
+  const [searchParams, setSearchParams] = useState<SearchParams>({
+    startFrom: searchParamsFromURL.get('startFrom') || "",
+    dateTo: searchParamsFromURL.get('dateTo') || "",
+    countryId: searchParamsFromURL.get('countryId') || "52",
+    locationId: searchParamsFromURL.get('locationId') || "",
+    instructorId: searchParamsFromURL.get('instructorId') || "",
+    courseCategoryId: searchParamsFromURL.get('courseCategory') || "",
+    classTypeId: searchParamsFromURL.get('classType') || "",
+    showClass: searchParamsFromURL.get('showClass') || "",
+    globalSearch: searchParamsFromURL.get('search') || "",
+  });
 
   interface Instructor {
     id: number;
@@ -451,36 +459,8 @@ export function ClassTable() {
 
   const [countries, setCountries] = useState<Country[]>([]);
 
-  const [selectedCountry, setSelectedCountry] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("classes_searchParams");
-      if (saved) {
-        const params = JSON.parse(saved);
-        return params.countryId || "52";
-      }
-    }
-    return "52";
-  }); // Default to US or persisted country
+  const [selectedCountry, setSelectedCountry] = useState<string>("52"); // Default to US
   const [cities, setCities] = useState<Location[]>([]);
-
-  const [searchParams, setSearchParams] = useState<SearchParams>(() => {
-    const defaults = {
-      startFrom: "",
-      dateTo: "",
-      countryId: "52",
-      locationId: "",
-      instructorId: "",
-      courseCategoryId: "",
-      classTypeId: "",
-      showClass: "",
-      globalSearch: "",
-    };
-    if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("classes_searchParams");
-      return saved ? JSON.parse(saved) : defaults;
-    }
-    return defaults;
-  });
 
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: '', direction: 'asc' });
 
@@ -495,19 +475,18 @@ export function ClassTable() {
     setIsClient(true);
   }, []);
 
-  // Effect to set initial locations for the selected country
+  // Effect to set initial US locations
   useEffect(() => {
     if (countries.length > 0) {
-      const countryToUse = searchParams.countryId || "52";
-      const currentCountry = countries.find(country => country.id.toString() === countryToUse);
-      if (currentCountry && currentCountry.__locations__) {
-        const sortedLocations = [...currentCountry.__locations__].sort((a, b) =>
+      const unitedStates = countries.find(country => country.id === 52);
+      if (unitedStates && unitedStates.__locations__) {
+        const sortedLocations = [...unitedStates.__locations__].sort((a, b) =>
           a.location.localeCompare(b.location)
         );
         setCities(sortedLocations);
       }
     }
-  }, [countries, searchParams.countryId]);
+  }, [countries]);
 
   const fetchDropdownData = async () => {
     try {
@@ -576,8 +555,7 @@ export function ClassTable() {
     return Number(classItem.maxStudent) - enrolled;
   };
 
-  // Initial data fetch removed as handleSearch now handles initial load
-  // and respects persisted filters.
+
 
   // Add this new state for items per page options
   const itemsPerPageOptions = [5, 10, 20, 50];
@@ -590,41 +568,34 @@ export function ClassTable() {
   };
 
   // Update the handleSearch function to handle dates properly
-  const handleSearch = async (overrideParams?: SearchParams, overridePage?: number, overrideLimit?: number) => {
+  const handleSearch = async () => {
     try {
       setLoading(true);
-      const paramsToUse = overrideParams || searchParams;
-      const pageToUse = overridePage || currentPage;
-      const limitToUse = overrideLimit || itemsPerPage;
 
       // Build query parameters
       const queryParams = new URLSearchParams();
 
       // Add pagination parameters
-      queryParams.append('page', pageToUse.toString());
-      queryParams.append('limit', limitToUse.toString());
+      queryParams.append('page', currentPage.toString());
+      queryParams.append('limit', itemsPerPage.toString());
 
-      // Add date parameters without time components
-      if (paramsToUse.startFrom) {
-        queryParams.append('startFrom', paramsToUse.startFrom);
-      }
-
-      if (paramsToUse.dateTo) {
-        queryParams.append('dateTo', paramsToUse.dateTo);
-      }
+      // Add date parameters
+      if (searchParams.startFrom) queryParams.append('startFrom', searchParams.startFrom);
+      if (searchParams.dateTo) queryParams.append('dateTo', searchParams.dateTo);
 
       // Add other search parameters
-      if (paramsToUse.countryId) queryParams.append('countryId', paramsToUse.countryId);
-      if (paramsToUse.locationId) queryParams.append('locationId', paramsToUse.locationId);
-      if (paramsToUse.instructorId) queryParams.append('instructorId', paramsToUse.instructorId);
-      if (paramsToUse.courseCategoryId) queryParams.append('courseCategory', paramsToUse.courseCategoryId);
-      if (paramsToUse.classTypeId) queryParams.append('classType', paramsToUse.classTypeId);
+      if (searchParams.countryId) queryParams.append('countryId', searchParams.countryId);
+      if (searchParams.locationId) queryParams.append('locationId', searchParams.locationId);
+      if (searchParams.instructorId) queryParams.append('instructorId', searchParams.instructorId);
+      if (searchParams.courseCategoryId) queryParams.append('courseCategory', searchParams.courseCategoryId);
+      if (searchParams.classTypeId) queryParams.append('classType', searchParams.classTypeId);
+      if (searchParams.globalSearch) queryParams.append('search', searchParams.globalSearch);
 
-      // Add global search parameter if present
-      if (paramsToUse.globalSearch) queryParams.append('search', paramsToUse.globalSearch);
+      // Sync URL with current search parameters
+      router.push(`${pathname}?${queryParams.toString()}`, { scroll: false });
 
       // Add status parameters based on showClass value
-      switch (paramsToUse.showClass) {
+      switch (searchParams.showClass) {
         case "active":
           queryParams.append('status', 'active');
           break;
@@ -662,13 +633,6 @@ export function ClassTable() {
       setClasses(data.data.data);
       setMetadata(data.data.metadata);
 
-      // Save to sessionStorage
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('classes_searchParams', JSON.stringify(paramsToUse));
-        sessionStorage.setItem('classes_currentPage', pageToUse.toString());
-        sessionStorage.setItem('classes_itemsPerPage', limitToUse.toString());
-      }
-
     } catch (error) {
       console.error('Error fetching classes:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
@@ -690,10 +654,10 @@ export function ClassTable() {
     }
   };
 
-  // Add useEffect to trigger search when page or items per page changes
+  // Add useEffect to trigger search when page changes
   useEffect(() => {
     handleSearch();
-  }, [currentPage, itemsPerPage]); // Add itemsPerPage to dependencies
+  }, [currentPage, itemsPerPage]); // Add currentPage and itemsPerPage as dependencies
 
   // Country change handler
   const handleCountryChange = async (countryId: string) => {
@@ -726,7 +690,7 @@ export function ClassTable() {
 
   // Update handleReset function
   async function handleReset(event: React.MouseEvent<HTMLButtonElement>): Promise<void> {
-    const defaults = {
+    const defaultParams = {
       startFrom: '',
       dateTo: '',
       countryId: '52',
@@ -737,21 +701,9 @@ export function ClassTable() {
       showClass: '',
       globalSearch: ''
     };
-
-    setSearchParams(defaults);
-    setSelectedCountry('52');
-
-    // Clear sessionStorage on reset
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('classes_searchParams');
-      sessionStorage.removeItem('classes_currentPage');
-      sessionStorage.removeItem('classes_itemsPerPage');
-    }
-
-    setCurrentPage(1); // Set page back to 1
-
-    // Trigger a fresh search with defaults immediately
-    handleSearch(defaults, 1);
+    setSearchParams(defaultParams);
+    setCurrentPage(1);
+    router.push(pathname); // Clear URL parameters
   }
 
   // Update this function to properly refresh data
@@ -1148,7 +1100,7 @@ export function ClassTable() {
               ))}
             </select>
             <button
-              onClick={() => handleSearch()}
+              onClick={handleSearch}
               className="bg-zinc-800 text-white px-6 py-2 rounded hover:bg-zinc-700"
             >
               Search
