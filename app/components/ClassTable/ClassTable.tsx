@@ -407,24 +407,67 @@ export function ClassTable() {
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [currentPage, setCurrentPage] = useState(() => {
     const page = searchParamsFromURL.get('page');
-    return page ? parseInt(page, 10) : 1;
+    if (page) return parseInt(page, 10);
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("classTableFilters");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.page || 1;
+      }
+    }
+    return 1;
   });
 
   const [itemsPerPage, setItemsPerPage] = useState(() => {
     const limit = searchParamsFromURL.get('limit');
-    return limit ? parseInt(limit, 10) : 10;
+    if (limit) return parseInt(limit, 10);
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("classTableFilters");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.limit || 10;
+      }
+    }
+    return 10;
   });
 
-  const [searchParams, setSearchParams] = useState<SearchParams>({
-    startFrom: searchParamsFromURL.get('startFrom') || "",
-    dateTo: searchParamsFromURL.get('dateTo') || "",
-    countryId: searchParamsFromURL.get('countryId') || "52",
-    locationId: searchParamsFromURL.get('locationId') || "",
-    instructorId: searchParamsFromURL.get('instructorId') || "",
-    courseCategoryId: searchParamsFromURL.get('courseCategory') || "",
-    classTypeId: searchParamsFromURL.get('classType') || "",
-    showClass: searchParamsFromURL.get('showClass') || "",
-    globalSearch: searchParamsFromURL.get('search') || "",
+  const [searchParams, setSearchParams] = useState<SearchParams>(() => {
+    const initialParams = {
+      startFrom: searchParamsFromURL.get('startFrom') || "",
+      dateTo: searchParamsFromURL.get('dateTo') || "",
+      countryId: searchParamsFromURL.get('countryId') || "52",
+      locationId: searchParamsFromURL.get('locationId') || "",
+      instructorId: searchParamsFromURL.get('instructorId') || "",
+      courseCategoryId: searchParamsFromURL.get('courseCategory') || "",
+      classTypeId: searchParamsFromURL.get('classType') || "",
+      showClass: searchParamsFromURL.get('showClass') || "",
+      globalSearch: searchParamsFromURL.get('search') || "",
+    };
+
+    // If any URL param is present (except page/limit), use URL params
+    const hasURLParams = Array.from(searchParamsFromURL.keys()).some(k => !['page', 'limit'].includes(k));
+    if (hasURLParams) return initialParams;
+
+    // Otherwise check localStorage
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("classTableFilters");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          startFrom: parsed.startFrom || "",
+          dateTo: parsed.dateTo || "",
+          countryId: parsed.countryId || "52",
+          locationId: parsed.locationId || "",
+          instructorId: parsed.instructorId || "",
+          courseCategoryId: parsed.courseCategoryId || "",
+          classTypeId: parsed.classTypeId || "",
+          showClass: parsed.showClass || "",
+          globalSearch: parsed.globalSearch || "",
+        };
+      }
+    }
+
+    return initialParams;
   });
 
   interface Instructor {
@@ -579,6 +622,15 @@ export function ClassTable() {
       queryParams.append('page', currentPage.toString());
       queryParams.append('limit', itemsPerPage.toString());
 
+      // Save to localStorage for sticky persistence
+      if (typeof window !== "undefined") {
+        localStorage.setItem("classTableFilters", JSON.stringify({
+          page: currentPage,
+          limit: itemsPerPage,
+          ...searchParams
+        }));
+      }
+
       // Add date parameters
       if (searchParams.startFrom) queryParams.append('startFrom', searchParams.startFrom);
       if (searchParams.dateTo) queryParams.append('dateTo', searchParams.dateTo);
@@ -644,13 +696,13 @@ export function ClassTable() {
   // Update the pagination handlers
   const handlePreviousPage = () => {
     if (metadata && metadata.hasPrevious) {
-      setCurrentPage(prev => prev - 1);
+      setCurrentPage((prev: number) => prev - 1);
     }
   };
 
   const handleNextPage = () => {
     if (metadata && metadata.hasNext) {
-      setCurrentPage(prev => prev + 1);
+      setCurrentPage((prev: number) => prev + 1);
     }
   };
 
@@ -703,6 +755,9 @@ export function ClassTable() {
     };
     setSearchParams(defaultParams);
     setCurrentPage(1);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("classTableFilters");
+    }
     router.push(pathname); // Clear URL parameters
   }
 
