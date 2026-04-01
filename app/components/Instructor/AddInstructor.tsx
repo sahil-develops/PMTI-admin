@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -53,7 +53,7 @@ const Breadcrumb = () => {
 const Confetti = () => {
   const confettiCount = 50;
   const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD'];
-  
+
   return (
     <div className="fixed inset-0 pointer-events-none">
       {[...Array(confettiCount)].map((_, i) => {
@@ -103,49 +103,146 @@ const AddInstructor = () => {
   const [success, setSuccess] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [mobileError, setMobileError] = useState('');
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    emailID: '',
+    mobile: '',
+    telNo: '',
+    billingAddress: '',
+    contactAddress: '',
+    profile: '',
+    active: false,
+  });
+
+  // Validation State
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const patterns = {
+    name: /^[A-Za-z\s]{2,50}$/,
+    emailID: /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/,
+    mobile: /^[1-9]\d{9}$/,
+    telNo: /^[0-9]{10,12}$/,
+    address: /^[A-Za-z0-9\s,.'&\-<>\/]{10,200}$/,
+    profile: /^[A-Za-z0-9\s,.!?-]{20,500}$/,
+  };
+
+  const validateField = (name: string, value: string) => {
+    let error = '';
+    switch (name) {
+      case 'name':
+        if (!value) error = 'Full name is required';
+        else if (!patterns.name.test(value)) error = 'Name should only contain letters and spaces (2-50 chars)';
+        break;
+      case 'emailID':
+        if (!value) error = 'Email is required';
+        else if (!patterns.emailID.test(value)) error = 'Please enter a valid email address';
+        break;
+      case 'mobile':
+        if (!value) error = 'Mobile number is required';
+        else if (!patterns.mobile.test(value)) error = 'Enter a valid 10-digit mobile number (not starting with 0)';
+        break;
+      case 'telNo':
+        if (!value) error = 'Telephone number is required';
+        else if (!patterns.telNo.test(value)) error = 'Telephone should be 10-12 digits';
+        break;
+      case 'billingAddress':
+        if (!value) error = 'Billing address is required';
+        else if (value.length < 10) error = 'Address must be at least 10 characters';
+        else if (value.length > 200) error = 'Address must not exceed 200 characters';
+        else if (!patterns.address.test(value)) error = 'Address contains invalid characters';
+        break;
+      case 'contactAddress':
+        if (!value) error = 'Contact address is required';
+        else if (value.length < 10) error = 'Address must be at least 10 characters';
+        else if (value.length > 200) error = 'Address must not exceed 200 characters';
+        else if (!patterns.address.test(value)) error = 'Address contains invalid characters';
+        break;
+      case 'profile':
+        if (!value) error = 'Profile description is required';
+        else if (value.length < 20) error = 'Profile must be at least 20 characters';
+        else if (value.length > 500) error = 'Profile must not exceed 500 characters';
+        else if (!patterns.profile.test(value)) error = 'Profile contains invalid characters';
+        break;
+    }
+    return error;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    const error = validateField(name, value);
+    if (error) {
+      setErrors(prev => ({ ...prev, [name]: error }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    setMobileError('');
 
-    const formData = new FormData(e.target as HTMLFormElement);
-    const mobile = formData.get('mobile')?.toString() || '';
+    // Validate all fields
+    const newErrors: Record<string, string> = {};
+    Object.keys(formData).forEach(key => {
+      if (key !== 'active') {
+        const error = validateField(key, formData[key as keyof typeof formData] as string);
+        if (error) newErrors[key] = error;
+      }
+    });
 
-    // Validate mobile number length
-    if (mobile.length !== 10) {
-      setMobileError('Mobile number must be exactly 10 digits');
-      setLoading(false);
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      // Scroll to first error
+      const firstErrorField = Object.keys(newErrors)[0];
+      const element = document.getElementsByName(firstErrorField)[0];
+      if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
+    setLoading(true);
+    setError('');
+
     const data = {
-      name: formData.get('name')?.toString() || '',
-      emailID: formData.get('emailID')?.toString() || '',
-      mobile,
-      telNo: formData.get('telNo')?.toString() || '',
+      ...formData,
       password: 'Default@123',
-      billingAddress: formData.get('billingAddress')?.toString() || '',
-      contactAddress: formData.get('contactAddress')?.toString() || '',
-      profile: formData.get('profile')?.toString() || '',
       isDelete: false,
-      active: formData.get('active') === 'true'
     };
 
     try {
       const response = await api.post('/auth/signup/instructor', data);
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'Signup failed');
       }
-      
+
       setSuccess(true);
       setShowSuccessModal(true);
       window.location.href = '/instructors';
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Something went wrong';
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      let errorMessage = 'Something went wrong. Please try again.';
+
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
       setError(errorMessage);
       setShowErrorModal(true);
     } finally {
@@ -157,7 +254,7 @@ const AddInstructor = () => {
     <>
       <div className="flex flex-col min-h-screen w-full p-4 space-y-4">
         <Breadcrumb />
-        
+
         <Card className="w-full max-w-full">
           <CardHeader>
             <CardTitle>Instructor Signup</CardTitle>
@@ -169,25 +266,31 @@ const AddInstructor = () => {
                 <div className='grid lg:grid-cols-2 grid-cols-1 gap-4'>
                   <div className="grid gap-2">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input 
-                      id="name" 
-                      name="name" 
-                      required 
-                      pattern="^[A-Za-z\s]{2,50}$"
-                      title="Name should only contain letters and spaces, between 2 and 50 characters"
+                    <Input
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      required
+                      className={errors.name ? "border-red-500" : ""}
                     />
+                    {errors.name && <span className="text-xs text-red-500">{errors.name}</span>}
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="emailID">Email</Label>
-                    <Input 
-                      id="emailID" 
-                      name="emailID" 
-                      type="email" 
-                      required 
-                      pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
-                      title="Please enter a valid email address"
+                    <Input
+                      id="emailID"
+                      name="emailID"
+                      type="email"
+                      value={formData.emailID}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      required
+                      className={errors.emailID ? "border-red-500" : ""}
                     />
+                    {errors.emailID && <span className="text-xs text-red-500">{errors.emailID}</span>}
                   </div>
                 </div>
 
@@ -195,99 +298,90 @@ const AddInstructor = () => {
                   <div className="grid gap-2">
                     <div className="flex justify-between items-center">
                       <Label htmlFor="mobile">Mobile Number</Label>
-                      <span className="text-sm text-muted-foreground">Must be 10 digits</span>
+                      <span className="text-xs text-muted-foreground">10 digits</span>
                     </div>
-                    <Input 
-                      id="mobile" 
-                      name="mobile" 
-                      type="tel" 
-                      required 
-                      pattern="^[1-9]\d{9}$"
-                      title="Please enter a valid 10-digit mobile number starting with 6-9"
-                      onChange={() => setMobileError('')}
+                    <Input
+                      id="mobile"
+                      name="mobile"
+                      type="tel"
+                      value={formData.mobile}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      required
                       placeholder="Enter 10 digit mobile number"
+                      className={errors.mobile ? "border-red-500" : ""}
                     />
-                    {mobileError && (
-                      <span className="text-sm text-red-500">{mobileError}</span>
-                    )}
+                    {errors.mobile && <span className="text-xs text-red-500">{errors.mobile}</span>}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="telNo">Telephone Number</Label>
-                    <Input 
-                      id="telNo" 
-                      name="telNo" 
+                    <Input
+                      id="telNo"
+                      name="telNo"
                       type="tel"
-                      pattern="^[0-9]{10,12}$"
-                      title="Please enter a valid telephone number between 10-12 digits"
+                      value={formData.telNo}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      required
+                      className={errors.telNo ? "border-red-500" : ""}
                     />
+                    {errors.telNo && <span className="text-xs text-red-500">{errors.telNo}</span>}
                   </div>
-                </div>
-
-                <div className="grid gap-2">
-                  {/* Removed Password Field */}
-                  {/* <Label htmlFor="password">Password</Label>
-                  <Input id="password" name="password" type="password" required /> */}
                 </div>
 
                 <div className='grid lg:grid-cols-2 grid-cols-1 gap-4'>
                   <div className="grid gap-2">
                     <Label htmlFor="billingAddress">Billing Address</Label>
-                    <Textarea 
-                      id="billingAddress" 
-                      name="billingAddress" 
-                      required 
+                    <Textarea
+                      id="billingAddress"
+                      name="billingAddress"
+                      value={formData.billingAddress}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      required
                       maxLength={200}
-                      // @ts-ignore
-                      pattern="^[A-Za-z0-9\s,.'&\-<>\/]{10,200}$"
-                      title="Address should be between 10 and 200 characters"
+                      className={errors.billingAddress ? "border-red-500" : ""}
                     />
+                    {errors.billingAddress && <span className="text-xs text-red-500">{errors.billingAddress}</span>}
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="contactAddress">Contact Address</Label>
-                    <Textarea 
-                      id="contactAddress" 
-                      name="contactAddress" 
-                      required 
+                    <Textarea
+                      id="contactAddress"
+                      name="contactAddress"
+                      value={formData.contactAddress}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      required
                       maxLength={200}
-                      // @ts-ignore
-                      pattern="^[A-Za-z0-9\s,.'&\-<>\/]{10,200}$"
-                      title="Address should be between 10 and 200 characters"
+                      className={errors.contactAddress ? "border-red-500" : ""}
                     />
+                    {errors.contactAddress && <span className="text-xs text-red-500">{errors.contactAddress}</span>}
                   </div>
                 </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="profile">Profile Description</Label>
-                  <Textarea 
-                    id="profile" 
-                    name="profile" 
-                    required 
+                  <Textarea
+                    id="profile"
+                    name="profile"
+                    value={formData.profile}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    required
                     maxLength={500}
-                      // @ts-ignore
-
-                    pattern="^[A-Za-z0-9\s,.!?-]{20,500}$"
-                    title="Profile description should be between 20 and 500 characters"
+                    className={errors.profile ? "border-red-500" : ""}
                   />
+                  {errors.profile && <span className="text-xs text-red-500">{errors.profile}</span>}
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="active" 
-                    name="active" 
-                    defaultChecked={false}
-                    onCheckedChange={(checked) => {
-                      const input = document.createElement('input');
-                      input.type = 'hidden';
-                      input.name = 'active';
-                      input.value = checked.toString();
-                      const form = document.querySelector('form');
-                      const existingInput = form?.querySelector('input[name="active"]');
-                      if (existingInput) {
-                        existingInput.remove();
-                      }
-                      form?.appendChild(input);
-                    }}
+                  <Switch
+                    id="active"
+                    name="active"
+                    checked={formData.active}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, active: checked }))}
                   />
                   <Label htmlFor="active">Active Account</Label>
                 </div>
@@ -329,7 +423,7 @@ const AddInstructor = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => setShowSuccessModal(false)}
               className="bg-green-600 hover:bg-green-700"
             >
