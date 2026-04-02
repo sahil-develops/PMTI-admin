@@ -68,6 +68,12 @@ const AddAdmin = () => {
   } = useForm<AdminFormData>({
     resolver: zodResolver(adminFormSchema),
     defaultValues: {
+      name: "",
+      designation: "",
+      email: "",
+      phone: "",
+      password: "",
+      countryId: 0,
       isActive: true,
       isSuperAdmin: false,
     }
