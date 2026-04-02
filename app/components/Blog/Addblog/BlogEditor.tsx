@@ -16,7 +16,7 @@ const CustomBold = Bold.extend({
   addCommands() {
     return {
       ...this.parent?.(),
-      toggleBold: () => ({ commands, editor }) => {
+      toggleBold: () => ({ commands, editor }: { commands: any, editor: any }) => {
         // Only allow bold in paragraphs and text nodes, not in headings
         const { state } = editor;
         const { selection } = state;
