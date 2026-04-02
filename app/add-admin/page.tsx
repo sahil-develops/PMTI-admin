@@ -60,13 +60,15 @@ const AddAdmin = () => {
   const [loadingCountries, setLoadingCountries] = useState(false);
 
   const {
+
     register,
     handleSubmit,
     setValue,
     watch,
-    formState: { errors }
+    formState: { errors },
   } = useForm<AdminFormData>({
     resolver: zodResolver(adminFormSchema),
+
     defaultValues: {
       name: "",
       designation: "",
