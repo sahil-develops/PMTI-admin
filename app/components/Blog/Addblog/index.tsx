@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
+import { Extension } from '@tiptap/core';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
@@ -17,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { Editor } from '@tiptap/react';
+import { Editor } from '@tiptap/core';
 import Link from '@tiptap/extension-link';
 import Table from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
@@ -319,22 +320,22 @@ const CustomImage = Image.extend({
       ...this.parent?.(),
       width: {
         default: '100%',
-        parseHTML: element => element.getAttribute('width'),
-        renderHTML: attributes => ({
+        parseHTML: (element: HTMLElement) => element.getAttribute('width'),
+        renderHTML: (attributes: { width?: string }) => ({
           width: attributes.width,
         }),
       },
       layout: {
         default: 'block',
-        parseHTML: element => element.getAttribute('data-layout'),
-        renderHTML: attributes => ({
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-layout'),
+        renderHTML: (attributes: { layout?: string }) => ({
           'data-layout': attributes.layout,
         }),
       },
       alignment: {
         default: 'left',
-        parseHTML: element => element.style.float || element.style.textAlign,
-        renderHTML: attributes => {
+        parseHTML: (element: HTMLElement) => element.style.float || (element.style.textAlign as string),
+        renderHTML: (attributes: { layout?: string, alignment?: string }) => {
           const layout = attributes.layout;
           const alignment = attributes.alignment;
 
@@ -709,7 +710,7 @@ const MenuBar = ({ editor, faqs, insertFaqsIntoContent }: {
     if (level === 1) {
       // Check if H1 already exists
       let hasH1 = false;
-      editor.state.doc.descendants((node) => {
+      editor.state.doc.descendants((node: any) => {
         if (node.type.name === 'heading' && node.attrs.level === 1) {
           hasH1 = true;
           return false; // Stop traversing
@@ -1415,7 +1416,7 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
         return {
           'Mod-Alt-1': () => {
             // Check if H1 already exists
-            const hasH1 = this.editor.state.doc.descendants((node) => {
+            const hasH1 = this.editor.state.doc.descendants((node: any) => {
               return node.type.name === 'heading' && node.attrs.level === 1;
               // @ts-ignore
             }).some((node: { type: { name: string; }; attrs: { level: number; }; }) => node.type.name === 'heading' && node.attrs.level === 1);
@@ -1459,7 +1460,7 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
           rel: 'noopener noreferrer nofollow',
           target: '_blank',
         },
-        validate: href => /^https?:\/\//.test(href),
+        validate: (href: string) => /^https?:\/\//.test(href),
       }),
       Table.configure({
         resizable: true,
@@ -1472,7 +1473,7 @@ const BlogEditor: React.FC<BlogEditorProps> = ({ content, onChange, faqs = [], o
       TableCell,
     ],
     content: content || '<p></p>',
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor }: { editor: Editor }) => {
       const html = editor.getHTML()
         .replace(/<br\s*\/?>/g, '<br />')
         .replace(/(<\/[^>]+>)(<[^>]+>)/g, '$1\n$2')
@@ -2749,8 +2750,8 @@ const FAQManager: React.FC<FAQManagerProps> = ({ faqs, onFaqsChange, onInsertFaq
                 <div
                   key={template.id}
                   className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedTemplate === template.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
                     }`}
                   onClick={() => setSelectedTemplate(template.id)}
                 >
@@ -3708,8 +3709,8 @@ ${coverImageUrl ? `<meta property="twitter:image" content="${coverImageUrl}" />`
             onClick={handleSubmit}
             disabled={isSubmitting}
             className={`px-6 py-2 rounded-md font-medium ${isSubmitting
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
+              ? 'bg-gray-300 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700 text-white'
               } transition-colors`}
           >
             {isSubmitting ? 'Publishing...' : isDraft ? 'Save Draft' : 'Publish Now'}

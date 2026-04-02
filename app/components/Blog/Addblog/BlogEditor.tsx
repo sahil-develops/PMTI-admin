@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useEditor, EditorContent, Extension } from '@tiptap/react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import { Extension } from '@tiptap/core';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
@@ -53,15 +54,15 @@ const CustomImage = Image.extend({
       ...this.parent?.(),
       width: {
         default: '5%',
-        parseHTML: element => element.getAttribute('width'),
-        renderHTML: attributes => ({
+        parseHTML: (element: HTMLElement) => element.getAttribute('width'),
+        renderHTML: (attributes: { width?: string }) => ({
           width: attributes.width,
         }),
       },
       alignment: {
         default: 'left',
-        parseHTML: element => element.style.float || element.style.textAlign,
-        renderHTML: attributes => ({
+        parseHTML: (element: HTMLElement) => element.style.float || (element.style.textAlign as string),
+        renderHTML: (attributes: { alignment?: string }) => ({
           style: attributes.alignment === 'center'
             ? 'display: block; margin: 0 auto; text-align: center;'
             : `float: ${attributes.alignment}; margin-bottom: 1rem;`,
@@ -71,7 +72,7 @@ const CustomImage = Image.extend({
   },
 });
 
-import { Editor } from '@tiptap/react';
+import { Editor } from '@tiptap/core';
 
 const CustomLink = Link.extend({
   addAttributes() {
