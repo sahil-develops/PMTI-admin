@@ -1028,7 +1028,7 @@ const ClassForm = () => {
                 <input
                   type="time"
                   {...register("classTimeFrom", {
-                    onChange: (e) => {
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                       const formattedTime = formatTime(e.target.value);
                       setValue("formattedTimeFrom", formattedTime);
                     }
@@ -1045,7 +1045,7 @@ const ClassForm = () => {
                 <input
                   type="time"
                   {...register("classTimeTo", {
-                    onChange: (e) => {
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                       const formattedTime = formatTime(e.target.value);
                       setValue("formattedTimeTo", formattedTime);
                     }

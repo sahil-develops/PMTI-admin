@@ -53,7 +53,7 @@ export function ClassSearchForm() {
   function onSubmit(data: SearchFormValues) {
     // Build query string from form data
     const queryParams = new URLSearchParams()
-    
+
     Object.entries(data).forEach(([key, value]) => {
       if (value) {
         queryParams.append(key, value)
@@ -71,7 +71,7 @@ export function ClassSearchForm() {
           <FormField
             control={form.control}
             name="courseCategory"
-            render={({ field }) => (
+            render={({ field }: { field: any }) => (
               <FormItem>
                 <FormLabel>Course Category</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -93,7 +93,7 @@ export function ClassSearchForm() {
           <FormField
             control={form.control}
             name="classType"
-            render={({ field }) => (
+            render={({ field }: { field: any }) => (
               <FormItem>
                 <FormLabel>Class Type</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -114,7 +114,7 @@ export function ClassSearchForm() {
           <FormField
             control={form.control}
             name="locationId"
-            render={({ field }) => (
+            render={({ field }: { field: any }) => (
               <FormItem>
                 <FormLabel>Location</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -136,7 +136,7 @@ export function ClassSearchForm() {
           <FormField
             control={form.control}
             name="instructorId"
-            render={({ field }) => (
+            render={({ field }: { field: any }) => (
               <FormItem>
                 <FormLabel>Instructor</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -158,7 +158,7 @@ export function ClassSearchForm() {
           <FormField
             control={form.control}
             name="limit"
-            render={({ field }) => (
+            render={({ field }: { field: any }) => (
               <FormItem>
                 <FormLabel>Items per page</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -180,7 +180,7 @@ export function ClassSearchForm() {
           <FormField
             control={form.control}
             name="sort"
-            render={({ field }) => (
+            render={({ field }: { field: any }) => (
               <FormItem>
                 <FormLabel>Sort By</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>

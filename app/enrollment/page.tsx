@@ -135,7 +135,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="name"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
@@ -149,7 +149,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="email"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
@@ -163,7 +163,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="phone"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Phone</FormLabel>
                         <FormControl>
@@ -177,7 +177,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="companyName"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Company Name</FormLabel>
                         <FormControl>
@@ -191,7 +191,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="profession"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Profession</FormLabel>
                         <FormControl>
@@ -205,7 +205,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="address"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Address</FormLabel>
                         <FormControl>
@@ -219,7 +219,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="city"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>City</FormLabel>
                         <FormControl>
@@ -233,7 +233,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="state"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>State</FormLabel>
                         <FormControl>
@@ -247,7 +247,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="country"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Country</FormLabel>
                         <FormControl>
@@ -261,7 +261,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="zipCode"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Zip Code</FormLabel>
                         <FormControl>
@@ -280,7 +280,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="BillingName"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Billing Name</FormLabel>
                         <FormControl>
@@ -294,7 +294,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="BillingAddress"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Billing Address</FormLabel>
                         <FormControl>
@@ -308,7 +308,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="BillingCity"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Billing City</FormLabel>
                         <FormControl>
@@ -322,7 +322,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="BillingState"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Billing State</FormLabel>
                         <FormControl>
@@ -336,7 +336,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="BillCountry"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Billing Country</FormLabel>
                         <FormControl>
@@ -350,7 +350,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="BillPhone"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Billing Phone</FormLabel>
                         <FormControl>
@@ -364,7 +364,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="BillMail"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Billing Email</FormLabel>
                         <FormControl>
@@ -383,7 +383,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="CCNo"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Credit Card Number</FormLabel>
                         <FormControl>
@@ -397,7 +397,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="CreditCardHolder"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Card Holder Name</FormLabel>
                         <FormControl>
@@ -411,7 +411,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="CCExpiry"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Expiry Date (MM/YY)</FormLabel>
                         <FormControl>
@@ -425,7 +425,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="CVV"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>CVV</FormLabel>
                         <FormControl>
@@ -444,7 +444,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="MealType"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Meal Preference</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -467,7 +467,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="Promotion"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel>Promotion Code</FormLabel>
                         <FormControl>
@@ -482,7 +482,7 @@ export default function EnrollmentPage() {
                 <FormField
                   control={form.control}
                   name="Comments"
-                  render={({ field }) => (
+                  render={({ field }: { field: any }) => (
                     <FormItem>
                       <FormLabel>Comments</FormLabel>
                       <FormControl>
@@ -497,7 +497,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="PMPPass"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                         <FormControl>
                           <Checkbox
@@ -515,7 +515,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="pmbok"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                         <FormControl>
                           <Checkbox
@@ -533,7 +533,7 @@ export default function EnrollmentPage() {
                   <FormField
                     control={form.control}
                     name="downloadedInfoPac"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                         <FormControl>
                           <Checkbox
