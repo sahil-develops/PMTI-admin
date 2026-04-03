@@ -374,6 +374,13 @@ const getUTCDate = (date: Date | null): string => {
 };
 
 // Add this helper function
+const parseLocalDate = (dateString: string) => {
+  if (!dateString) return undefined;
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+// Add this helper function
 const normalizeDate = (date: Date | undefined) => {
   if (!date) return undefined;
   // Create new date object with the same year, month, and day in local timezone
@@ -842,16 +849,21 @@ export function ClassTable() {
 
   // Update the date selection handlers
   const handleStartDateChange = (date: Date | undefined) => {
+    console.log("calendar button clicked (Start Date) - selected date:", date);
     if (date) {
       // Create a new date at midnight in local timezone
       const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const formattedDate = format(localDate, 'yyyy-MM-dd');
+      console.log("formatted local start date to save:", formattedDate);
 
-      setSearchParams(prev => ({
-        ...prev,
-        startFrom: formattedDate,
-        dateTo: prev.dateTo && new Date(prev.dateTo) < localDate ? "" : prev.dateTo
-      }));
+      setSearchParams(prev => {
+        const prevDateToParsed = prev.dateTo ? parseLocalDate(prev.dateTo) : null;
+        return {
+          ...prev,
+          startFrom: formattedDate,
+          dateTo: (prevDateToParsed && prevDateToParsed < localDate) ? "" : prev.dateTo
+        };
+      });
     }
   };
 
@@ -893,7 +905,7 @@ export function ClassTable() {
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {searchParams.startFrom ? (
-                  format(new Date(searchParams.startFrom), "MMMM d, yyyy")
+                  format(parseLocalDate(searchParams.startFrom) as Date, "MMMM d, yyyy")
                 ) : (
                   <span>Pick a date</span>
                 )}
@@ -902,7 +914,7 @@ export function ClassTable() {
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarComponent
                 mode="single"
-                selected={searchParams.startFrom ? new Date(searchParams.startFrom) : undefined}
+                selected={searchParams.startFrom ? parseLocalDate(searchParams.startFrom) : undefined}
                 onSelect={handleStartDateChange}
                 initialFocus
               />
@@ -925,7 +937,7 @@ export function ClassTable() {
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {searchParams.dateTo ? (
-                  format(new Date(searchParams.dateTo), "MMMM d, yyyy")
+                  format(parseLocalDate(searchParams.dateTo) as Date, "MMMM d, yyyy")
                 ) : (
                   <span>
                     {!searchParams.startFrom ? "Select start date first" : "Pick a date"}
@@ -936,12 +948,14 @@ export function ClassTable() {
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarComponent
                 mode="single"
-                selected={searchParams.dateTo ? new Date(searchParams.dateTo) : undefined}
+                selected={searchParams.dateTo ? parseLocalDate(searchParams.dateTo) : undefined}
                 onSelect={(date) => {
+                  console.log("calendar button clicked (End Date) - selected date:", date);
                   if (date) {
                     // Create a new date at midnight in local timezone
                     const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
                     const formattedDate = format(localDate, 'yyyy-MM-dd');
+                    console.log("formatted local end date to save:", formattedDate);
 
                     setSearchParams((prev) => ({
                       ...prev,
@@ -951,7 +965,7 @@ export function ClassTable() {
                 }}
                 disabled={(date) => {
                   if (!searchParams.startFrom) return true;
-                  const startDate = new Date(searchParams.startFrom);
+                  const startDate = parseLocalDate(searchParams.startFrom) as Date;
                   return date < startDate;
                 }}
                 initialFocus
