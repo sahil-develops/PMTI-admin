@@ -66,7 +66,7 @@ const AddAdmin = () => {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<AdminFormData>({
+  } = useForm({
     resolver: zodResolver(adminFormSchema),
 
     defaultValues: {

@@ -78,7 +78,7 @@ const EditAdmin = ({ params }: { params: { id: string } }) => {
     watch,
     reset,
     formState: { errors }
-  } = useForm<AdminFormData>({
+  } = useForm({
     resolver: zodResolver(adminFormSchema)
   });
 

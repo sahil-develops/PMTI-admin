@@ -233,7 +233,7 @@ const ClassForm = () => {
     watch,
     setValue,
     formState: { errors }
-  } = useForm<ClassFormData>({
+  } = useForm({
     resolver: zodResolver(classFormSchema),
     defaultValues: {
       categoryId: 1,

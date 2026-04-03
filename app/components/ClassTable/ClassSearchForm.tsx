@@ -37,7 +37,7 @@ export function ClassSearchForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const form = useForm<SearchFormValues>({
+  const form = useForm({
     resolver: zodResolver(searchFormSchema),
     defaultValues: {
       limit: searchParams.get('limit') || '5',
