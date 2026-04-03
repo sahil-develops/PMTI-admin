@@ -849,12 +849,12 @@ export function ClassTable() {
 
   // Update the date selection handlers
   const handleStartDateChange = (date: Date | undefined) => {
-    console.log("calendar button clicked (Start Date) - selected date:", date);
+    // console.log("calendar button clicked (Start Date) - selected date:", date);
     if (date) {
       // Create a new date at midnight in local timezone
       const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const formattedDate = format(localDate, 'yyyy-MM-dd');
-      console.log("formatted local start date to save:", formattedDate);
+      // console.log("formatted local start date to save:", formattedDate);
 
       setSearchParams(prev => {
         const prevDateToParsed = prev.dateTo ? parseLocalDate(prev.dateTo) : null;
@@ -950,12 +950,12 @@ export function ClassTable() {
                 mode="single"
                 selected={searchParams.dateTo ? parseLocalDate(searchParams.dateTo) : undefined}
                 onSelect={(date) => {
-                  console.log("calendar button clicked (End Date) - selected date:", date);
+                  // console.log("calendar button clicked (End Date) - selected date:", date);
                   if (date) {
                     // Create a new date at midnight in local timezone
                     const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
                     const formattedDate = format(localDate, 'yyyy-MM-dd');
-                    console.log("formatted local end date to save:", formattedDate);
+                    // console.log("formatted local end date to save:", formattedDate);
 
                     setSearchParams((prev) => ({
                       ...prev,
