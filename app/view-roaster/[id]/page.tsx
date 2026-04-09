@@ -11,7 +11,22 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import EnrollmentTable from "@/app/components/ClassDetails/EnrollmentTable";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 interface Instructor {
   id: number;
@@ -91,6 +106,70 @@ interface APIResponse {
   };
 }
 
+interface AvailableClass {
+  id: number;
+  title: string;
+  startDate: string;
+  endDate: string;
+  location: {
+    location: string;
+  };
+}
+
+interface CountryOption {
+  id: number;
+  CountryName: string;
+  currency: string;
+}
+
+interface LocationOption {
+  id: number;
+  location: string;
+}
+
+interface ClassListResponse {
+  isCancel: any;
+  isDelete: any;
+  id: number;
+  title: string;
+  startDate: string;
+}
+
+interface PaginationMetadata {
+  total: number;
+  totalPages: number;
+  currentPage: string;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  limit: string;
+}
+
+interface ClassListApiResponse {
+  message: string;
+  error: string;
+  success: boolean;
+  data: {
+    data: ClassListResponse[];
+    metadata: PaginationMetadata;
+  };
+}
+
+interface PaymentDetails {
+  billingName: string;
+  ccNo: string;
+  CVV: string;
+  CCExpiry: string;
+  amount: number | '';
+}
+
+interface ValidationErrors {
+  billingName?: string;
+  ccNo?: string;
+  CVV?: string;
+  CCExpiry?: string;
+  amount?: string;
+}
+
 interface EnrollmentTableProps {
   status: boolean;
   enrollments: {
@@ -156,10 +235,37 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null);
   // @ts-ignore
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [enrollments, setEnrollments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const componentRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  // Reschedule modal state
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<{
+    studentId: number;
+    enrollmentId: number;
+  } | null>(null);
+  const [availableClasses, setAvailableClasses] = useState<AvailableClass[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const [isRescheduling, setIsRescheduling] = useState(false);
+  const [countries, setCountries] = useState<CountryOption[]>([]);
+  const [locations, setLocations] = useState<LocationOption[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<string>("52");
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetails>({
+    billingName: '',
+    ccNo: '',
+    CVV: '',
+    CCExpiry: '',
+    amount: ''
+  });
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [isPaid, setIsPaid] = useState(false);
 
   useEffect(() => {
     const fetchClassDetails = async () => {
@@ -199,6 +305,244 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
 
     fetchClassDetails();
   }, [params]);
+
+  const fetchCountries = async () => {
+    try {
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/country', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch countries');
+      const data = await response.json();
+      if (data.success) {
+        setCountries(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching countries:', error);
+    }
+  };
+
+  const fetchLocationsForCountry = async (countryId: string) => {
+    try {
+      setLocations([]);
+      const response = await fetch(`https://api.projectmanagementtraininginstitute.com/location/?countryId=${countryId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch locations');
+      const data = await response.json();
+      if (data.success) {
+        const activeLocations = data.data.filter((loc: { isDelete: boolean }) => !loc.isDelete);
+        const sortedLocations = activeLocations.sort((a: { location: string }, b: { location: string }) =>
+          a.location.localeCompare(b.location)
+        );
+        setLocations(sortedLocations);
+      } else {
+        throw new Error(data.error || 'Failed to fetch locations');
+      }
+    } catch (error) {
+      console.error('Error fetching locations for country:', error);
+      setLocations([]);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load locations. Please try again.",
+      });
+    }
+  };
+
+  const handleCountryChange = (countryId: string) => {
+    setSelectedCountry(countryId);
+    setSelectedLocation("");
+    setAvailableClasses([]);
+    if (countryId) {
+      fetchLocationsForCountry(countryId);
+    }
+  };
+
+  const handleRescheduleClick = async (studentId: number, enrollmentId: number) => {
+    setSelectedStudent({ studentId, enrollmentId });
+    setAvailableClasses([]);
+    await fetchCountries();
+    await fetchLocationsForCountry("52");
+    setIsRescheduleModalOpen(true);
+  };
+
+  const fetchAvailableClasses = async (page: number = 1, append: boolean = false) => {
+    if (!selectedCountry || !selectedLocation) return;
+    try {
+      setIsLoadingMore(true);
+      const response = await fetch(
+        `https://api.projectmanagementtraininginstitute.com/class/admin/all?page=${page}&limit=10&countryId=${selectedCountry}&locationId=${selectedLocation}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+      if (!response.ok) throw new Error('Failed to fetch available classes');
+      const data: ClassListApiResponse = await response.json();
+      if (data.success) {
+        const classes = data.data.data.filter(cls => !cls.isDelete && !cls.isCancel);
+        if (append) {
+          // @ts-ignore
+          setAvailableClasses(prev => [...prev, ...classes]);
+        } else {
+          // @ts-ignore
+          setAvailableClasses(classes);
+        }
+        setHasMore(data.data.metadata.hasNext);
+        setCurrentPage(Number(data.data.metadata.currentPage));
+      } else {
+        throw new Error(data.error || 'Failed to fetch classes');
+      }
+    } catch (err) {
+      console.error('Error fetching available classes:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMore) {
+      fetchAvailableClasses(currentPage + 1, true);
+    }
+  };
+
+  const validatePaymentDetails = (): boolean => {
+    const errors: ValidationErrors = {};
+    if (!paymentDetails.billingName.trim()) {
+      errors.billingName = "Billing name should not be empty";
+    } else if (!/^[a-zA-Z\s]{2,50}$/.test(paymentDetails.billingName)) {
+      errors.billingName = "Please enter a valid name (2-50 characters, letters only)";
+    }
+    if (!paymentDetails.ccNo.trim()) {
+      errors.ccNo = "Credit Card number is required";
+    } else if (!/^\d{16}$/.test(paymentDetails.ccNo.replace(/\s/g, ''))) {
+      errors.ccNo = "Please enter a valid 16-digit credit card number";
+    }
+    if (!paymentDetails.CVV.trim()) {
+      errors.CVV = "CVV is required";
+    } else if (!/^\d{3,4}$/.test(paymentDetails.CVV)) {
+      errors.CVV = "Please enter a valid CVV (3-4 digits)";
+    }
+    if (!paymentDetails.CCExpiry.trim()) {
+      errors.CCExpiry = "CCExpiry should not be empty";
+    } else if (!/^(0[1-9]|1[0-2])\/([0-9]{2})$/.test(paymentDetails.CCExpiry)) {
+      errors.CCExpiry = "Please enter a valid expiry date (MM/YY)";
+    } else {
+      const [month, year] = paymentDetails.CCExpiry.split('/');
+      const expiry = new Date(2000 + parseInt(year), parseInt(month) - 1);
+      if (expiry < new Date()) {
+        errors.CCExpiry = "Card has expired";
+      }
+    }
+    if (paymentDetails.amount === '') {
+      errors.amount = "Amount is required";
+    } else if (isNaN(Number(paymentDetails.amount)) || Number(paymentDetails.amount) <= 0) {
+      errors.amount = "Please enter a valid amount";
+    }
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleReschedule = async () => {
+    if (!selectedStudent || !selectedClassId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Missing required fields",
+      });
+      return;
+    }
+    if (isPaid && !validatePaymentDetails()) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please check payment details and try again",
+      });
+      return;
+    }
+    setIsRescheduling(true);
+    try {
+      const requestBody = {
+        classId: selectedClassId,
+        enrollmentId: selectedStudent.enrollmentId,
+        studentId: selectedStudent.studentId,
+        isPaid: isPaid,
+        ...(isPaid && {
+          billingName: paymentDetails.billingName,
+          ccNo: paymentDetails.ccNo.replace(/\s/g, ''),
+          CVV: paymentDetails.CVV,
+          CCExpiry: paymentDetails.CCExpiry,
+          amount: Number(paymentDetails.amount)
+        })
+      };
+      const response = await fetch('https://api.projectmanagementtraininginstitute.com/enrollment/reschedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to reschedule');
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Class has been rescheduled successfully",
+          action: <ToastAction altText="Close">Close</ToastAction>,
+        });
+        setIsRescheduleModalOpen(false);
+        setSelectedStudent(null);
+        setSelectedClassId(null);
+        setPaymentDetails({ billingName: '', ccNo: '', CVV: '', CCExpiry: '', amount: '' });
+        // Refresh data
+        try {
+          const unwrappedParams = await params;
+          const updatedResponse = await fetch(
+            `https://api.projectmanagementtraininginstitute.com/class/${unwrappedParams.id}/detail`,
+            { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` } }
+          );
+          if (updatedResponse.ok) {
+            const updatedData = await updatedResponse.json();
+            if (updatedData.success) {
+              setClassDetails(updatedData.data.classs);
+              setEnrollments(updatedData.data.enrollments.filter((e: any) => e.status !== false));
+            }
+          }
+        } catch {
+          toast({
+            variant: "destructive",
+            title: "Warning",
+            description: "Rescheduling successful but failed to refresh data. Please reload the page.",
+            action: (<ToastAction altText="Reload" onClick={() => window.location.reload()}>Reload</ToastAction>),
+          });
+        }
+      } else {
+        throw new Error(data.error || 'Failed to reschedule');
+      }
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to reschedule class",
+        action: (<ToastAction altText="Try again">Try again</ToastAction>),
+      });
+    } finally {
+      setIsRescheduling(false);
+    }
+  };
+
+  // Fetch available classes when location changes
+  useEffect(() => {
+    if (selectedCountry && selectedLocation) {
+      fetchAvailableClasses(1, false);
+    }
+  }, [selectedLocation]);
 
   const handleDownloadPDF = () => {
     if (!classDetails) return;
@@ -478,11 +822,11 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                 <CardTitle className="text-2xl">{classDetails.title}</CardTitle>
                 <p className="text-sm text-zinc-500 mt-1">{classDetails.description}</p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${classDetails.status === "1" ? "bg-green-100 text-green-800" :
-                  classDetails.status === "2" ? "bg-yellow-100 text-yellow-800" :
+              <span className={`px-3 py-1 rounded-full text-xs capitalie font-medium ${classDetails.status === "active" ? "bg-green-100 text-green-800" :
+                  classDetails.status === "inactive" ? "bg-yellow-100 text-yellow-800" :
                     "bg-red-100 text-red-800"
                 }`}>
-                {classDetails.status === "1" ? "Active" : classDetails.status === "2" ? "Pending" : "Inactive"}
+                {classDetails.status}
               </span>
             </div>
           </CardHeader>
@@ -657,14 +1001,207 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
               enrollments={enrollments.filter(enrollment => enrollment.status !== false)}
               startDate={classDetails.startDate}
               endDate={classDetails.endDate}
-              onReschedule={(studentId, enrollmentId) => {
-                // Handle rescheduling logic here
-                console.log(`Reschedule student ${studentId} enrollment ${enrollmentId}`);
-              }}
+              onReschedule={handleRescheduleClick}
             />
           </CardContent>
         </Card>
       </div>
+
+      {/* Reschedule Modal */}
+      <Dialog open={isRescheduleModalOpen} onOpenChange={setIsRescheduleModalOpen}>
+        <DialogContent className="sm:max-w-[625px]">
+          <DialogHeader>
+            <DialogTitle>Reschedule Class</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 grid-cols-1 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select Country</label>
+              <Select onValueChange={handleCountryChange} defaultValue="52">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((country) => (
+                    <SelectItem key={country.id} value={country.id.toString()}>
+                      {country.CountryName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select Location</label>
+              <Select
+                onValueChange={(value) => {
+                  setSelectedLocation(value);
+                  if (selectedCountry && value) {
+                    fetchAvailableClasses(1, false);
+                  }
+                }}
+                disabled={!selectedCountry || locations.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    locations.length === 0 && selectedCountry
+                      ? "No locations available"
+                      : "Select a location"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id.toString()}>
+                      {location.location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between col-span-2">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">Require Payment</label>
+                <p className="text-sm text-gray-500">Toggle if payment is required for rescheduling</p>
+              </div>
+              <Switch checked={isPaid} onCheckedChange={setIsPaid} />
+            </div>
+
+            {isPaid && (
+              <div className="space-y-4 col-span-2">
+                <h3 className="text-sm font-medium">Payment Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-1 space-y-2">
+                    <label className="text-sm font-medium">Billing Name</label>
+                    <input
+                      type="text"
+                      className={`w-full p-2 border rounded-md ${validationErrors.billingName ? 'border-red-500' : 'border-gray-300'}`}
+                      value={paymentDetails.billingName}
+                      onChange={(e) => setPaymentDetails(prev => ({ ...prev, billingName: e.target.value }))}
+                      placeholder="John Doe"
+                    />
+                    {validationErrors.billingName && <p className="text-xs text-red-500">{validationErrors.billingName}</p>}
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-sm font-medium">Card Number</label>
+                    <input
+                      type="text"
+                      className={`w-full p-2 border rounded-md ${validationErrors.ccNo ? 'border-red-500' : 'border-gray-300'}`}
+                      value={paymentDetails.ccNo}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        const formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+                        setPaymentDetails(prev => ({ ...prev, ccNo: formatted.slice(0, 19) }));
+                      }}
+                      placeholder="1234 5678 9012 3456"
+                      maxLength={19}
+                    />
+                    {validationErrors.ccNo && <p className="text-xs text-red-500">{validationErrors.ccNo}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Expiry Date</label>
+                    <input
+                      type="text"
+                      className={`w-full p-2 border rounded-md ${validationErrors.CCExpiry ? 'border-red-500' : 'border-gray-300'}`}
+                      value={paymentDetails.CCExpiry}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(/\D/g, '');
+                        if (value.length >= 2) value = value.slice(0, 2) + '/' + value.slice(2);
+                        setPaymentDetails(prev => ({ ...prev, CCExpiry: value.slice(0, 5) }));
+                      }}
+                      placeholder="MM/YY"
+                      maxLength={5}
+                    />
+                    {validationErrors.CCExpiry && <p className="text-xs text-red-500">{validationErrors.CCExpiry}</p>}
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <label className="text-sm font-medium">CVV</label>
+                    <input
+                      type="password"
+                      className={`w-full p-2 border rounded-md ${validationErrors.CVV ? 'border-red-500' : 'border-gray-300'}`}
+                      value={paymentDetails.CVV}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        setPaymentDetails(prev => ({ ...prev, CVV: value.slice(0, 4) }));
+                      }}
+                      placeholder="123"
+                      maxLength={4}
+                    />
+                    {validationErrors.CVV && <p className="text-xs text-red-500">{validationErrors.CVV}</p>}
+                  </div>
+                  <div className="md:col-span-3 space-y-2">
+                    <label className="text-sm font-medium">Amount</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className={`w-full p-2 border rounded-md ${validationErrors.amount ? 'border-red-500' : 'border-gray-300'}`}
+                      value={paymentDetails.amount}
+                      onChange={(e) => setPaymentDetails(prev => ({ ...prev, amount: e.target.value === '' ? '' : Number(e.target.value) }))}
+                      placeholder="0.00"
+                    />
+                    {validationErrors.amount && <p className="text-xs text-red-500">{validationErrors.amount}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select New Class</label>
+              <Select
+                onValueChange={(value) => setSelectedClassId(Number(value))}
+                disabled={!selectedLocation || isLoadingMore}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    isLoadingMore && !availableClasses.length ? "Loading classes..." :
+                      availableClasses.length === 0 ? "No classes available" :
+                        "Select a class"
+                  } />
+                </SelectTrigger>
+                <SelectContent onScroll={(e) => {
+                  const element = e.currentTarget;
+                  if (
+                    element.scrollHeight - element.scrollTop === element.clientHeight &&
+                    !isLoadingMore &&
+                    hasMore
+                  ) {
+                    handleLoadMore();
+                  }
+                }}>
+                  {availableClasses.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id.toString()}>
+                      {cls.title} - {new Date(cls.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} to {new Date(cls.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </SelectItem>
+                  ))}
+                  {isLoadingMore && (
+                    <div className="p-2 text-center text-sm text-gray-500">Loading more...</div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsRescheduleModalOpen(false);
+                setSelectedCountry("");
+                setSelectedLocation("");
+                setSelectedClassId(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReschedule}
+              disabled={!selectedClassId || isRescheduling}
+              className="bg-primary"
+            >
+              {isRescheduling ? "Rescheduling..." : "Confirm Reschedule"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

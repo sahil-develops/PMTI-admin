@@ -179,6 +179,11 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   const [selectedLocation, setSelectedLocation] = useState<string>("");
 
   const [items, setItems] = useState<ItemData[]>([])
+  const [itemsPage, setItemsPage] = useState(1);
+  const [itemsHasNext, setItemsHasNext] = useState(false);
+  const [isFetchingMoreItems, setIsFetchingMoreItems] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownListRef = React.useRef<HTMLDivElement>(null);
 
   const [selectedCountry1, setSelectedCountry1] = useState<string>("52"); // Default to US
   const [selectedState, setSelectedState] = useState<string>("");
@@ -421,7 +426,7 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       isPaid,
       // Add missing required fields from studentInfo
       name: studentInfo?.name || formData.name,
-      address: studentInfo?.address || formData.address,
+      address: formData.BillingAddress || studentInfo?.address || formData.address,
       // Use location names instead of IDs
       city: selectedLocationData?.location || "",
       state: selectedStateData?.name || "",
@@ -533,14 +538,17 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
   }, [selectedCountry]);
 
 
-  const fetchItems = async (countryId?: string, locationId?: string) => {
+  const fetchItems = async (countryId?: string, locationId?: string, page: number = 1, append: boolean = false) => {
+    if (append) {
+      setIsFetchingMoreItems(true);
+    }
     try {
       const endpoint = isCourseEnrollment ? 'course' : 'class';
       let url = `https://api.projectmanagementtraininginstitute.com/${endpoint}`;
 
       // Add query parameters if both country and location are selected
       if (countryId && locationId) {
-        url += `?countryId=${countryId}&locationId=${locationId}`;
+        url += `?countryId=${countryId}&locationId=${locationId}&page=${page}&limit=10`;
       }
 
       const response = await fetch(url, {
@@ -551,9 +559,17 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
       const result = await response.json();
 
       if (result.success) {
-        setItems(result.data.data);
+        const newItems = result.data.data;
+        const metadata = result.data.metadata;
+        if (append) {
+          setItems(prev => [...prev, ...newItems]);
+        } else {
+          setItems(newItems);
+        }
+        setItemsPage(Number(metadata.currentPage));
+        setItemsHasNext(metadata.hasNext);
       } else {
-        setItems([]); // Clear items if no results
+        if (!append) setItems([]);
       }
     } catch (error) {
       console.error(`Error fetching ${enrollmentType.toLowerCase()}:`, error);
@@ -562,24 +578,34 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
         description: `Failed to fetch ${enrollmentType.toLowerCase()}es`,
         variant: "destructive",
       });
-      setItems([]); // Clear items on error
+      if (!append) setItems([]);
+    } finally {
+      setIsFetchingMoreItems(false);
     }
   };
 
+  // Reset and reload items when country/location changes
   useEffect(() => {
     if (selectedCountry && selectedLocation) {
-      fetchItems(selectedCountry, selectedLocation);
+      setItemsPage(1);
+      setItemsHasNext(false);
+      fetchItems(selectedCountry, selectedLocation, 1, false);
     } else {
-      setItems([]); // Clear items when country/location not selected
+      setItems([]);
+      setItemsPage(1);
+      setItemsHasNext(false);
     }
   }, [selectedCountry, selectedLocation, isCourseEnrollment]);
 
-  // Add a new effect to fetch classes when country and location are selected
-  useEffect(() => {
-    if (!isCourseEnrollment && selectedCountry && selectedLocation) {
-      fetchItems(selectedCountry, selectedLocation);
+  // Handler for scroll-to-bottom in the dropdown list
+  const handleDropdownScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 40;
+    if (nearBottom && itemsHasNext && !isFetchingMoreItems) {
+      const nextPage = itemsPage + 1;
+      fetchItems(selectedCountry, selectedLocation, nextPage, true);
     }
-  }, [selectedCountry, selectedLocation, isCourseEnrollment]);
+  };
 
 
 
@@ -797,97 +823,132 @@ const Enrollment = ({ params }: { params: { id: string } }) => {
 
 
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const month = date.toLocaleString('default', { month: 'long' });
-    const day = date.getDate().toString().padStart(2, '0');
-    const year = date.getFullYear().toString().slice(-2);
-    return `${month} ${day}, ${year}`;
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return "N/A";
+    try {
+      // Parse date parts directly to avoid UTC-midnight timezone shift.
+      // new Date("YYYY-MM-DD") is treated as UTC by JS which causes a day
+      // shift in negative-offset timezones (e.g. all US timezones).
+      // new Date(year, month-1, day) always creates a local-timezone date.
+      const datePart = dateString.split('T')[0]; // strip time if present
+      const [year, month, day] = datePart.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+
+      const monthStr = date.toLocaleString('default', { month: 'long' });
+      return `${monthStr} ${day}, ${year.toString().slice(-2)}`;
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return dateString;
+    }
   };
 
-  // Update the class/course selection JSX
+  // Custom scrollable dropdown with infinite-scroll pagination
+  const getSelectedLabel = () => {
+    const id = isCourseEnrollment
+      ? (formData as any).courseId
+      : (formData as any).classId;
+    if (!id || id === 1) return null;
+    const found = items.find(i => i.id === id);
+    if (!found) return null;
+    return isCourseEnrollment
+      ? `${found.courseName} - ${formatDate(found.startDate || '')} (${found.classTime})`
+      : `${found.title} - ${formatDate(found.startDate || '')} (${found.classTime})`;
+  };
+
   const renderItemSelection = () => {
-    if (isCourseEnrollment) {
-      return (
-        <div>
-          <Label>Select Course</Label>
-          <Select
-            value={(formData.courseId)?.toString() || ""}
-            onValueChange={handleItemSelect}
-            required
-            disabled={!selectedCountry || !selectedLocation}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={
-                !selectedCountry
-                  ? "Select a country first"
-                  : !selectedLocation
-                    ? "Select a location first"
-                    : items.length === 0
-                      ? "No courses available"
-                      : "Select Course"
-              } />
-            </SelectTrigger>
-            <SelectContent>
-              {items.length > 0 ? (
-                items.map((item) => (
-                  <SelectItem
-                    key={item.id}
-                    value={item.id.toString()}
-                    className='text-xs'
-                  >
-                    {item.courseName} - {formatDate(item.startDate || '')} ({item.classTime})
-                  </SelectItem>
-                ))
-              ) : (
-                <SelectItem disabled value="no-courses">
-                  No courses available for this location
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      );
-    }
+    const isDisabled = !selectedCountry || !selectedLocation;
+    const placeholder = !selectedCountry
+      ? 'Select a country first'
+      : !selectedLocation
+        ? 'Select a location first'
+        : items.length === 0
+          ? isCourseEnrollment ? 'No courses available' : 'No classes available'
+          : isCourseEnrollment ? 'Select Course' : 'Select Class';
+
+    const selectedLabel = getSelectedLabel();
 
     return (
-      <div>
-        <Label>Select Class</Label>
-        <Select
-          value={(formData.classId)?.toString() || ""}
-          onValueChange={handleItemSelect}
-          required
-          disabled={!selectedCountry || !selectedLocation}
+      <div className="relative" style={{ gridColumn: 'span 1' }}>
+        <Label>{isCourseEnrollment ? 'Select Course' : 'Select Class'}</Label>
+        {/* Trigger button */}
+        <button
+          type="button"
+          disabled={isDisabled}
+          onClick={() => !isDisabled && setIsDropdownOpen(prev => !prev)}
+          className={[
+            'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background',
+            'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+            isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-accent',
+          ].join(' ')}
         >
-          <SelectTrigger>
-            <SelectValue placeholder={
-              !selectedCountry
-                ? "Select a country first"
-                : !selectedLocation
-                  ? "Select a location first"
-                  : items.length === 0
-                    ? "No classes available"
-                    : "Select Class"
-            } />
-          </SelectTrigger>
-          <SelectContent>
-            {items.length > 0 ? (
-              items.map((item) => (
-                <SelectItem
-                  key={item.id}
-                  value={item.id.toString()}
-                  className='text-xs'
-                >
-                  {item.title} - {formatDate(item.startDate || '')} ({item.classTime})
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem disabled value="no-classes">
-                No classes available for this location
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+          <span className={selectedLabel ? 'text-foreground truncate' : 'text-muted-foreground'}>
+            {selectedLabel || placeholder}
+          </span>
+          <svg className="h-4 w-4 opacity-50 shrink-0 ml-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+
+        {/* Dropdown list */}
+        {isDropdownOpen && (
+          <>
+            {/* Backdrop to close */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setIsDropdownOpen(false)}
+            />
+            <div
+              ref={dropdownListRef}
+              onScroll={handleDropdownScroll}
+              className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-lg overflow-y-auto"
+              style={{ maxHeight: '240px' }}
+            >
+              {items.length > 0 ? (
+                <>
+                  {items.map((item) => {
+                    const itemId = isCourseEnrollment
+                      ? (formData as any).courseId
+                      : (formData as any).classId;
+                    const isSelected = item.id === itemId;
+                    const label = isCourseEnrollment
+                      ? `${item.courseName} - ${formatDate(item.startDate || '')} (${item.classTime})`
+                      : `${item.title} - ${formatDate(item.startDate || '')} (${item.classTime})`;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          handleItemSelect(item.id.toString());
+                          setIsDropdownOpen(false);
+                        }}
+                        className={[
+                          'flex items-center px-3 py-2 text-xs cursor-pointer select-none',
+                          isSelected
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-accent hover:text-accent-foreground',
+                        ].join(' ')}
+                      >
+                        {label}
+                      </div>
+                    );
+                  })}
+                  {isFetchingMoreItems && (
+                    <div className="flex items-center justify-center py-3 text-xs text-muted-foreground gap-2">
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                      Loading more...
+                    </div>
+                  )}
+                  {!itemsHasNext && !isFetchingMoreItems && (
+                    <div className="text-center py-2 text-xs text-muted-foreground border-t">
+                      All {isCourseEnrollment ? 'courses' : 'classes'} loaded
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+                  {isCourseEnrollment ? 'No courses available for this location' : 'No classes available for this location'}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     );
   };

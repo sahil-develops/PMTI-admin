@@ -948,38 +948,39 @@ const Students = () => {
 
   // Helper function to safely get city, state, country values
   const getLocationInfo = (student: StudentData) => {
-    let cityName = 'N/A';
-    let stateName = 'N/A';
-    let countryName = 'N/A';
+    let cityName = '';
+    let stateName = '';
+    let countryName = '';
 
-    // Check if city exists and is an object before using 'in' operator
+    // city: API returns "0" when not set — treat "0" and empty as no city
     if (student.city && typeof student.city === 'object' && student.city !== null) {
-      // Use type assertion with optional chaining to safely access location
       const cityObj = student.city as any;
-      cityName = cityObj.location || 'N/A';
-    } else if (typeof student.city === 'string' && student.city) {
+      cityName = cityObj.location || '';
+    } else if (typeof student.city === 'string' && student.city && student.city !== '0') {
       cityName = student.city;
     }
 
-    // Check if state exists and is an object before accessing properties
+    // state: can be an object { id, name } or a plain string
     if (student.state && typeof student.state === 'object' && student.state !== null) {
-      // Use type assertion with optional chaining to safely access name
       const stateObj = student.state as any;
-      stateName = stateObj.name || 'N/A';
+      stateName = stateObj.name || '';
     } else if (typeof student.state === 'string' && student.state) {
       stateName = student.state;
     }
 
-    // Check if country exists and is an object before accessing properties
+    // country: can be an object { CountryName } or a plain string
     if (student.country && typeof student.country === 'object' && student.country !== null) {
-      // Use type assertion with optional chaining to safely access CountryName
       const countryObj = student.country as any;
-      countryName = countryObj.CountryName || 'N/A';
+      countryName = countryObj.CountryName || '';
     } else if (typeof student.country === 'string' && student.country) {
       countryName = student.country;
     }
 
-    return { cityName, stateName, countryName };
+    // Build display string — only include parts that have real values
+    const parts = [cityName, stateName].filter(Boolean);
+    const locationDisplay = parts.length > 0 ? parts.join(', ') : 'N/A';
+
+    return { cityName, stateName, countryName, locationDisplay };
   };
 
   const handleDeleteStudent = async () => {
@@ -1113,7 +1114,7 @@ const Students = () => {
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Email</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Company</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">Location</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">State</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Phone</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Last Login</th>
@@ -1122,7 +1123,7 @@ const Students = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filteredStudents.map((student) => {
-                    const { cityName, stateName } = getLocationInfo(student);
+                    const { locationDisplay } = getLocationInfo(student);
                     return (
                       <tr key={student.id} className="hover:bg-gray-50">
                         {/* <td className="px-4 py-3 text-gray-900">{student.id}</td> */}
@@ -1130,7 +1131,7 @@ const Students = () => {
                         <td className="px-4 py-3 text-gray-500">{student.email}</td>
                         <td className="px-4 py-3 text-gray-500">{student.companyName || 'N/A'}</td>
                         <td className="px-4 py-3 text-gray-500">
-                          {`${cityName}, ${stateName}`}
+                          {locationDisplay}
                         </td>
                         <td className="px-4 py-3 text-gray-500">{student.phone || 'N/A'}</td>
                         <td className="px-4 py-3">
