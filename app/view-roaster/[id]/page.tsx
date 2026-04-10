@@ -225,10 +225,24 @@ const calculateDays = (startDate: string, endDate: string) => {
 };
 
 // Add this helper function to calculate dates
-const addDays = (dateString: string, days: number) => {
-  const date = new Date(dateString);
-  date.setDate(date.getDate() + days);
-  return date;
+const addDays = (dateString: string, days: number): string => {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const daysInMonth = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+
+  let d = day + days;
+  let m = month;
+  let y = year;
+
+  while (true) {
+    const dim = m === 2 && isLeap(y) ? 29 : daysInMonth[m];
+    if (d <= dim) break;
+    d -= dim;
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 };
 
 export default function ClassDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -838,7 +852,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                 <DetailSection title="Date Range">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-zinc-400" />
-                    <span>{new Date(classDetails.startDate).toLocaleDateString()} - {new Date(classDetails.endDate).toLocaleDateString()}</span>
+                    <span>{(classDetails.startDate)} - {(classDetails.endDate)}</span>
                   </div>
                 </DetailSection>
 
@@ -853,7 +867,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                           <div key={index} className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-zinc-400" />
                             <span className="font-medium">Day {index + 1}:</span>
-                            <span>{currentDate.toLocaleDateString()}</span>
+                            <span>{currentDate}</span>
                             <span className="text-zinc-500">({classDetails.classTime})</span>
                           </div>
                         );

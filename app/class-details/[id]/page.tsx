@@ -632,29 +632,7 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-zinc-400" />
                     <span>
-                      {new Date(classDetails.startDate).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      }).replace(/(\d+)(?=(,))/, match => {
-                        const num = parseInt(match);
-                        let suffix = "th";
-                        if (num % 10 === 1 && num % 100 !== 11) suffix = "st";
-                        else if (num % 10 === 2 && num % 100 !== 12) suffix = "nd";
-                        else if (num % 10 === 3 && num % 100 !== 13) suffix = "rd";
-                        return `${num}${suffix}`;
-                      })} - {new Date(classDetails.endDate).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      }).replace(/(\d+)(?=(,))/, match => {
-                        const num = parseInt(match);
-                        let suffix = "th";
-                        if (num % 10 === 1 && num % 100 !== 11) suffix = "st";
-                        else if (num % 10 === 2 && num % 100 !== 12) suffix = "nd";
-                        else if (num % 10 === 3 && num % 100 !== 13) suffix = "rd";
-                        return `${num}${suffix}`;
-                      })}
+                     {classDetails.startDate} - {classDetails.endDate} 
                     </span>
                   </div>
                 </DetailSection>

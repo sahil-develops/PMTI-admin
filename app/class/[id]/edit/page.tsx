@@ -249,7 +249,7 @@ export default function EditClass({ params }: PageProps) {
                   <Label>Start Date</Label>
                   <Input
                     type="text"
-                    value={formatDateForInput(classData.startDate)}
+                    value={classData.startDate}
                     onChange={(e) => {
                       const [month, day, year] = e.target.value.split('/');
                       const formattedDate = `${year}-${month}-${day}`;
@@ -264,7 +264,7 @@ export default function EditClass({ params }: PageProps) {
                   <Label>End Date</Label>
                   <Input
                     type="text"
-                    value={formatDateForInput(classData.endDate)}
+                    value={classData.endDate}
                     onChange={(e) => {
                       const [month, day, year] = e.target.value.split('/');
                       const formattedDate = `${year}-${month}-${day}`;
