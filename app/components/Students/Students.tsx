@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, MoreVertical, Edit2, FileInput, Trash2 } from 'lucide-react';
+import { useStudentEditStore } from '@/lib/stores/studentEditStore';
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -466,61 +467,47 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const [formData, setFormData] = useState<Partial<StudentData>>({});
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [countries, setCountries] = useState<{ id: number; CountryName: string }[]>([]);
-  const [states, setStates] = useState<{ id: number; name: string }[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState("");
-  const [selectedState, setSelectedState] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
-  // Add new state for city input disabled state
-  const [isCityInputDisabled, setIsCityInputDisabled] = useState(true);
+  const {
+    formData,
+    selectedCountry,
+    selectedState,
+    isCityInputDisabled,
+    countries,
+    states,
+    isFetchingStates,
+    errors,
+    initForm,
+    setFormField,
+    setSelectedCountry,
+    setSelectedState,
+    setCountries,
+    setStates,
+    setIsFetchingStates,
+    setErrors,
+    clearFieldError,
+    resetStore,
+  } = useStudentEditStore();
 
-  // In the EditStudentModal component, update the useEffect that sets initial form data:
+  // Initialize form when a student is loaded
   useEffect(() => {
-    if (student) {
-      // Handle country - can be object or string
-      const countryId = student.country && typeof student.country === 'object'
-        ? (student.country as { id: number }).id.toString()
-        : student.country || "";
-
-      // Handle state - can be object or string
-      const stateId = student.state && typeof student.state === 'object'
-        ? (student.state as { id: number }).id.toString()
-        : student.state || "";
-
-      // Handle city - can be object or string
-      const cityValue = student.city && typeof student.city === 'object'
-        ? (student.city as { location: string }).location
-        : student.city || "";
-
-      setFormData({
-        name: student.name,
-        address: student.address,
-        city: cityValue,
-        state: stateId, // Ensure this is the state ID
-        country: countryId,
-        zipCode: student.zipCode,
-        phone: student.phone,
-        email: student.email,
-        companyName: student.companyName,
-        profession: student.profession,
-      });
-
-      setSelectedCountry(countryId);
-      setSelectedState(stateId);
-      // Enable city input if state is selected
-      setIsCityInputDisabled(!stateId);
+    if (isOpen && student) {
+      initForm(student);
     }
-  }, [student]);
+    if (!isOpen) {
+      resetStore();
+    }
+  }, [isOpen, student]);
 
+  // Fetch countries once on mount
   useEffect(() => {
     fetchCountries();
   }, []);
 
+  // Fetch states whenever the selected country changes
   useEffect(() => {
     if (selectedCountry) {
       fetchStates(selectedCountry);
@@ -538,12 +525,31 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
   };
 
   const fetchStates = async (countryId: string) => {
+    setIsFetchingStates(true);
     try {
       const response = await fetch(`https://api.projectmanagementtraininginstitute.com/state/?countryId=${countryId}`);
       const data = await response.json();
       setStates(data.data);
     } catch (error) {
       console.error('Error fetching states:', error);
+    } finally {
+      setIsFetchingStates(false);
+    }
+  };
+
+  const handleCountryChange = (countryId: string) => {
+    // clearDependents=true: resets selectedState, formData.state, formData.city, states list
+    setSelectedCountry(countryId, true);
+  };
+
+  const handleStateChange = (stateId: string) => {
+    setSelectedState(stateId);
+  };
+
+  const handleInputChange = (field: keyof StudentData, value: string) => {
+    setFormField(field as any, value);
+    if (errors[field]) {
+      clearFieldError(field);
     }
   };
 
@@ -558,17 +564,10 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
       newErrors.email = "Invalid email address";
     }
 
-    if (!formData.city || formData.city.trim() === '') {
-      newErrors.city = "City is required";
-    }
-
-    if (!formData.state) {
-      newErrors.state = "State is required";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!student) return;
@@ -584,7 +583,14 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
     setLoading(true);
     try {
-      await onSave(student.id, formData);
+      // Always use selectedCountry/selectedState as the authoritative values
+      // since they are updated synchronously via handleCountryChange/handleStateChange
+      const payload = {
+        ...formData,
+        country: selectedCountry,
+        state: selectedState,
+      };
+      await onSave(student.id, payload);
       setShowSuccess(true);
       onClose();
     } catch (error) {
@@ -592,27 +598,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleInputChange = (field: keyof StudentData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => {
-        const updated = { ...prev };
-        delete updated[field];
-        return updated;
-      });
-    }
-  };
-
-  const handleStateChange = (stateId: string) => {
-    setSelectedState(stateId);
-    setFormData(prev => ({
-      ...prev,
-      state: stateId,
-      city: '' // Clear city when state changes
-    }));
-    setIsCityInputDisabled(!stateId);
   };
 
   return (
@@ -663,7 +648,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
               <Label htmlFor="country">Country</Label>
               <Select
                 value={selectedCountry}
-                onValueChange={setSelectedCountry}
+                onValueChange={handleCountryChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Country" />
@@ -680,14 +665,22 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
 
             {/* State selection */}
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
+              <Label htmlFor="state">State/Province</Label>
               <Select
                 value={selectedState}
                 onValueChange={handleStateChange}
-                disabled={!selectedCountry}
+                disabled={!selectedCountry || isFetchingStates}
               >
                 <SelectTrigger className={errors.state ? "border-red-500" : ""}>
-                  <SelectValue placeholder={selectedCountry ? "Select State" : "Select Country First"} />
+                  <SelectValue
+                    placeholder={
+                      isFetchingStates
+                        ? "Loading..."
+                        : selectedCountry
+                        ? "Select State"
+                        : "Select Country First"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {states.length > 0 ? (
@@ -894,11 +887,6 @@ const Students = () => {
         if (isNaN(payload.country)) {
           throw new Error('Invalid country ID');
         }
-      }
-
-      // Ensure city is not empty
-      if (!payload.city || payload.city.trim() === '') {
-        throw new Error('City is required');
       }
 
       console.log("Sending payload to API:", payload);
