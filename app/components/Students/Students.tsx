@@ -373,12 +373,12 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
                             <div className="space-y-1">
                               <p className="text-sm font-medium text-gray-500">Start Date</p>
                               <p>{enrollment.class.startDate ?
-                                new Date(enrollment.class.startDate).toLocaleDateString() : 'N/A'}</p>
+                                enrollment.class.startDate : 'N/A'}</p>
                             </div>
                             <div className="space-y-1">
                               <p className="text-sm font-medium text-gray-500">End Date</p>
                               <p>{enrollment.class.endDate ?
-                                new Date(enrollment.class.endDate).toLocaleDateString() : 'N/A'}</p>
+                                enrollment.class.endDate : 'N/A'}</p>
                             </div>
                             <div className="space-y-1">
                               <p className="text-sm font-medium text-gray-500">Class Time</p>
