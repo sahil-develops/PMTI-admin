@@ -562,7 +562,7 @@ export function ClassTable() {
         ]);
 
       setInstructors(
-        instructorsData.data.map((instructor: any) => ({
+        instructorsData.data.data.map((instructor: any) => ({
           id: instructor.id,
           name: instructor.name,
         }))
