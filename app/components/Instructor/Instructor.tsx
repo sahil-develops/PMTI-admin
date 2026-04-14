@@ -23,27 +23,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MoreVertical, Search, Plus, Edit2, Trash2, Eye, Loader2 } from "lucide-react";
-import api from '@/app/lib/api';
+import { useInstructorStore, type Instructor } from '@/app/store/instructorStore';
 
-interface Instructor {
-  id: string;
-  uid: string;
-  name: string;
-  emailID: string;
-  mobile: string;
-  telNo: string;
-  active: boolean;
-}
-
-const Instructor = () => {
+const InstructorPage = () => {
   const router = useRouter();
-  const [instructors, setInstructors] = useState<Instructor[]>([]);
-  const [filteredInstructors, setFilteredInstructors] = useState<Instructor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
-  const [globalSearch, setGlobalSearch] = useState('');
-  const [nameSearch, setNameSearch] = useState('');
-  const [emailSearch, setEmailSearch] = useState('');
+  const {
+    filteredInstructors,
+    instructors,
+    loading,
+    deleteLoading,
+    globalSearch,
+    nameSearch,
+    emailSearch,
+    fetchInstructors,
+    deleteInstructor,
+    setGlobalSearch,
+    setNameSearch,
+    setEmailSearch,
+  } = useInstructorStore();
+
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
 
@@ -51,65 +49,13 @@ const Instructor = () => {
     fetchInstructors();
   }, []);
 
-  useEffect(() => {
-    filterInstructors();
-  }, [globalSearch, nameSearch, emailSearch, instructors]);
-
-  const fetchInstructors = async () => {
-    try {
-      const response = await api.get('instructor');
-      const data = await response.data;
-      if (data.success) {
-        setInstructors(data.data);
-        setFilteredInstructors(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching instructors:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDeleteInstructor = async () => {
     if (!selectedInstructor) return;
-    
-    setDeleteLoading(selectedInstructor.id);
-    try {
-      const response = await api.delete(`instructor/${selectedInstructor.id}`);
-      if (response.data.success) {
-        const updatedInstructors = instructors.filter(
-          instructor => instructor.id !== selectedInstructor.id
-        );
-        setInstructors(updatedInstructors);
-        setFilteredInstructors(updatedInstructors);
-      }
-    } catch (error) {
-      console.error('Error deleting instructor:', error);
-    } finally {
-      setDeleteLoading(null);
+    const success = await deleteInstructor(selectedInstructor.id);
+    if (success) {
       setShowDeleteDialog(false);
       setSelectedInstructor(null);
     }
-  };
-
-  const filterInstructors = () => {
-    const filtered = instructors.filter(instructor => {
-      const globalMatch = !globalSearch || 
-        instructor.name?.toLowerCase().includes(globalSearch.toLowerCase()) ||
-        instructor.emailID?.toLowerCase().includes(globalSearch.toLowerCase()) ||
-        instructor.mobile?.toLowerCase().includes(globalSearch.toLowerCase()) ||
-        instructor.uid?.toLowerCase().includes(globalSearch.toLowerCase());
-
-      const nameMatch = !nameSearch || 
-        (instructor.name?.toLowerCase().includes(nameSearch.toLowerCase()));
-
-      const emailMatch = !emailSearch || 
-        (instructor.emailID?.toLowerCase().includes(emailSearch.toLowerCase()));
-
-      return globalMatch && nameMatch && emailMatch;
-    });
-
-    setFilteredInstructors(filtered);
   };
 
   const ActionDropdown = ({ instructor }: { instructor: Instructor }) => {
@@ -133,8 +79,8 @@ const Instructor = () => {
 
     return (
       <div className="relative">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
           className="h-8 w-8 p-0"
           onClick={() => setIsOpen(!isOpen)}
@@ -144,9 +90,9 @@ const Instructor = () => {
 
         {isOpen && (
           <>
-            <div 
-              className="fixed inset-0" 
-              onClick={() => setIsOpen(false)} 
+            <div
+              className="fixed inset-0"
+              onClick={() => setIsOpen(false)}
             />
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
               <button
@@ -184,7 +130,7 @@ const Instructor = () => {
     <div className="p-6 space-y-6 w-full bg-white rounded-lg">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Instructors</h2>
-        <Button 
+        <Button
           onClick={() => router.push('/instructors/addInstructor')}
           className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white"
         >
@@ -257,8 +203,8 @@ const Instructor = () => {
                     <TableCell className="text-gray-900">{instructor.telNo || "N/A"}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 text-sm rounded-full ${
-                        instructor.active 
-                          ? 'bg-green-100 text-green-800' 
+                        instructor.active
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
                         {instructor.active ? 'Active' : 'Inactive'}
@@ -313,4 +259,4 @@ const Instructor = () => {
   );
 };
 
-export default Instructor;
+export default InstructorPage;
