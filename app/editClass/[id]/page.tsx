@@ -321,7 +321,7 @@ export default function EditClass({ params }: PageProps) {
 
         const data = await response.json();
         if (data.success) {
-          const mappedInstructors = data.data.map((instructor: any) => ({
+          const mappedInstructors = data.data.data.map((instructor: any) => ({
             id: instructor.id,
             name: instructor.name,
             emailID: instructor.emailID,

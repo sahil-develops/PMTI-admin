@@ -37,7 +37,7 @@ const ViewInstructor = () => {
         const data = await response.json();
 
         if (data.success) {
-          setInstructor(data.data);
+          setInstructor(data.data.data);
         } else {
           setError(data.error || 'Failed to fetch instructor details');
         }

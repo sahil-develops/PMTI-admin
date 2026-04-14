@@ -50,7 +50,7 @@ const EditInstructor = () => {
         const data = await response.json();
 
         if (data.success) {
-          setFormData(data.data);
+          setFormData(data.data.data);
         } else {
           throw new Error(data.error || 'Failed to fetch instructor details');
         }

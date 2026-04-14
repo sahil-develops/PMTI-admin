@@ -441,8 +441,8 @@ const ClassForm = () => {
         }
 
         const result = await response.json();
-        if (result.success && result.data) {
-          setInstructors(result.data);
+        if (result.success && result.data.data) {
+          setInstructors(result.data.data);
         }
       } catch (error) {
         console.error('Error fetching instructors:', error);
