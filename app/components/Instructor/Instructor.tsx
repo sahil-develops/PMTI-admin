@@ -35,6 +35,7 @@ const InstructorPage = () => {
     globalSearch,
     nameSearch,
     emailSearch,
+    metadata,
     fetchInstructors,
     deleteInstructor,
     setGlobalSearch,
@@ -46,8 +47,20 @@ const InstructorPage = () => {
   const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
 
   useEffect(() => {
-    fetchInstructors();
+    fetchInstructors(1, 10);
   }, []);
+
+  const handlePreviousPage = () => {
+    if (metadata && metadata.hasPrevious) {
+      fetchInstructors(metadata.currentPage - 1, metadata.limit);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (metadata && metadata.hasNext) {
+      fetchInstructors(metadata.currentPage + 1, metadata.limit);
+    }
+  };
 
   const handleDeleteInstructor = async () => {
     if (!selectedInstructor) return;
@@ -223,8 +236,26 @@ const InstructorPage = () => {
 
       <div className="flex justify-between items-center">
         <span className="text-sm text-gray-500">
-          Showing {filteredInstructors.length} of {instructors.length} instructors
+          Showing {filteredInstructors.length} of {metadata?.total || instructors.length} instructors
         </span>
+        {metadata && metadata.totalPages > 1 && (
+          <div className="flex gap-2">
+            <Button
+              onClick={handlePreviousPage}
+              disabled={!metadata.hasPrevious}
+              variant="outline"
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={handleNextPage}
+              disabled={!metadata.hasNext}
+              variant="outline"
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

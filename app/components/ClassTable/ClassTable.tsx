@@ -483,6 +483,9 @@ export function ClassTable() {
   }
   const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(true);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [instructorPage, setInstructorPage] = useState(1);
+  const [hasMoreInstructors, setHasMoreInstructors] = useState(false);
+  const [isLoadingMoreInstructors, setIsLoadingMoreInstructors] = useState(false);
   interface CourseCategory {
     id: number;
     name: string;
@@ -547,7 +550,7 @@ export function ClassTable() {
 
       const [instructorsRes, categoriesRes, classTypesRes, countriesRes] =
         await Promise.all([
-          fetch(`https://api.projectmanagementtraininginstitute.com/instructor`, { headers }),
+          fetch(`https://api.projectmanagementtraininginstitute.com/instructor?page=1&limit=10`, { headers }),
           fetch(`https://api.projectmanagementtraininginstitute.com/category`, { headers }),
           fetch(`https://api.projectmanagementtraininginstitute.com/classtype`, { headers }),
           fetch(`https://api.projectmanagementtraininginstitute.com/country`, { headers }),
@@ -567,6 +570,9 @@ export function ClassTable() {
           name: instructor.name,
         }))
       );
+      setInstructorPage(1);
+      setHasMoreInstructors(instructorsData.data.metadata?.hasNext || false);
+      
       setCourseCategories(categoriesData.data);
       setClassTypes(classTypesData.data);
       setCountries(
@@ -590,6 +596,58 @@ export function ClassTable() {
   useEffect(() => {
     fetchDropdownData();
   }, []);
+
+  const observer = React.useRef<IntersectionObserver | null>(null);
+
+  const lastInstructorElementRef = React.useCallback(
+    (node: any) => {
+      if (isLoadingMoreInstructors) return;
+      if (observer.current) observer.current.disconnect();
+
+      observer.current = new IntersectionObserver((entries) => {
+        if (
+          entries[0].isIntersecting &&
+          hasMoreInstructors &&
+          !isLoadingMoreInstructors
+        ) {
+          setIsLoadingMoreInstructors(true);
+          const nextPage = instructorPage + 1;
+          fetch(
+            `https://api.projectmanagementtraininginstitute.com/instructor?page=${nextPage}&limit=10`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+              },
+            }
+          )
+            .then((res) => res.json())
+            .then((data) => {
+              const newInstructors = data.data.data.map((instructor: any) => ({
+                id: instructor.id,
+                name: instructor.name,
+              }));
+
+              setInstructors((prev) => {
+                const existingIds = new Set(prev.map((i) => i.id));
+                const uniqueNew = newInstructors.filter(
+                  (i: any) => !existingIds.has(i.id)
+                );
+                return [...prev, ...uniqueNew];
+              });
+              setInstructorPage(nextPage);
+              setHasMoreInstructors(data.data.metadata?.hasNext || false);
+            })
+            .catch((error) =>
+              console.error("Error fetching more instructors:", error)
+            )
+            .finally(() => setIsLoadingMoreInstructors(false));
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [isLoadingMoreInstructors, hasMoreInstructors, instructorPage]
+  );
 
   const [globalSearch, setGlobalSearch] = useState("");
 
@@ -1056,16 +1114,36 @@ export function ClassTable() {
               <SelectTrigger>
                 <SelectValue placeholder="Select Instructor" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px] overflow-y-auto">
                 {instructors.length > 0 ? (
-                  instructors?.map((instructor) => (
-                    <SelectItem
-                      key={instructor.id}
-                      value={instructor.id.toString()}
-                    >
-                      {instructor.name}
-                    </SelectItem>
-                  ))
+                  <>
+                    {instructors.map((instructor, index) => {
+                      if (index === instructors.length - 1) {
+                        return (
+                          <SelectItem
+                            ref={lastInstructorElementRef}
+                            key={instructor.id}
+                            value={instructor.id.toString()}
+                          >
+                            {instructor.name}
+                          </SelectItem>
+                        );
+                      }
+                      return (
+                        <SelectItem
+                          key={instructor.id}
+                          value={instructor.id.toString()}
+                        >
+                          {instructor.name}
+                        </SelectItem>
+                      );
+                    })}
+                    {isLoadingMoreInstructors && (
+                      <div className="flex justify-center p-2">
+                        <span className="text-xs text-zinc-500">Loading more...</span>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="text-center text-zinc-500 text-sm p-4">
                     <p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -254,6 +254,9 @@ export default function EditClass({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [instructorPage, setInstructorPage] = useState(1);
+  const [hasMoreInstructors, setHasMoreInstructors] = useState(false);
+  const [isLoadingMoreInstructors, setIsLoadingMoreInstructors] = useState(false);
   const [participants, setParticipants] = useState<ClassData['participants']>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateError, setDateError] = useState('');
@@ -311,7 +314,7 @@ export default function EditClass({ params }: PageProps) {
   useEffect(() => {
     const fetchInstructors = async () => {
       try {
-        const response = await fetch('https://api.projectmanagementtraininginstitute.com/instructor', {
+        const response = await fetch('https://api.projectmanagementtraininginstitute.com/instructor?page=1&limit=10', {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
@@ -329,6 +332,8 @@ export default function EditClass({ params }: PageProps) {
             telNo: instructor.telNo
           }));
           setInstructors(mappedInstructors);
+          setInstructorPage(1);
+          setHasMoreInstructors(data.data.metadata?.hasNext || false);
         }
       } catch (error) {
         console.error('Error fetching instructors:', error);
@@ -342,6 +347,61 @@ export default function EditClass({ params }: PageProps) {
 
     fetchInstructors();
   }, []);
+
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  const lastInstructorElementRef = useCallback(
+    (node: any) => {
+      if (isLoadingMoreInstructors) return;
+      if (observer.current) observer.current.disconnect();
+
+      observer.current = new IntersectionObserver((entries) => {
+        if (
+          entries[0].isIntersecting &&
+          hasMoreInstructors &&
+          !isLoadingMoreInstructors
+        ) {
+          setIsLoadingMoreInstructors(true);
+          const nextPage = instructorPage + 1;
+          fetch(
+            `https://api.projectmanagementtraininginstitute.com/instructor?page=${nextPage}&limit=10`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+              },
+            }
+          )
+            .then((res) => res.json())
+            .then((data) => {
+              const newInstructors = data.data.data.map((instructor: any) => ({
+                id: instructor.id,
+                name: instructor.name,
+                emailID: instructor.emailID,
+                mobile: instructor.mobile,
+                telNo: instructor.telNo
+              }));
+
+              setInstructors((prev) => {
+                const existingIds = new Set(prev.map((i) => i.id));
+                const uniqueNew = newInstructors.filter(
+                  (i: any) => !existingIds.has(i.id)
+                );
+                return [...prev, ...uniqueNew];
+              });
+              setInstructorPage(nextPage);
+              setHasMoreInstructors(data.data.metadata?.hasNext || false);
+            })
+            .catch((error) =>
+              console.error("Error fetching more instructors:", error)
+            )
+            .finally(() => setIsLoadingMoreInstructors(false));
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [isLoadingMoreInstructors, hasMoreInstructors, instructorPage]
+  );
 
   // Add useEffect for fetching countries
   useEffect(() => {
@@ -1150,12 +1210,33 @@ export default function EditClass({ params }: PageProps) {
                     <SelectTrigger className={errors.instructor ? 'border-red-500' : ''}>
                       <SelectValue placeholder="Select Instructor" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {instructors.map((instructor) => (
-                        <SelectItem key={instructor.id} value={instructor.id.toString()}>
-                          {instructor.name}
-                        </SelectItem>
-                      ))}
+                    <SelectContent className="max-h-[300px] overflow-y-auto">
+                      {instructors.map((instructor, index) => {
+                        if (index === instructors.length - 1) {
+                          return (
+                            <SelectItem
+                              ref={lastInstructorElementRef}
+                              key={instructor.id}
+                              value={instructor.id.toString()}
+                            >
+                              {instructor.name}
+                            </SelectItem>
+                          );
+                        }
+                        return (
+                          <SelectItem
+                            key={instructor.id}
+                            value={instructor.id.toString()}
+                          >
+                            {instructor.name}
+                          </SelectItem>
+                        );
+                      })}
+                      {isLoadingMoreInstructors && (
+                        <div className="flex justify-center p-2">
+                          <span className="text-xs text-zinc-500">Loading more...</span>
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                   {errors.instructor && (

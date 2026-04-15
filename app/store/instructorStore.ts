@@ -30,7 +30,7 @@ interface InstructorState {
   nameSearch: string;
   emailSearch: string;
 
-  fetchInstructors: () => Promise<void>;
+  fetchInstructors: (page?: number, limit?: number) => Promise<void>;
   deleteInstructor: (id: string) => Promise<boolean>;
   setGlobalSearch: (value: string) => void;
   setNameSearch: (value: string) => void;
@@ -48,10 +48,12 @@ export const useInstructorStore = create<InstructorState>((set, get) => ({
   nameSearch: '',
   emailSearch: '',
 
-  fetchInstructors: async () => {
+  fetchInstructors: async (page = 1, limit = 10) => {
     set({ loading: true });
     try {
-      const response = await api.get('instructor');
+      const response = await api.get('instructor', {
+        params: { page, limit }
+      });
       const body = response.data;
       if (body.success) {
         // API shape: { success, data: { data: [...], metadata: {...} } }
