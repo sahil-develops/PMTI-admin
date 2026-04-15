@@ -105,7 +105,8 @@ export default function ClassDetailsPage({ params }: { params: { id: string } })
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      {/* Breadcrumb */}
+      {/* Breadcrumb */} 
+      
       <nav className="flex my-4" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 text-sm">
           <li>
