@@ -162,7 +162,7 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
   const [studentData, setStudentData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+// console.log(studentData?.enrollments[0]);
   useEffect(() => {
     if (isOpen && studentId) {
       fetchStudentDetails();
@@ -370,6 +370,10 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
                         <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                           <h4 className="text-md font-medium mb-3">Class Details</h4>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-500">Class ID</p>
+                              <p>{enrollment.class.id || 'N/A'}</p>
+                            </div>
                             <div className="space-y-1">
                               <p className="text-sm font-medium text-gray-500">Start Date</p>
                               <p>{enrollment.class.startDate ?
@@ -396,6 +400,7 @@ const ViewStudentModal: React.FC<ViewStudentModalProps> = ({
                               <p className="text-sm font-medium text-gray-500">Online Available</p>
                               <p>{enrollment.class.onlineAvailable ? 'Yes' : 'No'}</p>
                             </div>
+                            
                           </div>
                         </div>
                       )}
