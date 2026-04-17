@@ -697,10 +697,16 @@ export default function ClassDetailsPage({ params }: { params: Promise<{ id: str
             <CardTitle>Class Information</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+         
             <DetailSection title="Category">
               <div className="space-y-1">
                 <div className="font-medium">{classDetails.category.name}</div>
                 <div className="text-sm text-zinc-500">{classDetails.category.description}</div>
+              </div>
+            </DetailSection>
+            <DetailSection title="Class ID">
+              <div className="space-y-1">
+                <div className="font-medium">{classDetails.id}</div>
               </div>
             </DetailSection>
             <DetailSection title="Class Type">
