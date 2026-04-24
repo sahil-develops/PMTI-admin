@@ -422,8 +422,11 @@ export default function PromotionsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Countries</SelectItem>
-                  {Array.from(new Set(promotions.map(p => p.country)))
-                    .map(country => (
+                  {Array.from(
+                    new Map(
+                      promotions.map((p) => [p.country.id, p.country] as const)
+                    ).values()
+                  ).map((country) => (
                       <SelectItem key={country.id} value={country.id.toString()}>
                         {country.CountryName}
                       </SelectItem>
