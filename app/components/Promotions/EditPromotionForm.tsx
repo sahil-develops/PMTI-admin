@@ -23,6 +23,7 @@ interface EditPromotionFormProps {
 }
 
 interface PromotionData {
+  promotionId: string;
   title: string;
   description: string;
   amount: string;
@@ -38,6 +39,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState<PromotionData>({
+    promotionId: '',
     title: '',
     description: '',
     amount: '',
@@ -70,6 +72,7 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
       const data = await response.json();
       if (data.success) {
         setFormData({
+          promotionId: data.data.promotionId,
           title: data.data.title,
           description: data.data.description,
           amount: data.data.amount,
@@ -195,7 +198,16 @@ export default function EditPromotionForm({ id }: EditPromotionFormProps) {
                 required
               />
             </div>
-
+            <div className="space-y-2">
+              <Label htmlFor="promotionId">Promotion ID</Label>
+              <Input
+                id="promotionId"
+                name="promotionId"
+                value={formData.promotionId}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
