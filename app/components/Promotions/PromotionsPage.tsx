@@ -150,7 +150,7 @@ const ActionDropdown = ({
     {
       label: 'Edit details',
       icon: Edit2,
-      onClick: () => router.push(`/promotions/edit/${promotionId}`),
+      onClick: () => router.push(`/promotions/edit?id=${promotionId}`),
       className: 'text-gray-700 hover:bg-gray-50',
     },
     {
