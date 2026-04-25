@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
@@ -245,6 +245,7 @@ export default function PromotionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [filteredPromotions, setFilteredPromotions] = useState<Promotion[]>([]);
+  const [titleSortOrder, setTitleSortOrder] = useState<'none' | 'asc' | 'desc'>('none');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const [filters, setFilters] = useState<FilterState>({
@@ -374,6 +375,25 @@ export default function PromotionsPage() {
       debouncedSearch.cancel();
     };
   }, []);
+
+  const sortedPromotions = useMemo(() => {
+    if (titleSortOrder === 'none') {
+      return filteredPromotions;
+    }
+
+    return [...filteredPromotions].sort((a, b) => {
+      const comparison = (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' });
+      return titleSortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredPromotions, titleSortOrder]);
+
+  const handleTitleSortToggle = () => {
+    setTitleSortOrder((prev) => {
+      if (prev === 'none') return 'asc';
+      if (prev === 'asc') return 'desc';
+      return 'none';
+    });
+  };
 
   return (
     <div className="p-6 bg-white rounded-lg shadow">
@@ -533,7 +553,18 @@ export default function PromotionsPage() {
             <thead className="bg-zinc-50">
               <tr>
                 <TableHeader className="whitespace-nowrap">ID</TableHeader>
-                <TableHeader className="whitespace-nowrap">Title</TableHeader>
+                <TableHeader className="whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={handleTitleSortToggle}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Title</span>
+                    <span className="text-xs">
+                      {titleSortOrder === 'asc' ? '▲' : titleSortOrder === 'desc' ? '▼' : '↕'}
+                    </span>
+                  </button>
+                </TableHeader>
                 <TableHeader className="whitespace-nowrap">Amount</TableHeader>
                 <TableHeader className="whitespace-nowrap">Country</TableHeader>
                 <TableHeader className="whitespace-nowrap">Start Date</TableHeader>
@@ -546,7 +577,7 @@ export default function PromotionsPage() {
             </thead>
             <tbody className="divide-y divide-zinc-200">
               {filteredPromotions.length > 0 ? (
-                filteredPromotions.map((promotion) => (
+                sortedPromotions.map((promotion) => (
                   <tr
                     key={promotion.id}
                     className="hover:bg-zinc-50 transition-colors"
