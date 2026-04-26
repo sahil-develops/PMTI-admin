@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -110,6 +110,10 @@ const Admin = () => {
   });
   const [countries, setCountries] = useState<Country[]>([]);
   const [loadingCountries, setLoadingCountries] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: 'name' | 'email' | 'designation' | ''; direction: 'asc' | 'desc' }>({
+    key: '',
+    direction: 'asc',
+  });
 
   useEffect(() => {
     const fetchAdmins = async () => {
@@ -202,6 +206,35 @@ const Admin = () => {
       name: '',
     });
     setFilteredAdmins(admins);
+  };
+
+  const sortedAdmins = useMemo(() => {
+    if (!sortConfig.key) {
+      return filteredAdmins;
+    }
+
+    return [...filteredAdmins].sort((a, b) => {
+      const getSortValue = (admin: AdminData) => {
+        if (sortConfig.key === 'name') return admin.name;
+        if (sortConfig.key === 'email') return admin.email;
+        if (sortConfig.key === 'designation') return admin.designation;
+        return '';
+      };
+      const comparison = getSortValue(a).localeCompare(getSortValue(b), undefined, { sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredAdmins, sortConfig]);
+
+  const handleSortToggle = (key: 'name' | 'email' | 'designation') => {
+    setSortConfig((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' };
+      if (prev.direction === 'asc') return { key, direction: 'desc' };
+      return { key: '', direction: 'asc' };
+    });
+  };
+
+  const getSortIndicator = (key: 'name' | 'email' | 'designation') => {
+    return sortConfig.key === key ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕';
   };
 
   // Loading shimmer component
@@ -303,9 +336,36 @@ const Admin = () => {
         <table className="w-full">
           <thead className="bg-zinc-50">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500">Name</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500">Email</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500">Designation</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500">
+                <button
+                  type="button"
+                  onClick={() => handleSortToggle('name')}
+                  className="inline-flex items-center gap-1 hover:text-zinc-700"
+                >
+                  <span>Name</span>
+                  <span className="text-xs">{getSortIndicator('name')}</span>
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500">
+                <button
+                  type="button"
+                  onClick={() => handleSortToggle('email')}
+                  className="inline-flex items-center gap-1 hover:text-zinc-700"
+                >
+                  <span>Email</span>
+                  <span className="text-xs">{getSortIndicator('email')}</span>
+                </button>
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500">
+                <button
+                  type="button"
+                  onClick={() => handleSortToggle('designation')}
+                  className="inline-flex items-center gap-1 hover:text-zinc-700"
+                >
+                  <span>Designation</span>
+                  <span className="text-xs">{getSortIndicator('designation')}</span>
+                </button>
+              </th>
               <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500">Phone</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500">Role</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500">Status</th>
@@ -315,8 +375,8 @@ const Admin = () => {
           <tbody className="divide-y divide-zinc-200">
             {loading ? (
               <TableShimmer />
-            ) : filteredAdmins.length > 0 ? (
-              filteredAdmins.map((admin) => (
+            ) : sortedAdmins.length > 0 ? (
+              sortedAdmins.map((admin) => (
                 <tr key={admin.id} className="hover:bg-zinc-50">
                   <td className="px-4 py-4 text-sm text-zinc-900 font-medium">
                     {admin.name}

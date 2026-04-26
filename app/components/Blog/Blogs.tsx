@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { Plus, Search, Trash2, Edit, X, ChevronLeft, ChevronRight, Tag, Globe } from 'lucide-react';
@@ -59,6 +59,10 @@ export default function Blogs() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: 'title' | 'contentPreview' | 'author' | ''; direction: 'asc' | 'desc' }>({
+    key: '',
+    direction: 'asc',
+  });
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -381,6 +385,35 @@ export default function Blogs() {
     }
   };
 
+  const sortedBlogPosts = useMemo(() => {
+    if (!sortConfig.key) {
+      return filteredBlogPosts;
+    }
+
+    return [...filteredBlogPosts].sort((a, b) => {
+      const getSortValue = (post: BlogPost) => {
+        if (sortConfig.key === 'title') return post.title;
+        if (sortConfig.key === 'contentPreview') return getPreview(post.content, 300);
+        if (sortConfig.key === 'author') return post.user.name;
+        return '';
+      };
+      const comparison = getSortValue(a).localeCompare(getSortValue(b), undefined, { sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredBlogPosts, sortConfig]);
+
+  const handleSortToggle = (key: 'title' | 'contentPreview' | 'author') => {
+    setSortConfig((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' };
+      if (prev.direction === 'asc') return { key, direction: 'desc' };
+      return { key: '', direction: 'asc' };
+    });
+  };
+
+  const getSortIndicator = (key: 'title' | 'contentPreview' | 'author') => {
+    return sortConfig.key === key ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕';
+  };
+
   // Function to handle image loading errors
   const handleImageError = (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const img = event.target as HTMLImageElement;
@@ -623,16 +656,37 @@ export default function Blogs() {
                       Cover Image
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Title
+                      <button
+                        type="button"
+                        onClick={() => handleSortToggle('title')}
+                        className="inline-flex items-center gap-1 hover:text-gray-700 uppercase tracking-wider"
+                      >
+                        <span>Title</span>
+                        <span className="text-xs">{getSortIndicator('title')}</span>
+                      </button>
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
-                      Content Preview
+                      <button
+                        type="button"
+                        onClick={() => handleSortToggle('contentPreview')}
+                        className="inline-flex items-center gap-1 hover:text-gray-700 uppercase tracking-wider"
+                      >
+                        <span>Content Preview</span>
+                        <span className="text-xs">{getSortIndicator('contentPreview')}</span>
+                      </button>
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
                       Tags
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
-                      Author
+                      <button
+                        type="button"
+                        onClick={() => handleSortToggle('author')}
+                        className="inline-flex items-center gap-1 hover:text-gray-700 uppercase tracking-wider"
+                      >
+                        <span>Author</span>
+                        <span className="text-xs">{getSortIndicator('author')}</span>
+                      </button>
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                       Actions
@@ -640,8 +694,8 @@ export default function Blogs() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredBlogPosts.length > 0 ? (
-                    filteredBlogPosts.map((post) => (
+                  {sortedBlogPosts.length > 0 ? (
+                    sortedBlogPosts.map((post) => (
                       <tr key={post.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           {post.cover_image ? (

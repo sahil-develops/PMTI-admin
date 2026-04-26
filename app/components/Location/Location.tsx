@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -60,6 +60,10 @@ export default function LocationPage() {
   const [editingLocation, setEditingLocation] = useState<number | null>(null)
   const [editValue, setEditValue] = useState("")
   const [updatingName, setUpdatingName] = useState<number[]>([])
+  const [sortConfig, setSortConfig] = useState<{ key: 'country' | 'location' | ''; direction: 'asc' | 'desc' }>({
+    key: '',
+    direction: 'asc',
+  })
 
   const fetchCountries = async () => {
     try {
@@ -168,6 +172,31 @@ export default function LocationPage() {
     return matchesSearch && matchesActive && matchesCountry
   })
 
+  const sortedLocations = useMemo(() => {
+    if (!sortConfig.key) {
+      return filteredLocations
+    }
+
+    return [...filteredLocations].sort((a, b) => {
+      const aValue = sortConfig.key === 'country' ? a.__country__?.CountryName : a.location
+      const bValue = sortConfig.key === 'country' ? b.__country__?.CountryName : b.location
+      const comparison = (aValue || '').localeCompare(bValue || '', undefined, { sensitivity: 'base' })
+      return sortConfig.direction === 'asc' ? comparison : -comparison
+    })
+  }, [filteredLocations, sortConfig])
+
+  const handleSortToggle = (key: 'country' | 'location') => {
+    setSortConfig((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' }
+      if (prev.direction === 'asc') return { key, direction: 'desc' }
+      return { key: '', direction: 'asc' }
+    })
+  }
+
+  const getSortIndicator = (key: 'country' | 'location') => {
+    return sortConfig.key === key ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕'
+  }
+
   const LoadingSwitch = ({ checked, onChange, loading }: { checked: boolean; onChange: () => void; loading: boolean }) => (
     <div className="relative">
       <Switch
@@ -260,14 +289,32 @@ export default function LocationPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Country</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead>
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('country')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Country</span>
+                    <span className="text-xs">{getSortIndicator('country')}</span>
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('location')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Location</span>
+                    <span className="text-xs">{getSortIndicator('location')}</span>
+                  </button>
+                </TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredLocations.length > 0 ? (
-                filteredLocations.map(location => (
+              {sortedLocations.length > 0 ? (
+                sortedLocations.map(location => (
                   <TableRow key={location.id}>
                     <TableCell>{location.__country__?.CountryName || ""}</TableCell>
                     <TableCell>

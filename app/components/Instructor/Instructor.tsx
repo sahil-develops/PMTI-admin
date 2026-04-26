@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,6 +45,10 @@ const InstructorPage = () => {
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedInstructor, setSelectedInstructor] = useState<Instructor | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: 'name' | 'email' | ''; direction: 'asc' | 'desc' }>({
+    key: '',
+    direction: 'asc',
+  });
 
   useEffect(() => {
     fetchInstructors(1, 10);
@@ -69,6 +73,31 @@ const InstructorPage = () => {
       setShowDeleteDialog(false);
       setSelectedInstructor(null);
     }
+  };
+
+  const sortedInstructors = useMemo(() => {
+    if (!sortConfig.key) {
+      return filteredInstructors;
+    }
+
+    return [...filteredInstructors].sort((a, b) => {
+      const aValue = sortConfig.key === 'name' ? a.name : a.emailID;
+      const bValue = sortConfig.key === 'name' ? b.name : b.emailID;
+      const comparison = (aValue || '').localeCompare(bValue || '', undefined, { sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredInstructors, sortConfig]);
+
+  const handleSortToggle = (key: 'name' | 'email') => {
+    setSortConfig((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' };
+      if (prev.direction === 'asc') return { key, direction: 'desc' };
+      return { key: '', direction: 'asc' };
+    });
+  };
+
+  const getSortIndicator = (key: 'name' | 'email') => {
+    return sortConfig.key === key ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕';
   };
 
   const ActionDropdown = ({ instructor }: { instructor: Instructor }) => {
@@ -185,8 +214,26 @@ const InstructorPage = () => {
             <TableHeader className="bg-gray-50">
               <TableRow>
                 {/* <TableHead className="text-gray-500">UID</TableHead> */}
-                <TableHead className="text-gray-500">Name</TableHead>
-                <TableHead className="text-gray-500">Email</TableHead>
+                <TableHead className="text-gray-500">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('name')}
+                    className="inline-flex items-center gap-1 hover:text-gray-700"
+                  >
+                    <span>Name</span>
+                    <span className="text-xs">{getSortIndicator('name')}</span>
+                  </button>
+                </TableHead>
+                <TableHead className="text-gray-500">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('email')}
+                    className="inline-flex items-center gap-1 hover:text-gray-700"
+                  >
+                    <span>Email</span>
+                    <span className="text-xs">{getSortIndicator('email')}</span>
+                  </button>
+                </TableHead>
                 <TableHead className="text-gray-500">Mobile</TableHead>
                 <TableHead className="text-gray-500">Telephone</TableHead>
                 <TableHead className="text-gray-500">Status</TableHead>
@@ -207,7 +254,7 @@ const InstructorPage = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredInstructors.map((instructor) => (
+                sortedInstructors.map((instructor) => (
                   <TableRow key={instructor.id} className="hover:bg-gray-50">
                     {/* <TableCell className="text-gray-900">{instructor.uid || "N/A"}</TableCell> */}
                     <TableCell className="text-gray-900 font-medium">{instructor.name || "N/A"}</TableCell>

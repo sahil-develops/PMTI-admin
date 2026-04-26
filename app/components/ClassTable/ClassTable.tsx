@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   Search,
@@ -925,6 +925,35 @@ export function ClassTable() {
     }
   };
 
+  const sortedClasses = useMemo(() => {
+    if (sortConfig.key !== 'title' && sortConfig.key !== 'location') {
+      return classes;
+    }
+
+    return [...classes].sort((a, b) => {
+      const aValue = sortConfig.key === 'title' ? a.title : a.location?.location;
+      const bValue = sortConfig.key === 'title' ? b.title : b.location?.location;
+      const comparison = (aValue || '').localeCompare(bValue || '', undefined, { sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [classes, sortConfig]);
+
+  const handleTitleSortToggle = () => {
+    setSortConfig((prev) => {
+      if (prev.key !== 'title') return { key: 'title', direction: 'asc' };
+      if (prev.direction === 'asc') return { key: 'title', direction: 'desc' };
+      return { key: '', direction: 'asc' };
+    });
+  };
+
+  const handleLocationSortToggle = () => {
+    setSortConfig((prev) => {
+      if (prev.key !== 'location') return { key: 'location', direction: 'asc' };
+      if (prev.direction === 'asc') return { key: 'location', direction: 'desc' };
+      return { key: '', direction: 'asc' };
+    });
+  };
+
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       {error && (
@@ -1309,8 +1338,30 @@ export function ClassTable() {
                   />
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Category</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Title</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Location</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={handleTitleSortToggle}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Title</span>
+                    <span className="text-xs">
+                      {sortConfig.key === 'title' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕'}
+                    </span>
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={handleLocationSortToggle}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Location</span>
+                    <span className="text-xs">
+                      {sortConfig.key === 'location' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕'}
+                    </span>
+                  </button>
+                </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Start Date</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">End Date</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Instructor</th>
@@ -1321,8 +1372,8 @@ export function ClassTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200">
-              {classes && classes.length > 0 ? (
-                classes.map((classItem) => (
+              {sortedClasses && sortedClasses.length > 0 ? (
+                sortedClasses.map((classItem) => (
                   <tr key={classItem.id} className="hover:bg-zinc-50">
                     <TableCell>
                       <input

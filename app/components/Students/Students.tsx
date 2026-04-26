@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, MoreVertical, Edit2, FileInput, Trash2 } from 'lucide-react';
 import { useStudentEditStore } from '@/lib/stores/studentEditStore';
 import { useToast } from "@/hooks/use-toast";
@@ -792,6 +792,10 @@ const Students = () => {
   const [deletingStudent, setDeletingStudent] = useState<StudentData | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: 'name' | 'email' | 'state' | ''; direction: 'asc' | 'desc' }>({
+    key: '',
+    direction: 'asc',
+  });
 
   const uniqueStates = Array.from(new Set(
     students.map(student => {
@@ -976,6 +980,37 @@ const Students = () => {
     return { cityName, stateName, countryName, locationDisplay };
   };
 
+  const sortedStudents = useMemo(() => {
+    if (!sortConfig.key) {
+      return filteredStudents;
+    }
+
+    return [...filteredStudents].sort((a, b) => {
+      const getSortValue = (student: StudentData) => {
+        if (sortConfig.key === 'state') return getLocationInfo(student).locationDisplay;
+        if (sortConfig.key === 'name') return student.name;
+        if (sortConfig.key === 'email') return student.email;
+        return '';
+      };
+      const aValue = getSortValue(a);
+      const bValue = getSortValue(b);
+      const comparison = (aValue || '').localeCompare(bValue || '', undefined, { sensitivity: 'base' });
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredStudents, sortConfig]);
+
+  const handleSortToggle = (key: 'name' | 'email' | 'state') => {
+    setSortConfig((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' };
+      if (prev.direction === 'asc') return { key, direction: 'desc' };
+      return { key: '', direction: 'asc' };
+    });
+  };
+
+  const getSortIndicator = (key: 'name' | 'email' | 'state') => {
+    return sortConfig.key === key ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕';
+  };
+
   const handleDeleteStudent = async () => {
     if (!deletingStudent) return;
 
@@ -1104,10 +1139,37 @@ const Students = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     {/* <th className="px-4 py-3 text-left font-medium text-gray-500">ID</th> */}
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">Name</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">Email</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">
+                      <button
+                        type="button"
+                        onClick={() => handleSortToggle('name')}
+                        className="inline-flex items-center gap-1 hover:text-gray-700"
+                      >
+                        <span>Name</span>
+                        <span className="text-xs">{getSortIndicator('name')}</span>
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">
+                      <button
+                        type="button"
+                        onClick={() => handleSortToggle('email')}
+                        className="inline-flex items-center gap-1 hover:text-gray-700"
+                      >
+                        <span>Email</span>
+                        <span className="text-xs">{getSortIndicator('email')}</span>
+                      </button>
+                    </th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Company</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">State</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">
+                      <button
+                        type="button"
+                        onClick={() => handleSortToggle('state')}
+                        className="inline-flex items-center gap-1 hover:text-gray-700"
+                      >
+                        <span>State</span>
+                        <span className="text-xs">{getSortIndicator('state')}</span>
+                      </button>
+                    </th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Phone</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Last Login</th>
@@ -1115,7 +1177,7 @@ const Students = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredStudents.map((student) => {
+                  {sortedStudents.map((student) => {
                     const { locationDisplay } = getLocationInfo(student);
                     return (
                       <tr key={student.id} className="hover:bg-gray-50">

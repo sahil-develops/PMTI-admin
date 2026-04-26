@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { MoreVertical, Edit2, Eye, Plus, Trash } from "lucide-react";
 import {
@@ -122,6 +122,7 @@ const CourseList = () => {
   const router = useRouter();
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [titleSortOrder, setTitleSortOrder] = useState<'none' | 'asc' | 'desc'>('none');
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -169,6 +170,25 @@ const CourseList = () => {
 
     return matchesEmail && matchesStatus;
   });
+
+  const sortedCourses = useMemo(() => {
+    if (titleSortOrder === 'none') {
+      return filteredCourses;
+    }
+
+    return [...filteredCourses].sort((a, b) => {
+      const comparison = (a.courseName || '').localeCompare(b.courseName || '', undefined, { sensitivity: 'base' });
+      return titleSortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredCourses, titleSortOrder]);
+
+  const handleTitleSortToggle = () => {
+    setTitleSortOrder((prev) => {
+      if (prev === 'none') return 'asc';
+      if (prev === 'asc') return 'desc';
+      return 'none';
+    });
+  };
 
   const handleViewDetails = (courseId: number) => {
     router.push(`/courses/${courseId}`);
@@ -278,7 +298,18 @@ const CourseList = () => {
             <thead className="text-gray-700 bg-gray-50">
               <tr>
                 <th scope="col" className="px-6 py-4 text-left font-medium">Type</th>
-                <th scope="col" className="px-6 py-4 text-left font-medium">Title</th>
+                <th scope="col" className="px-6 py-4 text-left font-medium">
+                  <button
+                    type="button"
+                    onClick={handleTitleSortToggle}
+                    className="inline-flex items-center gap-1 hover:text-gray-900"
+                  >
+                    <span>Title</span>
+                    <span className="text-xs">
+                      {titleSortOrder === 'asc' ? '▲' : titleSortOrder === 'desc' ? '▼' : '↕'}
+                    </span>
+                  </button>
+                </th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">Start Date</th>
                 <th scope="col" className="px-6 py-4 text-left font-medium">End Date</th>
                 {/* <th scope="col" className="px-6 py-4 text-left font-medium">Instructor</th> */}
@@ -289,7 +320,7 @@ const CourseList = () => {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filteredCourses.map((course) => (
+              {sortedCourses.map((course) => (
                 <tr key={course.id} className="bg-white hover:bg-gray-50">
                   <td className="px-6 py-4">{course.category?.name || 'Uncategorized'}</td>
                   <td className="px-6 py-4">{course.courseName}</td>
