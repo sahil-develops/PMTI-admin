@@ -302,6 +302,7 @@ export default function EditClass({ params }: PageProps) {
           title: "Error",
           description: "Failed to load class details. Please try again later.",
         });
+        
         router.push('/');
       } finally {
         setIsFetching(false);
