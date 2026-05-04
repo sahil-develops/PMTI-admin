@@ -926,17 +926,47 @@ export function ClassTable() {
   };
 
   const sortedClasses = useMemo(() => {
-    if (sortConfig.key !== 'title' && sortConfig.key !== 'location') {
+    if (!sortConfig.key) {
       return classes;
     }
 
     return [...classes].sort((a, b) => {
-      const aValue = sortConfig.key === 'title' ? a.title : a.location?.location;
-      const bValue = sortConfig.key === 'title' ? b.title : b.location?.location;
-      const comparison = (aValue || '').localeCompare(bValue || '', undefined, { sensitivity: 'base' });
+      let comparison = 0;
+
+      if (sortConfig.key === 'startDate' || sortConfig.key === 'endDate') {
+        const aTime = new Date(a[sortConfig.key]).getTime() || 0;
+        const bTime = new Date(b[sortConfig.key]).getTime() || 0;
+        comparison = aTime - bTime;
+      } else if (sortConfig.key === 'enrolled') {
+        comparison = Number(a.activeEnrollmentCount ?? 0) - Number(b.activeEnrollmentCount ?? 0);
+      } else if (sortConfig.key === 'left') {
+        comparison = calculateAvailableSpots(a) - calculateAvailableSpots(b);
+      } else {
+        const getSortValue = (classItem: ClassData) => {
+          if (sortConfig.key === 'category') return classItem.category?.name;
+          if (sortConfig.key === 'title') return classItem.title;
+          if (sortConfig.key === 'location') return classItem.location?.location;
+          if (sortConfig.key === 'instructor') return (classItem.instructor as any)?.name || classItem.instructor || 'Not assigned';
+          return '';
+        };
+        comparison = (getSortValue(a) || '').localeCompare(getSortValue(b) || '', undefined, { sensitivity: 'base' });
+      }
+
       return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
   }, [classes, sortConfig]);
+
+  const handleSortToggle = (key: string) => {
+    setSortConfig((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' };
+      if (prev.direction === 'asc') return { key, direction: 'desc' };
+      return { key: '', direction: 'asc' };
+    });
+  };
+
+  const getSortIndicator = (key: string) => {
+    return sortConfig.key === key ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕';
+  };
 
   const handleTitleSortToggle = () => {
     setSortConfig((prev) => {
@@ -1337,7 +1367,16 @@ export function ClassTable() {
                     className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Category</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('category')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Category</span>
+                    <span className="text-xs">{getSortIndicator('category')}</span>
+                  </button>
+                </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">
                   <button
                     type="button"
@@ -1362,12 +1401,57 @@ export function ClassTable() {
                     </span>
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Start Date</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">End Date</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Instructor</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('startDate')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Start Date</span>
+                    <span className="text-xs">{getSortIndicator('startDate')}</span>
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('endDate')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>End Date</span>
+                    <span className="text-xs">{getSortIndicator('endDate')}</span>
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('instructor')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Instructor</span>
+                    <span className="text-xs">{getSortIndicator('instructor')}</span>
+                  </button>
+                </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Status</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Enrolled</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Left</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('enrolled')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Enrolled</span>
+                    <span className="text-xs">{getSortIndicator('enrolled')}</span>
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('left')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Left</span>
+                    <span className="text-xs">{getSortIndicator('left')}</span>
+                  </button>
+                </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap">Actions</th>
               </tr>
             </thead>

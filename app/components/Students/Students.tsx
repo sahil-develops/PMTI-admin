@@ -792,7 +792,7 @@ const Students = () => {
   const [deletingStudent, setDeletingStudent] = useState<StudentData | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [sortConfig, setSortConfig] = useState<{ key: 'name' | 'email' | 'state' | ''; direction: 'asc' | 'desc' }>({
+  const [sortConfig, setSortConfig] = useState<{ key: 'name' | 'email' | 'state' | 'company' | 'lastLogin' | ''; direction: 'asc' | 'desc' }>({
     key: '',
     direction: 'asc',
   });
@@ -986,10 +986,34 @@ const Students = () => {
     }
 
     return [...filteredStudents].sort((a, b) => {
+      if (sortConfig.key === 'lastLogin') {
+        const getLoginTime = (student: StudentData): number =>
+          student.lastLogin ? new Date(student.lastLogin).getTime() : NaN;
+
+        let comparison = 0;
+        const aTime = getLoginTime(a);
+        const bTime = getLoginTime(b);
+        const aHas = Number.isFinite(aTime);
+        const bHas = Number.isFinite(bTime);
+
+        if (aHas && bHas) {
+          comparison = aTime - bTime;
+        } else if (!aHas && !bHas) {
+          comparison = 0;
+        } else if (aHas && !bHas) {
+          comparison = -1;
+        } else {
+          comparison = 1;
+        }
+
+        return sortConfig.direction === 'asc' ? comparison : -comparison;
+      }
+
       const getSortValue = (student: StudentData) => {
         if (sortConfig.key === 'state') return getLocationInfo(student).locationDisplay;
         if (sortConfig.key === 'name') return student.name;
         if (sortConfig.key === 'email') return student.email;
+        if (sortConfig.key === 'company') return student.companyName || 'N/A';
         return '';
       };
       const aValue = getSortValue(a);
@@ -999,7 +1023,7 @@ const Students = () => {
     });
   }, [filteredStudents, sortConfig]);
 
-  const handleSortToggle = (key: 'name' | 'email' | 'state') => {
+  const handleSortToggle = (key: 'name' | 'email' | 'state' | 'company' | 'lastLogin') => {
     setSortConfig((prev) => {
       if (prev.key !== key) return { key, direction: 'asc' };
       if (prev.direction === 'asc') return { key, direction: 'desc' };
@@ -1007,7 +1031,7 @@ const Students = () => {
     });
   };
 
-  const getSortIndicator = (key: 'name' | 'email' | 'state') => {
+  const getSortIndicator = (key: 'name' | 'email' | 'state' | 'company' | 'lastLogin') => {
     return sortConfig.key === key ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕';
   };
 
@@ -1159,7 +1183,16 @@ const Students = () => {
                         <span className="text-xs">{getSortIndicator('email')}</span>
                       </button>
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">Company</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">
+                      <button
+                        type="button"
+                        onClick={() => handleSortToggle('company')}
+                        className="inline-flex items-center gap-1 hover:text-gray-700"
+                      >
+                        <span>Company</span>
+                        <span className="text-xs">{getSortIndicator('company')}</span>
+                      </button>
+                    </th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">
                       <button
                         type="button"
@@ -1172,7 +1205,16 @@ const Students = () => {
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Phone</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-500">Last Login</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500">
+                      <button
+                        type="button"
+                        onClick={() => handleSortToggle('lastLogin')}
+                        className="inline-flex items-center gap-1 hover:text-gray-700"
+                      >
+                        <span>Last Login</span>
+                        <span className="text-xs">{getSortIndicator('lastLogin')}</span>
+                      </button>
+                    </th>
                     <th className="px-4 py-3 text-left font-medium text-gray-500">Actions</th>
                   </tr>
                 </thead>
