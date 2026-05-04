@@ -72,6 +72,8 @@ interface FilterState {
   endDate: Date | undefined;
 }
 
+type PromotionSortKey = 'promotionId' | 'title' | 'amount' | 'country' | 'startDate' | 'endDate' | 'category' | 'classType';
+
 const TableHeader = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <th className={`px-4 py-3 text-left text-sm font-medium text-zinc-500 whitespace-nowrap ${className}`}>{children}</th>
 );
@@ -245,7 +247,10 @@ export default function PromotionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [filteredPromotions, setFilteredPromotions] = useState<Promotion[]>([]);
-  const [titleSortOrder, setTitleSortOrder] = useState<'none' | 'asc' | 'desc'>('none');
+  const [sortConfig, setSortConfig] = useState<{ key: PromotionSortKey | ''; direction: 'asc' | 'desc' }>({
+    key: '',
+    direction: 'asc',
+  });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const [filters, setFilters] = useState<FilterState>({
@@ -377,22 +382,43 @@ export default function PromotionsPage() {
   }, []);
 
   const sortedPromotions = useMemo(() => {
-    if (titleSortOrder === 'none') {
+    if (!sortConfig.key) {
       return filteredPromotions;
     }
 
     return [...filteredPromotions].sort((a, b) => {
-      const comparison = (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' });
-      return titleSortOrder === 'asc' ? comparison : -comparison;
-    });
-  }, [filteredPromotions, titleSortOrder]);
+      let comparison = 0;
 
-  const handleTitleSortToggle = () => {
-    setTitleSortOrder((prev) => {
-      if (prev === 'none') return 'asc';
-      if (prev === 'asc') return 'desc';
-      return 'none';
+      if (sortConfig.key === 'amount') {
+        comparison = (parseFloat(a.amount) || 0) - (parseFloat(b.amount) || 0);
+      } else if (sortConfig.key === 'startDate' || sortConfig.key === 'endDate') {
+        comparison = new Date(a[sortConfig.key]).getTime() - new Date(b[sortConfig.key]).getTime();
+      } else {
+        const getSortValue = (promotion: Promotion) => {
+          if (sortConfig.key === 'promotionId') return promotion.promotionId;
+          if (sortConfig.key === 'title') return promotion.title;
+          if (sortConfig.key === 'country') return promotion.country?.CountryName;
+          if (sortConfig.key === 'category') return promotion.category?.name;
+          if (sortConfig.key === 'classType') return promotion.classType?.name;
+          return '';
+        };
+        comparison = (getSortValue(a) || '').localeCompare(getSortValue(b) || '', undefined, { sensitivity: 'base' });
+      }
+
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
+  }, [filteredPromotions, sortConfig]);
+
+  const handleSortToggle = (key: PromotionSortKey) => {
+    setSortConfig((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' };
+      if (prev.direction === 'asc') return { key, direction: 'desc' };
+      return { key: '', direction: 'asc' };
+    });
+  };
+
+  const getSortIndicator = (key: PromotionSortKey) => {
+    return sortConfig.key === key ? (sortConfig.direction === 'asc' ? '▲' : '▼') : '↕';
   };
 
   return (
@@ -552,26 +578,87 @@ export default function PromotionsPage() {
           <table className="w-full border-collapse">
             <thead className="bg-zinc-50">
               <tr>
-                <TableHeader className="whitespace-nowrap">ID</TableHeader>
                 <TableHeader className="whitespace-nowrap">
                   <button
                     type="button"
-                    onClick={handleTitleSortToggle}
+                    onClick={() => handleSortToggle('promotionId')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>ID</span>
+                    <span className="text-xs">{getSortIndicator('promotionId')}</span>
+                  </button>
+                </TableHeader>
+                <TableHeader className="whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('title')}
                     className="inline-flex items-center gap-1 hover:text-zinc-700"
                   >
                     <span>Title</span>
-                    <span className="text-xs">
-                      {titleSortOrder === 'asc' ? '▲' : titleSortOrder === 'desc' ? '▼' : '↕'}
-                    </span>
+                    <span className="text-xs">{getSortIndicator('title')}</span>
                   </button>
                 </TableHeader>
-                <TableHeader className="whitespace-nowrap">Amount</TableHeader>
-                <TableHeader className="whitespace-nowrap">Country</TableHeader>
-                <TableHeader className="whitespace-nowrap">Start Date</TableHeader>
-                <TableHeader className="whitespace-nowrap">End Date</TableHeader>
+                <TableHeader className="whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('amount')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Amount</span>
+                    <span className="text-xs">{getSortIndicator('amount')}</span>
+                  </button>
+                </TableHeader>
+                <TableHeader className="whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('country')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Country</span>
+                    <span className="text-xs">{getSortIndicator('country')}</span>
+                  </button>
+                </TableHeader>
+                <TableHeader className="whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('startDate')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Start Date</span>
+                    <span className="text-xs">{getSortIndicator('startDate')}</span>
+                  </button>
+                </TableHeader>
+                <TableHeader className="whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('endDate')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>End Date</span>
+                    <span className="text-xs">{getSortIndicator('endDate')}</span>
+                  </button>
+                </TableHeader>
                 <TableHeader className="whitespace-nowrap">Status</TableHeader>
-                <TableHeader className="whitespace-nowrap">Category</TableHeader>
-                <TableHeader className="whitespace-nowrap">Class Type</TableHeader>
+                <TableHeader className="whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('category')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Category</span>
+                    <span className="text-xs">{getSortIndicator('category')}</span>
+                  </button>
+                </TableHeader>
+                <TableHeader className="whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => handleSortToggle('classType')}
+                    className="inline-flex items-center gap-1 hover:text-zinc-700"
+                  >
+                    <span>Class Type</span>
+                    <span className="text-xs">{getSortIndicator('classType')}</span>
+                  </button>
+                </TableHeader>
                 <TableHeader className="whitespace-nowrap">Actions</TableHeader>
               </tr>
             </thead>
