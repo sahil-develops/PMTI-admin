@@ -216,10 +216,6 @@ export default function AddPromotionForm() {
     if (!formData.endDate) {
       newErrors.endDate = 'End Date is required';
     }
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
-    }
-
     // Date validation
     if (formData.startDate && formData.endDate) {
       const start = new Date(formData.startDate);
