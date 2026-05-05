@@ -4,6 +4,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Loader2 } from 'lucide-react';
 
 import Loader from "@/components/ui/Loader";
 
@@ -210,6 +218,189 @@ const getDaysBetweenDates = (startDate: string, endDate: string) => {
   return days;
 };
 
+const ViewStudentModal = ({
+  studentId,
+  isOpen,
+  onClose,
+}: {
+  studentId: number | null;
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
+  const [studentData, setStudentData] = useState<any>(null);
+  const [loadingStudent, setLoadingStudent] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (isOpen && studentId) {
+      setLoadingStudent(true);
+      setFetchError(null);
+      fetch(`https://api.projectmanagementtraininginstitute.com/students/${studentId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to fetch student details');
+          return res.json();
+        })
+        .then((data) => {
+          if (data.success) {
+            setStudentData(data.data);
+          } else {
+            setFetchError(data.error || data.message || 'Failed to fetch student details');
+          }
+        })
+        .catch((err) => setFetchError(err.message || 'Failed to fetch student details'))
+        .finally(() => setLoadingStudent(false));
+    }
+  }, [isOpen, studentId]);
+
+  const getLocationInfo = (student: any) => {
+    let cityName = 'N/A', stateName = 'N/A', countryName = 'N/A';
+    if (student?.city && typeof student.city === 'object') cityName = (student.city as any).location || 'N/A';
+    else if (typeof student?.city === 'string' && student.city) cityName = student.city;
+    if (student?.state && typeof student.state === 'object') stateName = (student.state as any).name || 'N/A';
+    else if (typeof student?.state === 'string' && student.state) stateName = student.state;
+    if (student?.country && typeof student.country === 'object') countryName = (student.country as any).CountryName || 'N/A';
+    else if (typeof student?.country === 'string' && student.country) countryName = student.country;
+    return { cityName, stateName, countryName };
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Student Details</DialogTitle>
+        </DialogHeader>
+        {loadingStudent ? (
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : fetchError ? (
+          <div className="p-4 text-center text-red-500">{fetchError}</div>
+        ) : studentData ? (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium mb-4">Personal Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Student ID</p>
+                  <p>{studentData.student.uid || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Name</p>
+                  <p>{studentData.student.name || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Email</p>
+                  <p>{studentData.student.email || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Phone</p>
+                  <p>{studentData.student.phone || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Company</p>
+                  <p>{studentData.student.companyName || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Profession</p>
+                  <p>{studentData.student.profession || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Status</p>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${studentData.student.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {studentData.student.active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Last Login</p>
+                  <p>{studentData.student.lastLogin ? new Date(studentData.student.lastLogin).toLocaleString() : 'Never'}</p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-medium mb-4">Address Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Address</p>
+                  <p>{studentData.student.address || 'N/A'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Location</p>
+                  <p>
+                    {(() => {
+                      const { cityName, stateName, countryName } = getLocationInfo(studentData.student);
+                      return [cityName, stateName, countryName].filter(v => v !== 'N/A').join(', ') || 'N/A';
+                    })()}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Zip Code</p>
+                  <p>{studentData.student.zipCode || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+            {studentData.enrollments && studentData.enrollments.length > 0 && (
+              <div>
+                <h3 className="text-lg font-medium mb-4">Enrollment History</h3>
+                <div className="space-y-6">
+                  {studentData.enrollments.map((enrollment: any) => (
+                    <div key={enrollment.ID} className="border border-gray-200 rounded-lg p-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Course/Class Title</p>
+                          <p className="font-medium">
+                            {enrollment.course ? enrollment.course.courseName : (enrollment.class ? enrollment.class.title : 'N/A')}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Type</p>
+                          <p>{enrollment.enrollmentType || 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Enrollment Date</p>
+                          <p>{enrollment.EnrollmentDate ? new Date(enrollment.EnrollmentDate).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Payment</p>
+                          <p>${parseFloat(enrollment.Price).toFixed(2)}{enrollment.PaymentMode && ` (${enrollment.PaymentMode})`}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Progress</p>
+                          <p className="capitalize">{enrollment.enrollmentProgress || 'Ongoing'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-gray-500">Status</p>
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${enrollment.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {enrollment.status ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </div>
+                      {enrollment.Comments && (
+                        <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+                          <h4 className="text-md font-medium mb-2">Comments</h4>
+                          <p className="text-sm">{enrollment.Comments}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-4 text-center">No student data available</div>
+        )}
+        <DialogFooter>
+          <Button onClick={onClose}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const EnrollmentTable = ({
   enrollments: initialEnrollments,
   onUpdate,
@@ -221,6 +412,8 @@ export const EnrollmentTable = ({
   const [selectedItems, setSelectedItems] = useState<number[]>([]); // Changed from string[] to number[]
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
   const [error, setError] = useState<string | null>(null);
+  const [viewingStudentId, setViewingStudentId] = useState<number | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const classdays = startDate && endDate ? getDaysBetweenDates(startDate, endDate) : [];
 
@@ -284,6 +477,14 @@ export const EnrollmentTable = ({
 
   return (
     <div className="w-full overflow-x-auto hideScrollBar border border-zinc-100">
+      <ViewStudentModal
+        studentId={viewingStudentId}
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setViewingStudentId(null);
+        }}
+      />
       <Table>
         <TableHeader>
           <TableRow>
@@ -336,8 +537,34 @@ export const EnrollmentTable = ({
                 />
               </StyledTableCell>
               {/* <StyledTableCell>{enrollment.ID}</StyledTableCell> */}
-              <StyledTableCell>{enrollment.student.name}</StyledTableCell>
-              <StyledTableCell>{enrollment.student.email}</StyledTableCell>
+              <StyledTableCell>
+                <span
+                  className="cursor-pointer transition-colors duration-150"
+                  style={{ color: 'inherit' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#4CAF50')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'inherit')}
+                  onClick={() => {
+                    setViewingStudentId(enrollment.student.id);
+                    setIsViewModalOpen(true);
+                  }}
+                >
+                  {enrollment.student.name}
+                </span>
+              </StyledTableCell>
+              <StyledTableCell>
+                <span
+                  className="cursor-pointer transition-colors duration-150"
+                  style={{ color: 'inherit' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#4CAF50')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'inherit')}
+                  onClick={() => {
+                    setViewingStudentId(enrollment.student.id);
+                    setIsViewModalOpen(true);
+                  }}
+                >
+                  {enrollment.student.email}
+                </span>
+              </StyledTableCell>
               <StyledTableCell>
                 {new Date(enrollment.EnrollmentDate).toLocaleDateString()}
               </StyledTableCell>
