@@ -204,6 +204,32 @@ const updateEnrollment = async (studentId: number, payload: UpdatePayload) => {
   }
 };
 
+const updateStudentActiveStatus = async (
+  studentId: number,
+  active: boolean,
+  studentInfo: { name: string; email: string; phone: string }
+) => {
+  const baseUrl = 'https://api.projectmanagementtraininginstitute.com';
+  try {
+    const response = await fetch(`${baseUrl}/students/${studentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
+      body: JSON.stringify({ active, ...studentInfo }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Student status update failed');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating student active status:', error);
+    throw error;
+  }
+};
+
 const getDaysBetweenDates = (startDate: string, endDate: string) => {
   const start = new Date(startDate);
   const end = new Date(endDate);
@@ -425,32 +451,59 @@ export const EnrollmentTable = ({
 
     try {
       const response = await updateEnrollment(studentId, payload);
+
+      // When status changes, also update the student's own active field so it
+      // reflects correctly in Students Management and Student Details pages.
+      if (payload.status !== undefined) {
+        const targetEnrollment = enrollments.find(e => e.ID === studentId);
+        if (targetEnrollment) {
+          await updateStudentActiveStatus(targetEnrollment.student.id, payload.status, {
+            name: targetEnrollment.student.name,
+            email: targetEnrollment.student.email,
+            phone: targetEnrollment.student.phone,
+          });
+        }
+      }
+
       if (response.success) {
-        setEnrollments(prev => prev.map(enrollment => {
-          if (enrollment.ID === studentId) {
-            let newPMPPass = enrollment.PMPPass;
-            let newEnrollmentProgress = enrollment.enrollmentProgress;
-            if (payload.enrollmentProgress) {
-              newEnrollmentProgress = payload.enrollmentProgress;
-              newPMPPass = payload.enrollmentProgress === 'pass';
+        // Find the student.id of the enrollment being updated so we can
+        // propagate status changes to all rows belonging to the same student.
+        setEnrollments(prev => {
+          const targetStudentId = prev.find(e => e.ID === studentId)?.student.id;
+          return prev.map(enrollment => {
+            const isTargetEnrollment = enrollment.ID === studentId;
+            const isSameStudent = payload.status !== undefined && enrollment.student.id === targetStudentId;
+
+            if (isTargetEnrollment) {
+              let newPMPPass = enrollment.PMPPass;
+              let newEnrollmentProgress = enrollment.enrollmentProgress;
+              if (payload.enrollmentProgress) {
+                newEnrollmentProgress = payload.enrollmentProgress;
+                newPMPPass = payload.enrollmentProgress === 'pass';
+              }
+              return {
+                ...enrollment,
+                enrollmentProgress: newEnrollmentProgress,
+                PMPPass: newPMPPass,
+                pmbok: payload.pmbok !== undefined ? payload.pmbok : enrollment.pmbok,
+                status: payload.status !== undefined ? payload.status : enrollment.status,
+                MealType: payload.MealType || enrollment.MealType,
+                day1Input: payload.day1Input || enrollment.day1Input,
+                day2Input: payload.day2Input || enrollment.day2Input,
+                day3Input: payload.day3Input || enrollment.day3Input,
+                day4Input: payload.day4Input || enrollment.day4Input,
+                signatureInput: payload.signatureInput || enrollment.signatureInput
+              };
             }
-            return {
-              ...enrollment,
-              enrollmentProgress: newEnrollmentProgress,
-              PMPPass: newPMPPass,
-              pmbok: payload.pmbok !== undefined ? payload.pmbok : enrollment.pmbok,
-              status: payload.status !== undefined ? payload.status : enrollment.status,
-              MealType: payload.MealType || enrollment.MealType,
-              day1Input: payload.day1Input || enrollment.day1Input,
-              day2Input: payload.day2Input || enrollment.day2Input,
-              day3Input: payload.day3Input || enrollment.day3Input,
-              day4Input: payload.day4Input || enrollment.day4Input,
-              signatureInput: payload.signatureInput || enrollment.signatureInput
-            };
-          }
-          // console.log('Updated enrollment:', { ...enrollment, ...});
-          return enrollment;
-        }));
+
+            // For other enrollments of the same student, only sync the status
+            if (isSameStudent) {
+              return { ...enrollment, status: payload.status };
+            }
+
+            return enrollment;
+          });
+        });
         if (onUpdate) onUpdate();
       }
     } catch (error) {
