@@ -71,6 +71,11 @@ const EditAdmin = ({ params }: { params: { id: string } }) => {
   const [countries, setCountries] = useState<Country[]>([]);
   const [loadingCountries, setLoadingCountries] = useState(false);
 
+  const [resetPassword, setResetPassword] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetError, setResetError] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -81,6 +86,45 @@ const EditAdmin = ({ params }: { params: { id: string } }) => {
   } = useForm({
     resolver: zodResolver(adminFormSchema)
   });
+
+  const handleResetPassword = async () => {
+    if (!resetPassword) return;
+    setResettingPassword(true);
+    setResetSuccess(false);
+    setResetError("");
+
+    try {
+      const email = watch("email");
+      if (!email) {
+        throw new Error("Email is required to reset password");
+      }
+
+      const response = await fetch('https://api.4pmti.com/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify({
+          email,
+          newPassword: resetPassword
+        })
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.error || responseData.message || 'Failed to reset password');
+      }
+
+      setResetSuccess(true);
+      setResetPassword(""); // Clear the password input after success
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : 'An unknown error occurred');
+    } finally {
+      setResettingPassword(false);
+    }
+  };
 
   // Fetch admin data
   useEffect(() => {
@@ -289,6 +333,35 @@ const EditAdmin = ({ params }: { params: { id: string } }) => {
             </Select>
             {errors.countryId && (
               <p className="mt-1 text-sm text-red-500">{errors.countryId.message}</p>
+            )}
+          </div>
+
+          <div>
+            <Label>Reset Password</Label>
+            <div className="flex gap-2">
+              <Input
+                type="password"
+                placeholder="Enter new password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                className={resetError ? 'border-red-500' : ''}
+              />
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={resettingPassword || !resetPassword}
+                className={`flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-all duration-150 ${
+                  resettingPassword || !resetPassword ? "bg-gray-400 cursor-not-allowed" : "bg-zinc-800 hover:bg-zinc-900 active:scale-[0.98]"
+                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500`}
+              >
+                {resettingPassword ? "Resetting..." : "Reset"}
+              </button>
+            </div>
+            {resetSuccess && (
+              <p className="mt-1 text-sm text-green-600 font-medium">Password reset successfully!</p>
+            )}
+            {resetError && (
+              <p className="mt-1 text-sm text-red-500 font-medium">{resetError}</p>
             )}
           </div>
         </div>
